@@ -14,6 +14,7 @@ h1, h2, h3, h4, h5, h6 {
   font-family: "Press Start 2P", serif;
   font-weight: 400;
   font-style: normal;
+  line-height: 1.5em;
 }
 p {
   color: black;
@@ -23,6 +24,12 @@ header {
 }
 h1 {
   text-align: center;
+}
+h2 {
+  margin: 84px 0 32px;
+}
+h3 {
+  font-size: 20px;
 }
 h4 {
   margin-top: 32px;
@@ -37,7 +44,7 @@ li {
 #page-url {
   position: relative;
   text-align: center;
-  font-size: 20px;
+  font-size: 30px;
   color: #00b;
 }
 #qr {
@@ -54,11 +61,14 @@ li {
 #projects {
   margin-bottom: 48px;
 }
-
+#games-section img {
+  border-radius: 6px;
+  margin: 32px 24px;
+}
 #tacocat-section img {
   display: block;
   height: 200px;
-  margin: 0 auto;
+  margin: 20px auto 0;
 }
 #tacocat-section ul {
   list-style: none;

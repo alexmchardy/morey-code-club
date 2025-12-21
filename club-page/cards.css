@@ -4,6 +4,9 @@
   grid-auto-rows: minmax(170px, min-content);
   gap: 16px;
 }
+.card-grid-full {
+  grid-template-columns: 1fr;
+}
 .card {
   position: relative;
   perspective: 800px;
@@ -11,17 +14,15 @@
 .card .content {
   position: relative;
   width: 100%;
-  height: calc(50% + 64px);
   min-height: 170px;
   box-shadow: 0 0 15px rgba(0,0,0,0.1);
   transition: transform 1s;
   transform-style: preserve-3d;
   border-radius: 8px;
-
 }
 
-.card:hover .content,
-.card:focus .content {
+.card:has(.back):hover .content,
+.card:has(.back):focus .content {
   transform: rotateY( 180deg ) ;
   transition: transform 0.5s;
 }
@@ -43,7 +44,8 @@
 }
 
 .card .back {
-  top: -100%;
+  position: absolute;
+  top: 0;
   background: #6091ae;
   color: white;
   text-align: center;
@@ -58,4 +60,11 @@
 }
 .card .back a:hover {
 
+}
+.card img {
+  border-radius: 6px;
+  margin: 32px 24px;
+}
+.card-grid-full .card:nth-child(even) img {
+  order: 1;
 }

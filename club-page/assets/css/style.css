@@ -41,6 +41,14 @@ li {
   font-family: "Share Tech Mono", monospace;
   white-space: pre-line;
 }
+.blink {
+  animation: blinker 1s step-start infinite;
+}
+@keyframes blinker {
+  50% {
+    opacity: 0.1;
+  }
+}
 #page-url {
   position: relative;
   text-align: center;

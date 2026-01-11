@@ -61,6 +61,10 @@
 .card .back a:hover {
 
 }
+.card h4, .card h5 {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
 .card img {
   border-radius: 6px;
   margin: 32px 24px;

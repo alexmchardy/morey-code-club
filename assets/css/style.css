@@ -87,3 +87,9 @@ li {
 #tacocat-section ul {
   list-style: none;
 }
+
+@media (max-width: 850px) {
+  #qr {
+    display: none;
+  }
+}

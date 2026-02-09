@@ -226,6 +226,49 @@
             margin: 5px 0;
             opacity: 0.9;
         }
+
+        #levelSelect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+        }
+
+        #levelSelect h2 {
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        #levelButtons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .level-btn {
+            width: 60px;
+            height: 60px;
+            font-size: 20px;
+            border-radius: 8px;
+        }
+
+        .level-btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .level-btn:disabled:hover {
+            transform: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
     </style>
 </head>
 <body>
@@ -236,12 +279,17 @@
         <div id="gameOver">
             <h2>Level Complete!</h2>
             <button onclick="nextLevel()">Next Level</button>
-            <button onclick="restartGame()">Restart</button>
+            <button onclick="showLevelSelect()">Level Select</button>
+        </div>
+        <div id="levelSelect">
+            <h2>Select Level</h2>
+            <div id="levelButtons"></div>
         </div>
     </div>
 
     <div id="controls">
         <button id="restartBtn" onclick="restartGame()">Restart</button>
+        <button onclick="showLevelSelect()" style="background: #9C27B0;">Levels</button>
         <button id="codeBtn" onclick="toggleCodeDrawer()">Show Code</button>
         <button id="levelBtn" onclick="toggleLevelDrawer()">Level Editor</button>
     </div>
@@ -296,58 +344,100 @@ let gameState = {
     isGameOver: false,
     isWin: false,
     currentLevel: 0,
-    isJumping: false
+    isJumping: false,
+    highestCompletedLevel: -1
 };
 
+// Load saved progress from localStorage
+function loadProgress() {
+    const saved = localStorage.getItem('mdash_highest_level');
+    gameState.highestCompletedLevel = saved ? parseInt(saved) : -1;
+}
+
+// Save progress to localStorage
+function saveProgress() {
+    localStorage.setItem('mdash_highest_level', gameState.highestCompletedLevel.toString());
+}
+
+// Show level select screen
+function showLevelSelect() {
+    document.getElementById('gameOver').style.display = 'none';
+    const levelSelect = document.getElementById('levelSelect');
+    const buttonsContainer = document.getElementById('levelButtons');
+    buttonsContainer.innerHTML = '';
+
+    LEVELS.forEach((level, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'level-btn';
+        btn.textContent = index + 1;
+        btn.title = level.name;
+
+        // Enable if level is unlocked (completed previous level or it's level 1)
+        const isUnlocked = index <= gameState.highestCompletedLevel + 1;
+        btn.disabled = !isUnlocked;
+
+        if (isUnlocked) {
+            btn.onclick = () => {
+                levelSelect.style.display = 'none';
+                startLevel(index);
+            };
+        }
+
+        buttonsContainer.appendChild(btn);
+    });
+
+    levelSelect.style.display = 'block';
+}
+
 // Level Definitions
+// y = distance from ground to bottom of obstacle (0 = on ground, 50 = floating 50px up)
 let LEVELS = [
     {
         name: "Level 1 - Easy Start",
         obstacles: [
-            { x: 390, y: 50, width: 30, height: 30, type: 'spike' },
-            { x: 500, y: 50, width: 30, height: 30, type: 'spike' },
-            { x: 700, y: 100, width: 50, height: 140, type: 'block' },
-            { x: 900, y: 50, width: 30, height: 30, type: 'spike' },
-            { x: 1100, y: 50, width: 30, height: 30, type: 'spike' },
-            { x: 1300, y: 50, width: 30, height: 60, type: 'block' }
+            { x: 500, y: 0, width: 30, height: 30, type: 'spike' },
+            { x: 610, y: 0, width: 30, height: 30, type: 'spike' },
+            { x: 810, y: 70, width: 80, height: 30, type: 'block' },
+            { x: 1010, y: 0, width: 30, height: 30, type: 'spike' },
+            { x: 1210, y: 0, width: 30, height: 30, type: 'spike' },
+            { x: 1410, y: 0, width: 30, height: 60, type: 'block' }
         ],
-        length: 1500
+        length: 1610
     },
     {
         name: "Level 2 - Timing Challenge",
         obstacles: [
-            { x: 350, y: 50, width: 30, height: 30, type: 'spike' },
-            { x: 450, y: 50, width: 30, height: 30, type: 'spike' },
-            { x: 550, y: 50, width: 30, height: 30, type: 'spike' },
-            { x: 650, y: 50, width: 30, height: 100, type: 'block' },
-            { x: 850, y: 50, width: 30, height: 30, type: 'spike' },
-            { x: 900, y: 50, width: 30, height: 30, type: 'spike' },
-            { x: 1100, y: 50, width: 30, height: 120, type: 'block' },
-            { x: 1300, y: 50, width: 30, height: 30, type: 'spike' },
-            { x: 1500, y: 50, width: 30, height: 30, type: 'spike' },
-            { x: 1700, y: 50, width: 30, height: 80, type: 'block' }
+            { x: 500, y: 0, width: 30, height: 30, type: 'spike' },
+            { x: 610, y: 0, width: 30, height: 30, type: 'spike' },
+            { x: 800, y: 0, width: 30, height: 100, type: 'block' },
+            { x: 1000, y: 0, width: 30, height: 30, type: 'spike' },
+            { x: 1030, y: 0, width: 30, height: 30, type: 'spike' },
+            { x: 1250, y: 0, width: 30, height: 120, type: 'block' },
+            { x: 1450, y: 0, width: 30, height: 30, type: 'spike' },
+            { x: 1650, y: 0, width: 30, height: 30, type: 'spike' },
+            { x: 1850, y: 0, width: 30, height: 80, type: 'block' }
         ],
-        length: 2000
+        length: 2150
     },
     {
         name: "Level 3 - Expert",
         obstacles: [
-            { x: 200, y: 50, width: 30, height: 30, type: 'spike' },
-            { x: 300, y: 50, width: 30, height: 90, type: 'block' },
-            { x: 450, y: 50, width: 30, height: 30, type: 'spike' },
-            { x: 500, y: 50, width: 30, height: 30, type: 'spike' },
-            { x: 600, y: 50, width: 30, height: 120, type: 'block' },
-            { x: 800, y: 50, width: 30, height: 30, type: 'spike' },
-            { x: 850, y: 50, width: 30, height: 30, type: 'spike' },
-            { x: 900, y: 50, width: 30, height: 30, type: 'spike' },
-            { x: 1050, y: 50, width: 30, height: 100, type: 'block' },
-            { x: 1200, y: 50, width: 30, height: 30, type: 'spike' },
-            { x: 1300, y: 50, width: 30, height: 140, type: 'block' },
-            { x: 1500, y: 50, width: 30, height: 30, type: 'spike' },
-            { x: 1550, y: 50, width: 30, height: 30, type: 'spike' },
-            { x: 1700, y: 50, width: 30, height: 30, type: 'spike' }
+            { x: 500, y: 0, width: 30, height: 30, type: 'spike' },
+            { x: 580, y: 0, width: 30, height: 90, type: 'block' },
+            { x: 750, y: 0, width: 30, height: 30, type: 'spike' },
+            { x: 800, y: 0, width: 30, height: 30, type: 'spike' },
+            { x: 900, y: 0, width: 30, height: 90, type: 'block' },
+            { x: 1100, y: 0, width: 30, height: 30, type: 'spike' },
+            { x: 1150, y: 0, width: 30, height: 30, type: 'spike' },
+            { x: 1200, y: 0, width: 30, height: 30, type: 'spike' },
+            { x: 1350, y: 0, width: 30, height: 100, type: 'block' },
+            { x: 1500, y: 0, width: 30, height: 30, type: 'spike' },
+            { x: 1600, y: 0, width: 30, height: 140, type: 'block' },
+            { x: 1800, y: 0, width: 30, height: 30, type: 'spike' },
+            { x: 1850, y: 0, width: 30, height: 30, type: 'spike' },
+            { x: 2000, y: 0, width: 30, height: 30, type: 'spike' }
         ],
-        length: 2200
+        length: 2500
     }
 ];
 
@@ -405,6 +495,12 @@ class Player {
                 return;
             }
 
+            // For blocks: ignore if player has already passed the block
+            const playerCenter = this.x + this.width / 2;
+            if (playerCenter > rect.right) {
+                continue;
+            }
+
             // For blocks, check if landing on top
             if (this.isLandingOnTop(rect)) {
                 this.landOn(rect.top);
@@ -423,12 +519,26 @@ class Player {
 
     getObstacleRect(obstacle) {
         const screenX = obstacle.x - gameState.scrollOffset;
-        const top = GAME_CONFIG.height - GAME_CONFIG.groundHeight - obstacle.height;
+        // y is distance from ground to bottom of obstacle (0 = on ground)
+        const bottom = GAME_CONFIG.height - GAME_CONFIG.groundHeight - obstacle.y;
+        const top = bottom - obstacle.height;
+
+        // Spikes have a smaller hitbox (triangular shape approximation)
+        if (obstacle.type === 'spike') {
+            const padding = obstacle.width * 0.25;
+            return {
+                left: screenX + padding,
+                right: screenX + obstacle.width - padding,
+                top: top + obstacle.height * 0.3,
+                bottom: bottom
+            };
+        }
+
         return {
             left: screenX,
             right: screenX + obstacle.width,
             top: top,
-            bottom: top + obstacle.height
+            bottom: bottom
         };
     }
 
@@ -500,8 +610,10 @@ function initGame() {
     // Load code into editor
     loadCodeIntoEditor();
 
-    // Start game
-    startLevel(0);
+    // Load saved progress and start at highest unlocked level
+    loadProgress();
+    const startingLevel = Math.min(gameState.highestCompletedLevel + 1, LEVELS.length - 1);
+    startLevel(startingLevel);
     gameLoop();
 }
 
@@ -529,7 +641,7 @@ function gameLoop() {
 }
 
 function update() {
-    if (gameState.isGameOver || gameState.isWin) return;
+    if (!gameState.player || gameState.isGameOver || gameState.isWin) return;
 
     // Update player
     gameState.player.update();
@@ -558,7 +670,8 @@ function draw() {
     // Draw obstacles
     for (let obstacle of gameState.obstacles) {
         const screenX = obstacle.x - gameState.scrollOffset;
-        const obstacleY = GAME_CONFIG.height - GAME_CONFIG.groundHeight - obstacle.height;
+        // y is distance from ground to bottom of obstacle (0 = on ground)
+        const obstacleY = GAME_CONFIG.height - GAME_CONFIG.groundHeight - obstacle.y - obstacle.height;
 
         // Only draw if on screen
         if (screenX + obstacle.width > 0 && screenX < GAME_CONFIG.width) {
@@ -638,6 +751,13 @@ function gameOver() {
 
 function winLevel() {
     gameState.isWin = true;
+
+    // Update highest completed level if this is a new record
+    if (gameState.currentLevel > gameState.highestCompletedLevel) {
+        gameState.highestCompletedLevel = gameState.currentLevel;
+        saveProgress();
+    }
+
     document.getElementById('gameOver').style.display = 'block';
 }
 
@@ -762,7 +882,7 @@ function nextLevel() {
             const newLevel = {
                 name: `Level ${LEVELS.length + 1} - New Level`,
                 obstacles: [
-                    { x: 300, y: 50, width: 30, height: 30, type: 'spike' }
+                    { x: 500, y: 0, width: 30, height: 30, type: 'spike' }
                 ],
                 length: 1500
             };

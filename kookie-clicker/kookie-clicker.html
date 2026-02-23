@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kookie Clicker - Code Edition</title>
+    <!-- CodeMirror (optional - falls back to plain textarea if unavailable) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-gradient-1: #ffecd2;
+            --bg-gradient-2: #fcb69f;
+            --panel-bg: #fff5eb;
+            --panel-border: #e8c4a8;
+            --accent-pink: #ff6b9d;
+            --accent-orange: #ff8c42;
+            --accent-brown: #8b5a2b;
+            --text-dark: #5c4033;
+            --text-light: #a67c52;
+            --button-gradient-1: #ff9a56;
+            --button-gradient-2: #ff6b35;
+            --upgrade-available: #ffd93d;
+            --upgrade-locked: #d4c4b0;
+        }
+
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-1) 0%, var(--bg-gradient-2) 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Decorative background pattern */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                radial-gradient(circle at 20% 80%, rgba(255, 107, 157, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 140, 66, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(255, 217, 61, 0.08) 0%, transparent 40%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        header {
+            text-align: left;
+            padding: 16px 0 16px 24px;
+            position: relative;
+            z-index: -1;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-brown);
+            text-shadow: 3px 3px 0 rgba(255, 255, 255, 0.5);
+            letter-spacing: 2px;
+        }
+
+        #gameContainer {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+            padding: 0 20px 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Left Panel - Stats */
+        #statsPanel {
+            width: 250px;
+            background: var(--panel-bg);
+            border-radius: 20px;
+            padding: 20px;
+            border: 3px solid var(--panel-border);
+            box-shadow: 0 8px 32px rgba(139, 90, 43, 0.2);
+        }
+
+        #statsPanel h2 {
+            color: var(--accent-brown);
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            text-align: center;
+            border-bottom: 2px dashed var(--panel-border);
+            padding-bottom: 10px;
+        }
+
+        .stat-item {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 2px solid var(--panel-border);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--accent-brown);
+        }
+
+        /* Center Panel - Main Clicker */
+        #clickerPanel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 500px;
+        }
+
+        #kookieCount {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: var(--accent-brown);
+            text-shadow: 2px 2px 0 white;
+            margin-bottom: 10px;
+        }
+
+        #perSecond {
+            font-size: 1.2rem;
+            color: var(--text-light);
+            margin-bottom: 30px;
+        }
+
+        #mainKookie {
+            font-size: 180px;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+            filter: drop-shadow(0 10px 20px rgba(139, 90, 43, 0.3));
+            user-select: none;
+            position: relative;
+        }
+
+        #mainKookie:hover {
+            transform: scale(1.05);
+        }
+
+        #mainKookie:active {
+            transform: scale(0.95);
+        }
+
+        #mainKookie.clicked {
+            animation: kookiePop 0.1s ease;
+        }
+
+        @keyframes kookiePop {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+
+        /* Click particles */
+        .click-particle {
+            position: absolute;
+            pointer-events: none;
+            font-weight: 600;
+            color: var(--text-dark);
+            text-shadow: 1px 1px 0 white;
+            animation: floatUp 3s ease-out forwards;
+            z-index: 100;
+        }
+
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-200px) scale(1.2);
+            }
+        }
+
+        /* Right Panel - Upgrades */
+        #upgradesPanel {
+            width: 320px;
+            background: var(--panel-bg);
+            border-radius: 20px;
+            padding: 20px;
+            border: 3px solid var(--panel-border);
+            box-shadow: 0 8px 32px rgba(139, 90, 43, 0.2);
+            overflow-y: auto;
+            max-height: calc(100vh - 150px);
+        }
+
+        #upgradesPanel h2 {
+            color: var(--accent-brown);
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            text-align: center;
+            border-bottom: 2px dashed var(--panel-border);
+            padding-bottom: 10px;
+        }
+
+        .upgrade-item {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 2px solid var(--panel-border);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .upgrade-item:hover:not(.locked) {
+            transform: translateX(-5px);
+            box-shadow: 5px 5px 0 var(--panel-border);
+        }
+
+        .upgrade-item.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .upgrade-item.affordable {
+            border-color: var(--upgrade-available);
+            background: linear-gradient(135deg, #fffef0 0%, #fff9e6 100%);
+        }
+
+        .upgrade-icon {
+            font-size: 2rem;
+            min-width: 45px;
+            text-align: center;
+        }
+
+        .upgrade-info {
+            flex: 1;
+        }
+
+        .upgrade-name {
+            font-weight: 600;
+            color: var(--accent-brown);
+            font-size: 1rem;
+        }
+
+        .upgrade-desc {
+            font-size: 0.75rem;
+            color: var(--text-light);
+        }
+
+        .upgrade-cost {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent-orange);
+        }
+
+        .upgrade-owned {
+            background: var(--accent-brown);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        /* Controls */
+        #controls {
+            display: flex;
+            gap: 10px;
+            padding: 15px 20px;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.5);
+            position: relative;
+            z-index: 1;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--button-gradient-1), var(--button-gradient-2));
+            color: white;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 0 #cc5522;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #cc5522;
+        }
+
+        button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #cc5522;
+        }
+
+        #codeBtn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            box-shadow: 0 4px 0 #5a3d8a;
+        }
+
+        #codeBtn:hover {
+            box-shadow: 0 6px 0 #5a3d8a;
+        }
+
+        #codeBtn:active {
+            box-shadow: 0 2px 0 #5a3d8a;
+        }
+
+        #resetBtn {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+            box-shadow: 0 4px 0 #cc4444;
+        }
+
+        #resetBtn:hover {
+            box-shadow: 0 6px 0 #cc4444;
+        }
+
+        #resetBtn:active {
+            box-shadow: 0 2px 0 #cc4444;
+        }
+
+        /* Code Drawer */
+        #codeDrawer {
+            position: fixed;
+            right: -800px;
+            top: 0;
+            width: 800px;
+            height: 100vh;
+            background: #1e1e1e;
+            box-shadow: -5px 0 20px rgba(0,0,0,0.5);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #codeDrawer.open {
+            right: 0;
+        }
+
+        #codeDrawer h2 {
+            color: white;
+            padding: 20px;
+            background: #333;
+            margin: 0;
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        #codeEditorContainer {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        #codeEditorContainer .CodeMirror {
+            height: 100%;
+            font-size: 14px;
+        }
+
+        #codeEditorFallback {
+            width: 100%;
+            height: 100%;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            border: none;
+            outline: none;
+            resize: none;
+        }
+
+        #codeControls {
+            padding: 20px;
+            background: #333;
+            display: flex;
+            gap: 10px;
+        }
+
+        #codeControls button {
+            box-shadow: none;
+        }
+
+        #saveCodeBtn {
+            background: #4CAF50;
+        }
+
+        #resetCodeBtn {
+            background: #f44336;
+        }
+
+        #closeCodeBtn {
+            background: #666;
+        }
+
+        /* Instructions */
+        #instructions {
+            text-align: center;
+            padding: 10px 20px 20px;
+            color: var(--text-dark);
+            position: relative;
+            z-index: 1;
+        }
+
+        #instructions p {
+            margin: 5px 0;
+            opacity: 0.8;
+        }
+
+        /* Achievements popup */
+        .achievement-popup {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: linear-gradient(135deg, #ffd700, #ffb700);
+            color: var(--accent-brown);
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-weight: 600;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            animation: slideUp 3s ease forwards;
+            z-index: 500;
+        }
+
+        @keyframes slideUp {
+            0% { transform: translateX(-50%) translateY(100px); opacity: 0; }
+            15% { transform: translateX(-50%) translateY(0); opacity: 1; }
+            85% { transform: translateX(-50%) translateY(0); opacity: 1; }
+            100% { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+        }
+
+        /* Raining kookies */
+        .rain-kookie {
+            position: fixed;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.6;
+        }
+
+        .rain-kookie.clockwise {
+            animation: rainFallCW linear forwards;
+        }
+
+        .rain-kookie.counterclockwise {
+            animation: rainFallCCW linear forwards;
+        }
+
+        @keyframes rainFallCW {
+            0% {
+                transform: translateY(-50px) rotate(0deg);
+                opacity: 0.7;
+            }
+            100% {
+                transform: translateY(110vh) rotate(360deg);
+                opacity: 0.3;
+            }
+        }
+
+        @keyframes rainFallCCW {
+            0% {
+                transform: translateY(-50px) rotate(0deg);
+                opacity: 0.7;
+            }
+            100% {
+                transform: translateY(110vh) rotate(-360deg);
+                opacity: 0.3;
+            }
+        }
+
+        /* Golden kookie */
+        #goldenKookie {
+            position: fixed;
+            font-size: 80px;
+            cursor: pointer;
+            z-index: 50;
+            filter: drop-shadow(0 0 20px gold) drop-shadow(0 0 40px rgba(255, 215, 0, 0.5));
+            animation: goldenPulse 1s ease-in-out infinite, goldenFloat 3s ease-in-out infinite;
+            transition: transform 0.1s ease;
+        }
+
+        #goldenKookie:hover {
+            transform: scale(1.2);
+        }
+
+        @keyframes goldenPulse {
+            0%, 100% { filter: drop-shadow(0 0 20px gold) drop-shadow(0 0 40px rgba(255, 215, 0, 0.5)); }
+            50% { filter: drop-shadow(0 0 30px gold) drop-shadow(0 0 60px rgba(255, 215, 0, 0.8)); }
+        }
+
+        @keyframes goldenFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Boost indicator */
+        #boostIndicator {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            box-shadow: 0 5px 20px rgba(255, 140, 0, 0.5);
+            z-index: 100;
+            display: none;
+            animation: boostPulse 0.5s ease-in-out infinite;
+        }
+
+        @keyframes boostPulse {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.05); }
+        }
+
+        /* Golden rain (during boost) */
+        .rain-kookie.golden {
+            opacity: 0.9;
+            filter: drop-shadow(0 0 10px gold);
+        }
+
+        /* Responsive */
+        @media (max-width: 1000px) {
+            #gameContainer {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            #statsPanel, #upgradesPanel {
+                width: 100%;
+                max-width: 400px;
+            }
+
+            #upgradesPanel {
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Kookie Clicker</h1>
+    </header>
+
+    <div id="gameContainer">
+        <div id="statsPanel">
+            <h2>📊 Stats</h2>
+            <div class="stat-item">
+                <div class="stat-label">Total Baked</div>
+                <div class="stat-value" id="totalBaked">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Per Click</div>
+                <div class="stat-value" id="perClick">1</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Per Second</div>
+                <div class="stat-value" id="perSecondStat">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Total Clicks</div>
+                <div class="stat-value" id="totalClicks">0</div>
+            </div>
+        </div>
+
+        <div id="clickerPanel">
+            <div id="kookieCount">0 kookies</div>
+            <div id="perSecond">per second: 0</div>
+            <div id="mainKookie">🧁</div>
+        </div>
+
+        <div id="upgradesPanel">
+            <h2>🛒 Shop</h2>
+            <div id="upgradesList"></div>
+        </div>
+    </div>
+
+    <div id="controls">
+        <button id="codeBtn" onclick="toggleCodeDrawer()">📝 Show Code</button>
+        <button id="resetBtn" onclick="resetGame()">🔄 Reset Game</button>
+    </div>
+
+    <div id="instructions">
+        <p><strong>Click the kookie</strong> to bake more! Buy upgrades to bake faster.</p>
+        <p><strong>Golden Treats:</strong> Click them when they appear for a temporary multiplier boost!</p>
+        <p><strong>Code Editor:</strong> Modify the game code to add new upgrades, change the emoji, and more!</p>
+    </div>
+
+    <div id="boostIndicator">🔥 2x BOOST! 30s</div>
+
+    <div id="codeDrawer">
+        <h2>🛠️ Game Code Editor</h2>
+        <div id="codeEditorContainer"></div>
+        <div id="codeControls">
+            <button id="saveCodeBtn" onclick="applyCode()">✅ Apply Changes</button>
+            <button id="resetCodeBtn" onclick="resetCode()">🗑️ Reset Code</button>
+            <button id="closeCodeBtn" onclick="toggleCodeDrawer()">❌ Close</button>
+        </div>
+    </div>
+
+    <script id="originalGameCode" type="text/plain">
+// ========================================
+// KOOKIE CLICKER - GAME CONFIGURATION
+// ========================================
+// Change these values to customize your game!
+
+const GAME_CONFIG = {
+    // The main kookie - change this emoji or use an image!
+    // Examples: '🍪', '🎂', '🍩', '🍕', '⭐'
+    // For an image, use: '<img src="your-image-url.png" style="width:180px">'
+    kookieEmoji: '🧁',
+
+    // Name of your currency (shows in the counter)
+    currencyName: 'kookies',
+
+    // Starting values
+    startingKookies: 0,
+    kookiesPerClick: 1,
+
+    // How often to add passive kookies (in milliseconds)
+    tickRate: 100,
+
+    // Visual effects
+    showClickParticles: true,
+    particleEmoji: '+',
+
+    // Raining kookies settings
+    rainEnabled: true,
+    rainMinSize: 20,   // Minimum size of raining kookies in pixels
+    rainMaxSize: 45,   // Maximum size of raining kookies in pixels
+    rainRate: 10,      // Higher = less rain (1 rain kookie per this many kookies produced)
+    rainRateMax: 3,    // Maximum number of rain kookies to spawn per tick
+
+    // Rain objects - array of emojis to randomly rain down
+    // Set to null to use the main kookie emoji
+    // Example: ['🧁', '🍰', '🍪', '🍩', '🎂']
+    rainEmojis: null,
+
+    // Sound effects (set to null to disable)
+    clickSound: null,
+
+    // Colors (CSS color values)
+    colors: {
+        accent: '#ff6b9d',
+        text: '#5c4033'
+    }
+};
+
+// ========================================
+// GOLDEN KOOKIE SETTINGS
+// ========================================
+// Golden kookies appear randomly and give multiplier boosts!
+
+const GOLDEN_CONFIG = {
+    // Possible golden kookie emojis - add your own!
+    emojis: ['🎂', '🍰', '🥧', '🍩', '🍪'],
+
+    // How often golden kookies can appear (in seconds)
+    minSpawnTime: 30,
+    maxSpawnTime: 120,
+
+    // How long until golden kookie disappears (in seconds)
+    lifetime: 10,
+
+    // Multiplier boost range
+    minMultiplier: 2,
+    maxMultiplier: 10,
+
+    // Boost duration range (in seconds)
+    minBoostDuration: 10,
+    maxBoostDuration: 45
+};
+
+// ========================================
+// UPGRADES - Add or modify upgrades here!
+// ========================================
+// Each upgrade has:
+//   - name: Display name
+//   - emoji: Icon to show
+//   - desc: Description
+//   - baseCost: Starting price
+//   - costMultiplier: How much cost increases per purchase
+//   - type: 'click' (more per click) or 'passive' (auto-generates)
+//   - power: How much it adds
+
+const UPGRADES = [
+    {
+        id: 'cursor',
+        name: 'Extra Finger',
+        emoji: '👆',
+        desc: '+1 kookie per click',
+        baseCost: 15,
+        costMultiplier: 1.15,
+        type: 'click',
+        power: 1
+    },
+    {
+        id: 'grandma',
+        name: 'Grandma',
+        emoji: '👵',
+        desc: 'Bakes 1 kookie per second',
+        baseCost: 100,
+        costMultiplier: 1.15,
+        type: 'passive',
+        power: 1
+    },
+    {
+        id: 'bakery',
+        name: 'Bakery',
+        emoji: '🏪',
+        desc: 'Produces 5 kookies per second',
+        baseCost: 500,
+        costMultiplier: 1.15,
+        type: 'passive',
+        power: 5
+    },
+    {
+        id: 'factory',
+        name: 'Factory',
+        emoji: '🏭',
+        desc: 'Produces 20 kookies per second',
+        baseCost: 3000,
+        costMultiplier: 1.15,
+        type: 'passive',
+        power: 20
+    },
+    {
+        id: 'wizard',
+        name: 'Wizard Tower',
+        emoji: '🧙',
+        desc: 'Magically creates 50 kookies per second',
+        baseCost: 10000,
+        costMultiplier: 1.15,
+        type: 'passive',
+        power: 50
+    },
+    {
+        id: 'portal',
+        name: 'Portal',
+        emoji: '🌀',
+        desc: 'Imports 100 kookies per second from another dimension',
+        baseCost: 50000,
+        costMultiplier: 1.15,
+        type: 'passive',
+        power: 100
+    },
+    {
+        id: 'timemachine',
+        name: 'Time Machine',
+        emoji: '⏰',
+        desc: 'Brings 500 kookies per second from the past',
+        baseCost: 250000,
+        costMultiplier: 1.15,
+        type: 'passive',
+        power: 500
+    },
+    {
+        id: 'clickpower',
+        name: 'Golden Spatula',
+        emoji: '🥄',
+        desc: '+10 kookies per click',
+        baseCost: 5000,
+        costMultiplier: 1.5,
+        type: 'click',
+        power: 10
+    },
+    {
+        id: 'clickpower2',
+        name: 'Diamond Whisk',
+        emoji: '💎',
+        desc: '+50 kookies per click',
+        baseCost: 50000,
+        costMultiplier: 1.5,
+        type: 'click',
+        power: 50
+    }
+];
+
+// ========================================
+// ACHIEVEMENTS - Unlock these milestones!
+// ========================================
+
+const ACHIEVEMENTS = [
+    { id: 'first', name: 'First Steps', desc: 'Bake 1 kookie', requirement: 1 },
+    { id: 'hundred', name: 'Getting Started', desc: 'Bake 100 kookies', requirement: 100 },
+    { id: 'thousand', name: 'Baker', desc: 'Bake 1,000 kookies', requirement: 1000 },
+    { id: 'tenk', name: 'Professional', desc: 'Bake 10,000 kookies', requirement: 10000 },
+    { id: 'hundredk', name: 'Master Baker', desc: 'Bake 100,000 kookies', requirement: 100000 },
+    { id: 'million', name: 'Kookie Tycoon', desc: 'Bake 1,000,000 kookies', requirement: 1000000 }
+];
+
+// ========================================
+// GAME STATE - Don't modify directly!
+// ========================================
+
+let gameState = {
+    kookies: GAME_CONFIG.startingKookies,
+    totalBaked: 0,
+    totalClicks: 0,
+    kookiesPerClick: GAME_CONFIG.kookiesPerClick,
+    kookiesPerSecond: 0,
+    upgrades: {},
+    achievements: [],
+    lastTick: Date.now(),
+    // Boost state
+    boostMultiplier: 1,
+    boostEndTime: 0,
+    boostEmoji: null,
+    // Golden kookie state
+    goldenKookieTimeout: null,
+    goldenKookieElement: null
+};
+
+// ========================================
+// GAME FUNCTIONS
+// ========================================
+
+// Format large numbers nicely
+function formatNumber(num) {
+    if (num >= 1e12) return (num / 1e12).toFixed(2) + ' trillion';
+    if (num >= 1e9) return (num / 1e9).toFixed(2) + ' billion';
+    if (num >= 1e6) return (num / 1e6).toFixed(2) + ' million';
+    if (num >= 1e3) return (num / 1e3).toFixed(2) + 'k';
+    return Math.floor(num).toString();
+}
+
+// Calculate cost of an upgrade
+function getUpgradeCost(upgrade) {
+    const owned = gameState.upgrades[upgrade.id] || 0;
+    return Math.floor(upgrade.baseCost * Math.pow(upgrade.costMultiplier, owned));
+}
+
+// Handle clicking the main kookie
+function clickKookie(event) {
+    // Apply boost multiplier to clicks
+    const earned = gameState.kookiesPerClick * gameState.boostMultiplier;
+    gameState.kookies += earned;
+    gameState.totalBaked += earned;
+    gameState.totalClicks++;
+
+    // Show click particle
+    if (GAME_CONFIG.showClickParticles) {
+        showClickParticle(event, earned);
+    }
+
+    // Add click animation
+    const kookie = document.getElementById('mainKookie');
+    kookie.classList.add('clicked');
+    setTimeout(() => kookie.classList.remove('clicked'), 100);
+
+    updateDisplay();
+    checkAchievements();
+    saveGame();
+}
+
+// Show floating number on click
+function showClickParticle(event, amount) {
+    const particle = document.createElement('div');
+    particle.className = 'click-particle';
+    particle.textContent = GAME_CONFIG.particleEmoji + formatNumber(amount);
+
+    // Position near the click with slight randomization
+    const rect = document.getElementById('mainKookie').getBoundingClientRect();
+    const randomOffsetX = (Math.random() - 0.5) * 20; // -10 to +10 pixels
+    particle.style.left = (event.clientX || rect.left + rect.width / 2) + randomOffsetX + 'px';
+    particle.style.top = (event.clientY || rect.top + rect.height / 2) + 'px';
+    particle.style.fontSize = Math.min(20 + Math.log10(amount + 1) * 5, 48) + 'px';
+
+    document.body.appendChild(particle);
+    setTimeout(() => particle.remove(), 3000);
+}
+
+// Buy an upgrade
+function buyUpgrade(upgradeId) {
+    const upgrade = UPGRADES.find(u => u.id === upgradeId);
+    if (!upgrade) return;
+
+    const cost = getUpgradeCost(upgrade);
+    if (gameState.kookies < cost) return;
+
+    gameState.kookies -= cost;
+    gameState.upgrades[upgradeId] = (gameState.upgrades[upgradeId] || 0) + 1;
+
+    // Apply upgrade effect
+    if (upgrade.type === 'click') {
+        gameState.kookiesPerClick += upgrade.power;
+    } else if (upgrade.type === 'passive') {
+        gameState.kookiesPerSecond += upgrade.power;
+    }
+
+    updateDisplay();
+    renderUpgrades();
+    saveGame();
+}
+
+// Game tick - add passive kookies
+function gameTick() {
+    const now = Date.now();
+    const delta = (now - gameState.lastTick) / 1000;
+    gameState.lastTick = now;
+
+    // Update boost indicator
+    updateBoostIndicator();
+
+    // Update raining kookies
+    updateRain(delta);
+
+    if (gameState.kookiesPerSecond > 0) {
+        // Apply boost multiplier to passive production
+        const earned = gameState.kookiesPerSecond * gameState.boostMultiplier * delta;
+        gameState.kookies += earned;
+        gameState.totalBaked += earned;
+        updateDisplay();
+        checkAchievements();
+    }
+}
+
+// Check for new achievements
+function checkAchievements() {
+    for (const achievement of ACHIEVEMENTS) {
+        if (gameState.achievements.includes(achievement.id)) continue;
+        if (gameState.totalBaked >= achievement.requirement) {
+            gameState.achievements.push(achievement.id);
+            showAchievement(achievement);
+            saveGame();
+        }
+    }
+}
+
+// Show achievement popup
+function showAchievement(achievement) {
+    const popup = document.createElement('div');
+    popup.className = 'achievement-popup';
+    popup.textContent = `🏆 Achievement: ${achievement.name}!`;
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 3000);
+}
+
+// ========================================
+// RAINING KOOKIES
+// ========================================
+
+// Spawn a single raining kookie
+function spawnRainKookie(isGolden = false) {
+    if (!GAME_CONFIG.rainEnabled) return;
+
+    const kookie = document.createElement('div');
+
+    // Randomly choose rotation direction
+    const rotation = Math.random() < 0.5 ? 'clockwise' : 'counterclockwise';
+    kookie.className = 'rain-kookie ' + rotation + (isGolden ? ' golden' : '');
+
+    // Determine which emoji to use
+    if (isGolden && gameState.boostEmoji) {
+        // Use golden emoji during boost
+        kookie.textContent = gameState.boostEmoji;
+    } else if (GAME_CONFIG.rainEmojis && GAME_CONFIG.rainEmojis.length > 0) {
+        // Pick random emoji from rain array
+        kookie.textContent = GAME_CONFIG.rainEmojis[
+            Math.floor(Math.random() * GAME_CONFIG.rainEmojis.length)
+        ];
+    } else {
+        // Fall back to main kookie emoji (handle both emoji and img tag)
+        const emojiMatch = GAME_CONFIG.kookieEmoji.match(/^[^\<]/);
+        kookie.textContent = emojiMatch ? GAME_CONFIG.kookieEmoji : '🧁';
+    }
+
+    // Random size within configured range
+    const size = GAME_CONFIG.rainMinSize +
+        Math.random() * (GAME_CONFIG.rainMaxSize - GAME_CONFIG.rainMinSize);
+    kookie.style.fontSize = size + 'px';
+    kookie.style.left = Math.random() * (window.innerWidth - 50) + 'px';
+
+    // Random fall duration between 3-8 seconds
+    const duration = 3 + Math.random() * 5;
+    kookie.style.animationDuration = duration + 's';
+
+    document.body.appendChild(kookie);
+
+    // Remove after animation
+    setTimeout(() => kookie.remove(), duration * 1000);
+}
+
+// Manage rain based on production rate
+let rainAccumulator = 0;
+function updateRain(delta) {
+    if (!GAME_CONFIG.rainEnabled || gameState.kookiesPerSecond <= 0) return;
+
+    // Calculate how many kookies to spawn based on production
+    // Scale: 1 rain kookie per rainRate kookies produced, capped at 3 per tick
+    const kookiesProduced = gameState.kookiesPerSecond * gameState.boostMultiplier * delta;
+    rainAccumulator += kookiesProduced / GAME_CONFIG.rainRate;
+
+    const toSpawn = Math.min(Math.floor(rainAccumulator), GAME_CONFIG.rainRateMax);
+    rainAccumulator -= toSpawn;
+
+    for (let i = 0; i < toSpawn; i++) {
+        // During boost, 30% chance of golden rain
+        const isGolden = gameState.boostMultiplier > 1 && Math.random() < 0.3;
+        setTimeout(() => spawnRainKookie(isGolden), Math.random() * 100);
+    }
+}
+
+// ========================================
+// GOLDEN KOOKIE
+// ========================================
+
+// Schedule next golden kookie spawn
+function scheduleGoldenKookie() {
+    const delay = (GOLDEN_CONFIG.minSpawnTime +
+        Math.random() * (GOLDEN_CONFIG.maxSpawnTime - GOLDEN_CONFIG.minSpawnTime)) * 1000;
+
+    gameState.goldenKookieTimeout = setTimeout(spawnGoldenKookie, delay);
+}
+
+// Spawn a golden kookie
+function spawnGoldenKookie() {
+    // Don't spawn if one already exists
+    if (gameState.goldenKookieElement) return;
+
+    // Pick random emoji
+    const emoji = GOLDEN_CONFIG.emojis[Math.floor(Math.random() * GOLDEN_CONFIG.emojis.length)];
+
+    // Create element
+    const golden = document.createElement('div');
+    golden.id = 'goldenKookie';
+    golden.textContent = emoji;
+
+    // Position randomly around the center area
+    const mainKookie = document.getElementById('mainKookie');
+    const rect = mainKookie.getBoundingClientRect();
+
+    // Random position within a radius around the main kookie
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 150 + Math.random() * 150;
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    let x = centerX + Math.cos(angle) * distance - 40;
+    let y = centerY + Math.sin(angle) * distance - 40;
+
+    // Keep within viewport
+    x = Math.max(20, Math.min(window.innerWidth - 100, x));
+    y = Math.max(20, Math.min(window.innerHeight - 100, y));
+
+    golden.style.left = x + 'px';
+    golden.style.top = y + 'px';
+
+    // Click handler
+    golden.onclick = () => clickGoldenKookie(emoji);
+
+    document.body.appendChild(golden);
+    gameState.goldenKookieElement = golden;
+
+    // Auto-remove after lifetime
+    setTimeout(() => {
+        if (gameState.goldenKookieElement === golden) {
+            golden.remove();
+            gameState.goldenKookieElement = null;
+            scheduleGoldenKookie();
+        }
+    }, GOLDEN_CONFIG.lifetime * 1000);
+}
+
+// Handle clicking the golden kookie
+function clickGoldenKookie(emoji) {
+    if (!gameState.goldenKookieElement) return;
+
+    // Remove the golden kookie
+    gameState.goldenKookieElement.remove();
+    gameState.goldenKookieElement = null;
+
+    // Calculate random multiplier and duration
+    const multiplier = Math.floor(GOLDEN_CONFIG.minMultiplier +
+        Math.random() * (GOLDEN_CONFIG.maxMultiplier - GOLDEN_CONFIG.minMultiplier + 1));
+    const duration = GOLDEN_CONFIG.minBoostDuration +
+        Math.random() * (GOLDEN_CONFIG.maxBoostDuration - GOLDEN_CONFIG.minBoostDuration);
+
+    // Apply boost
+    gameState.boostMultiplier = multiplier;
+    gameState.boostEndTime = Date.now() + duration * 1000;
+    gameState.boostEmoji = emoji;
+
+    // Show boost indicator
+    updateBoostIndicator();
+
+    // Show popup
+    const popup = document.createElement('div');
+    popup.className = 'achievement-popup';
+    popup.textContent = `✨ ${multiplier}x BOOST for ${Math.round(duration)}s! ✨`;
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 3000);
+
+    // Schedule next golden kookie
+    scheduleGoldenKookie();
+}
+
+// Update boost indicator display
+function updateBoostIndicator() {
+    const indicator = document.getElementById('boostIndicator');
+    if (!indicator) return;
+
+    if (gameState.boostMultiplier > 1 && Date.now() < gameState.boostEndTime) {
+        const remaining = Math.ceil((gameState.boostEndTime - Date.now()) / 1000);
+        indicator.textContent = `🔥 ${gameState.boostMultiplier}x BOOST! ${remaining}s`;
+        indicator.style.display = 'block';
+    } else {
+        // Boost ended
+        if (gameState.boostMultiplier > 1) {
+            gameState.boostMultiplier = 1;
+            gameState.boostEmoji = null;
+        }
+        indicator.style.display = 'none';
+    }
+}
+
+// Update all displays
+function updateDisplay() {
+    document.getElementById('kookieCount').textContent =
+        formatNumber(gameState.kookies) + ' ' + GAME_CONFIG.currencyName;
+
+    // Show effective rate (with boost)
+    const effectivePerSecond = gameState.kookiesPerSecond * gameState.boostMultiplier;
+    const boostText = gameState.boostMultiplier > 1 ? ` (${gameState.boostMultiplier}x!)` : '';
+    document.getElementById('perSecond').textContent =
+        'per second: ' + formatNumber(effectivePerSecond) + boostText;
+
+    document.getElementById('totalBaked').textContent = formatNumber(gameState.totalBaked);
+
+    // Show effective per click (with boost)
+    const effectivePerClick = gameState.kookiesPerClick * gameState.boostMultiplier;
+    document.getElementById('perClick').textContent = formatNumber(effectivePerClick) +
+        (gameState.boostMultiplier > 1 ? ` (${gameState.boostMultiplier}x)` : '');
+
+    document.getElementById('perSecondStat').textContent = formatNumber(effectivePerSecond) +
+        (gameState.boostMultiplier > 1 ? ` (${gameState.boostMultiplier}x)` : '');
+    document.getElementById('totalClicks').textContent = formatNumber(gameState.totalClicks);
+
+    // Update upgrade affordability
+    document.querySelectorAll('.upgrade-item').forEach(el => {
+        const upgradeId = el.dataset.upgradeId;
+        const upgrade = UPGRADES.find(u => u.id === upgradeId);
+        if (upgrade) {
+            const cost = getUpgradeCost(upgrade);
+            el.classList.toggle('affordable', gameState.kookies >= cost);
+            el.classList.toggle('locked', gameState.kookies < cost);
+        }
+    });
+}
+
+// Render upgrades list
+function renderUpgrades() {
+    const list = document.getElementById('upgradesList');
+    list.innerHTML = '';
+
+    for (const upgrade of UPGRADES) {
+        const owned = gameState.upgrades[upgrade.id] || 0;
+        const cost = getUpgradeCost(upgrade);
+        const affordable = gameState.kookies >= cost;
+
+        const item = document.createElement('div');
+        item.className = 'upgrade-item' + (affordable ? ' affordable' : ' locked');
+        item.dataset.upgradeId = upgrade.id;
+        item.onclick = () => buyUpgrade(upgrade.id);
+
+        item.innerHTML = `
+            <div class="upgrade-icon">${upgrade.emoji}</div>
+            <div class="upgrade-info">
+                <div class="upgrade-name">${upgrade.name}</div>
+                <div class="upgrade-desc">${upgrade.desc}</div>
+                <div class="upgrade-cost">💰 ${formatNumber(cost)}</div>
+            </div>
+            ${owned > 0 ? `<div class="upgrade-owned">${owned}</div>` : ''}
+        `;
+
+        list.appendChild(item);
+    }
+}
+
+// Save game to localStorage
+function saveGame() {
+    const saveData = {
+        kookies: gameState.kookies,
+        totalBaked: gameState.totalBaked,
+        totalClicks: gameState.totalClicks,
+        kookiesPerClick: gameState.kookiesPerClick,
+        kookiesPerSecond: gameState.kookiesPerSecond,
+        upgrades: gameState.upgrades,
+        achievements: gameState.achievements
+    };
+    localStorage.setItem('kookie_save', JSON.stringify(saveData));
+}
+
+// Load game from localStorage
+function loadGame() {
+    const saved = localStorage.getItem('kookie_save');
+    if (saved) {
+        const data = JSON.parse(saved);
+        gameState.kookies = data.kookies || 0;
+        gameState.totalBaked = data.totalBaked || 0;
+        gameState.totalClicks = data.totalClicks || 0;
+        gameState.kookiesPerClick = data.kookiesPerClick || GAME_CONFIG.kookiesPerClick;
+        gameState.kookiesPerSecond = data.kookiesPerSecond || 0;
+        gameState.upgrades = data.upgrades || {};
+        gameState.achievements = data.achievements || [];
+    }
+}
+
+// Reset game
+function resetGame() {
+    if (confirm('Are you sure you want to reset all progress?')) {
+        localStorage.removeItem('kookie_save');
+
+        // Clear any existing golden kookie
+        if (gameState.goldenKookieElement) {
+            gameState.goldenKookieElement.remove();
+        }
+        if (gameState.goldenKookieTimeout) {
+            clearTimeout(gameState.goldenKookieTimeout);
+        }
+
+        gameState = {
+            kookies: GAME_CONFIG.startingKookies,
+            totalBaked: 0,
+            totalClicks: 0,
+            kookiesPerClick: GAME_CONFIG.kookiesPerClick,
+            kookiesPerSecond: 0,
+            upgrades: {},
+            achievements: [],
+            lastTick: Date.now(),
+            boostMultiplier: 1,
+            boostEndTime: 0,
+            boostEmoji: null,
+            goldenKookieTimeout: null,
+            goldenKookieElement: null
+        };
+
+        updateDisplay();
+        renderUpgrades();
+        updateBoostIndicator();
+        scheduleGoldenKookie();
+    }
+}
+
+// Initialize the game
+function initGame() {
+    // Set up the main kookie
+    const mainKookie = document.getElementById('mainKookie');
+    mainKookie.innerHTML = GAME_CONFIG.kookieEmoji;
+    mainKookie.addEventListener('click', clickKookie);
+
+    // Load saved game
+    loadGame();
+
+    // Initial render
+    renderUpgrades();
+    updateDisplay();
+
+    // Start game loop
+    setInterval(gameTick, GAME_CONFIG.tickRate);
+
+    // Auto-save every 30 seconds
+    setInterval(saveGame, 30000);
+
+    // Start golden kookie spawning
+    scheduleGoldenKookie();
+}
+    </script>
+
+    <script>
+        // Inject game code - either custom or original
+        (function() {
+            const customCode = localStorage.getItem('kookie_custom_code');
+            const originalCode = document.getElementById('originalGameCode').textContent;
+            const codeToRun = customCode || originalCode;
+
+            const script = document.createElement('script');
+            script.id = 'gameCode';
+            script.textContent = codeToRun;
+            document.body.appendChild(script);
+        })();
+
+        // Code Editor Functions
+        let codeEditor = null;
+        let useCodeMirror = false;
+
+        function getEditorValue() {
+            if (useCodeMirror && codeEditor) {
+                return codeEditor.getValue();
+            }
+            return document.getElementById('codeEditorFallback').value;
+        }
+
+        function setEditorValue(code) {
+            if (useCodeMirror && codeEditor) {
+                codeEditor.setValue(code);
+            } else {
+                document.getElementById('codeEditorFallback').value = code;
+            }
+        }
+
+        function loadCodeIntoEditor() {
+            const customCode = localStorage.getItem('kookie_custom_code');
+            const originalCode = document.getElementById('originalGameCode').textContent;
+            const code = customCode || originalCode;
+            const container = document.getElementById('codeEditorContainer');
+
+            // Try to use CodeMirror if available
+            if (typeof CodeMirror !== 'undefined') {
+                useCodeMirror = true;
+                codeEditor = CodeMirror(container, {
+                    value: code,
+                    mode: 'javascript',
+                    theme: 'dracula',
+                    lineNumbers: true,
+                    indentUnit: 4,
+                    tabSize: 4,
+                    indentWithTabs: false,
+                    lineWrapping: true
+                });
+            } else {
+                // Fallback to plain textarea
+                useCodeMirror = false;
+                const textarea = document.createElement('textarea');
+                textarea.id = 'codeEditorFallback';
+                textarea.value = code;
+                container.appendChild(textarea);
+            }
+        }
+
+        function resetCode() {
+            if (confirm('Reset to original code? This will clear all your code changes.')) {
+                localStorage.removeItem('kookie_custom_code');
+                location.reload();
+            }
+        }
+
+        function toggleCodeDrawer() {
+            const drawer = document.getElementById('codeDrawer');
+            drawer.classList.toggle('open');
+            // Refresh CodeMirror when drawer opens (fixes rendering issues)
+            if (drawer.classList.contains('open') && useCodeMirror && codeEditor) {
+                setTimeout(() => codeEditor.refresh(), 10);
+            }
+        }
+
+        function applyCode() {
+            const newCode = getEditorValue();
+
+            try {
+                // Save the new code to localStorage
+                localStorage.setItem('kookie_custom_code', newCode);
+
+                // Reload the page to apply changes with a clean slate
+                location.reload();
+            } catch (error) {
+                alert('Error applying code: ' + error.message);
+            }
+        }
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            loadCodeIntoEditor();
+            initGame();
+        });
+    </script>
+</body>
+</html>

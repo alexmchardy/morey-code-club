@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>M Dash - Code Edition</title>
+    <!-- CodeMirror (optional - falls back to plain textarea if unavailable) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -92,9 +97,9 @@
 
         #codeDrawer {
             position: fixed;
-            right: -600px;
+            right: -800px;
             top: 0;
-            width: 600px;
+            width: 800px;
             height: 100vh;
             background: #1e1e1e;
             box-shadow: -5px 0 20px rgba(0,0,0,0.5);
@@ -115,8 +120,19 @@
             margin: 0;
         }
 
-        #codeEditor {
+        #codeEditorContainer {
             flex: 1;
+            overflow: hidden;
+        }
+
+        #codeEditorContainer .CodeMirror {
+            height: 100%;
+            font-size: 14px;
+        }
+
+        #codeEditorFallback {
+            width: 100%;
+            height: 100%;
             background: #1e1e1e;
             color: #d4d4d4;
             padding: 20px;
@@ -125,7 +141,6 @@
             border: none;
             outline: none;
             resize: none;
-            overflow: auto;
         }
 
         #codeControls {
@@ -182,7 +197,7 @@
 
         .level-item textarea {
             width: 100%;
-            min-height: 100px;
+            min-height: 200px;
             background: #1e1e1e;
             color: #d4d4d4;
             border: 1px solid #555;
@@ -302,7 +317,7 @@
 
     <div id="codeDrawer">
         <h2>Game Code Editor</h2>
-        <textarea id="codeEditor"></textarea>
+        <div id="codeEditorContainer"></div>
         <div id="codeControls">
             <button id="saveCodeBtn" onclick="applyCode()">Apply Changes</button>
             <button onclick="resetCode()" style="background: #f44336;">Reset Code</button>
@@ -784,10 +799,51 @@ function nextLevel() {
         })();
 
         // Code Editor Functions
+        let codeEditor = null;
+        let useCodeMirror = false;
+
+        function getEditorValue() {
+            if (useCodeMirror && codeEditor) {
+                return codeEditor.getValue();
+            }
+            return document.getElementById('codeEditorFallback').value;
+        }
+
+        function setEditorValue(code) {
+            if (useCodeMirror && codeEditor) {
+                codeEditor.setValue(code);
+            } else {
+                document.getElementById('codeEditorFallback').value = code;
+            }
+        }
+
         function loadCodeIntoEditor() {
             const customCode = localStorage.getItem('mdash_custom_code');
             const originalCode = document.getElementById('originalGameCode').textContent;
-            document.getElementById('codeEditor').value = customCode || originalCode;
+            const code = customCode || originalCode;
+            const container = document.getElementById('codeEditorContainer');
+
+            // Try to use CodeMirror if available
+            if (typeof CodeMirror !== 'undefined') {
+                useCodeMirror = true;
+                codeEditor = CodeMirror(container, {
+                    value: code,
+                    mode: 'javascript',
+                    theme: 'dracula',
+                    lineNumbers: true,
+                    indentUnit: 4,
+                    tabSize: 4,
+                    indentWithTabs: false,
+                    lineWrapping: true
+                });
+            } else {
+                // Fallback to plain textarea
+                useCodeMirror = false;
+                const textarea = document.createElement('textarea');
+                textarea.id = 'codeEditorFallback';
+                textarea.value = code;
+                container.appendChild(textarea);
+            }
         }
 
         function resetCode() {
@@ -800,10 +856,14 @@ function nextLevel() {
         function toggleCodeDrawer() {
             const drawer = document.getElementById('codeDrawer');
             drawer.classList.toggle('open');
+            // Refresh CodeMirror when drawer opens (fixes rendering issues)
+            if (drawer.classList.contains('open') && useCodeMirror && codeEditor) {
+                setTimeout(() => codeEditor.refresh(), 10);
+            }
         }
 
         function applyCode() {
-            const newCode = document.getElementById('codeEditor').value;
+            const newCode = getEditorValue();
 
             try {
                 // Save the new code to localStorage

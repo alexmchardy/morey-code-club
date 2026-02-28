@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Ninja</title>
+    <!-- CodeMirror (optional - falls back to plain textarea if unavailable) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Fredoka:wght@400;500;600;700&display=swap');
+
+        :root {
+            --bg:          #030310;
+            --surface:     #0d0d2b;
+            --neon-cyan:   #00f5ff;
+            --neon-pink:   #ff6b9d;
+            --neon-yellow: #ffbe0b;
+            --neon-red:    #ff4444;
+            --text:        #e0e0ff;
+            --text-dim:    #5a5a90;
+            --border:      rgba(0, 245, 255, 0.2);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* Subtle scanline overlay for retro feel */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                transparent, transparent 3px,
+                rgba(0,0,0,0.035) 3px, rgba(0,0,0,0.035) 4px
+            );
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* ── HEADER / HUD ── */
+        header {
+            width: 700px;
+            max-width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            gap: 10px;
+        }
+
+        h1 {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 18px;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px var(--neon-cyan), 0 0 30px rgba(0,245,255,0.35);
+            white-space: nowrap;
+        }
+
+        #hudBar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .hud-item {
+            text-align: center;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 8px;
+            color: var(--text-dim);
+            line-height: 2;
+            text-transform: uppercase;
+        }
+
+        .hud-item span {
+            display: block;
+            font-size: 15px;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 8px rgba(255,190,11,0.5);
+        }
+
+        #livesDisplay {
+            font-size: 20px;
+            letter-spacing: 3px;
+        }
+
+        /* ── GAME CONTAINER ── */
+        #gameContainer {
+            position: relative;
+            line-height: 0;
+            border: 2px solid var(--border);
+            border-radius: 4px;
+            box-shadow:
+                0 0 25px rgba(0,245,255,0.08),
+                0 0 80px rgba(0,245,255,0.04),
+                inset 0 0 40px rgba(0,0,0,0.6);
+        }
+
+        canvas {
+            display: block;
+            cursor: crosshair;
+            border-radius: 2px;
+        }
+
+        /* ── OVERLAY SCREENS (Start / Game Over) ── */
+        .overlay-screen {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(3, 3, 16, 0.85);
+            gap: 18px;
+            border-radius: 2px;
+        }
+
+        .overlay-screen h2 {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 22px;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 14px var(--neon-cyan), 0 0 40px rgba(0,245,255,0.35);
+            letter-spacing: 3px;
+            text-align: center;
+        }
+
+        .fruit-parade {
+            font-size: 34px;
+            letter-spacing: 10px;
+            animation: floatRow 1.2s ease-in-out infinite alternate;
+        }
+
+        @keyframes floatRow {
+            from { transform: translateY(0px); }
+            to   { transform: translateY(-8px); }
+        }
+
+        .overlay-text {
+            font-size: 16px;
+            color: var(--text);
+            text-align: center;
+            line-height: 1.7;
+            max-width: 380px;
+        }
+
+        .overlay-text .bomb-warn {
+            color: var(--neon-red);
+            font-weight: 600;
+        }
+
+        .score-results {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 11px;
+            text-align: center;
+            line-height: 2.8;
+            color: var(--text-dim);
+        }
+
+        .score-results .big {
+            display: block;
+            font-size: 24px;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 12px rgba(255,190,11,0.6);
+        }
+
+        #newRecordMsg {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 13px;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 10px rgba(255,190,11,0.8);
+            animation: pulse 0.7s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { opacity: 0.75; transform: scale(1); }
+            to   { opacity: 1;    transform: scale(1.06); }
+        }
+
+        /* ── PLAY BUTTON ── */
+        .play-btn {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 13px;
+            padding: 13px 34px;
+            background: transparent;
+            border: 2px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            border-radius: 3px;
+            cursor: pointer;
+            text-shadow: 0 0 8px var(--neon-cyan);
+            box-shadow: 0 0 14px rgba(0,245,255,0.25), inset 0 0 14px rgba(0,245,255,0.05);
+            transition: all 0.15s ease;
+            letter-spacing: 2px;
+        }
+
+        .play-btn:hover {
+            background: rgba(0,245,255,0.1);
+            box-shadow: 0 0 28px rgba(0,245,255,0.45), inset 0 0 20px rgba(0,245,255,0.1);
+            transform: translateY(-2px);
+        }
+
+        .play-btn:active { transform: translateY(1px); }
+
+        /* ── CONTROLS (below canvas) ── */
+        #controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .ctrl-btn {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            padding: 10px 26px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .ctrl-btn:hover {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+            box-shadow: 0 0 12px rgba(0,245,255,0.2);
+        }
+
+        .ctrl-btn:active { transform: translateY(1px); }
+
+        #codeBtn {
+            border-color: rgba(139,92,246,0.4);
+            color: #a78bfa;
+        }
+
+        #codeBtn:hover {
+            border-color: #a78bfa;
+            box-shadow: 0 0 12px rgba(167,139,250,0.3);
+        }
+
+        /* ── INSTRUCTIONS ── */
+        #instructions {
+            margin-top: 14px;
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 15px;
+            max-width: 700px;
+            line-height: 1.7;
+        }
+
+        #instructions strong { color: var(--text); }
+
+        /* ── CODE DRAWER ── */
+        #codeDrawer {
+            position: fixed;
+            right: -820px;
+            top: 0;
+            width: 820px;
+            height: 100vh;
+            background: #1e1e1e;
+            box-shadow: -5px 0 30px rgba(0,0,0,0.7);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #codeDrawer.open { right: 0; }
+
+        #codeDrawer h2 {
+            color: white;
+            padding: 16px 22px;
+            background: #333;
+            margin: 0;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.25rem;
+        }
+
+        #codeEditorContainer { flex: 1; overflow: hidden; }
+
+        #codeEditorContainer .CodeMirror { height: 100%; font-size: 13px; }
+
+        #codeEditorFallback {
+            width: 100%;
+            height: 100%;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            border: none;
+            outline: none;
+            resize: none;
+        }
+
+        #codeControls {
+            padding: 14px 18px;
+            background: #333;
+            display: flex;
+            gap: 10px;
+        }
+
+        #codeControls button {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            padding: 9px 18px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+
+        #codeControls button:hover { opacity: 0.85; }
+        #saveCodeBtn  { background: #4CAF50; color: white; }
+        #resetCodeBtn { background: #f44336; color: white; }
+        #closeCodeBtn { background: #666;    color: white; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🥷 EMOJI NINJA</h1>
+        <div id="hudBar">
+            <div class="hud-item">Score<span id="scoreDisplay">0</span></div>
+            <div class="hud-item" id="livesDisplay">❤️❤️❤️</div>
+            <div class="hud-item">Best<span id="highScoreDisplay">0</span></div>
+        </div>
+    </header>
+
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="700" height="500"></canvas>
+
+        <!-- Start screen -->
+        <div id="startScreen" class="overlay-screen">
+            <h2>EMOJI NINJA</h2>
+            <div class="fruit-parade">🍉 🍊 🍋 🍇 🍓</div>
+            <div class="overlay-text">
+                <p>Swipe your mouse across fruits to slice them!</p>
+                <p>Slice multiple at once for a <strong>COMBO!</strong></p>
+                <br>
+                <p class="bomb-warn">⚠️ Slicing a 💣 bomb costs a life!</p>
+            </div>
+            <button class="play-btn" onclick="startGame()">▶ PLAY</button>
+        </div>
+
+        <!-- Game over screen -->
+        <div id="gameOverScreen" class="overlay-screen" style="display:none">
+            <h2>GAME OVER</h2>
+            <div class="score-results">
+                SCORE
+                <span class="big" id="finalScore">0</span>
+                BEST
+                <span id="finalHighScore">0</span>
+            </div>
+            <div id="newRecordMsg" style="display:none">🏆 NEW RECORD!</div>
+            <button class="play-btn" onclick="startGame()">▶ PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <div id="controls">
+        <button class="ctrl-btn" onclick="startGame()">↩ NEW GAME</button>
+        <button class="ctrl-btn" id="codeBtn" onclick="toggleCodeDrawer()">📝 SHOW CODE</button>
+    </div>
+
+    <div id="instructions">
+        <p><strong>How to play:</strong> Click and drag your mouse across emojis to slice them!</p>
+        <p>Slice multiple fruits in one swipe for a combo bonus. Slicing a 💣 bomb costs a life!</p>
+        <p><strong>Hack it:</strong> Change the fruits array, swap in new emojis, tweak the speed, add new bombs — go wild!</p>
+    </div>
+
+    <div id="codeDrawer">
+        <h2>🛠️ Game Code Editor</h2>
+        <div id="codeEditorContainer"></div>
+        <div id="codeControls">
+            <button id="saveCodeBtn"  onclick="applyCode()">✅ Apply Changes</button>
+            <button id="resetCodeBtn" onclick="resetCode()">🗑️ Reset Code</button>
+            <button id="closeCodeBtn" onclick="toggleCodeDrawer()">❌ Close</button>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         HACKABLE GAME CODE
+         Change anything in here to customize your game!
+         Click "Show Code" to edit it in the browser.
+         ============================================================ -->
+    <script id="originalGameCode" type="text/plain">
+// =============================================
+// EMOJI NINJA - GAME CONFIGURATION
+// =============================================
+// Change these values to customize your game!
+
+const GAME_CONFIG = {
+    // Canvas size (pixels)
+    width:  700,
+    height: 500,
+
+    // Physics — how fruits fly through the air
+    gravity:          0.22,   // How fast fruits fall (higher = faster)
+    launchSpeedMin:   9,      // Slowest a fruit can be launched
+    launchSpeedMax:   15,     // Fastest a fruit can be launched
+    launchAngleSpread: 0.55,  // How wide the arc can spread (in radians)
+
+    // Lives
+    lives:           3,   // How many lives you start with
+    livesLostOnMiss: 1,   // Lives lost when a fruit falls off the bottom (set 0 for easy mode!)
+    livesLostOnBomb: 1,   // Lives lost when you slice a bomb
+
+    // Spawning — how often and how many fruits appear
+    spawnInterval:    1800,  // Milliseconds between spawns (lower = harder!)
+    maxFruitsAtOnce:  2,     // Max fruits launched per wave
+    bombChance:       0.15,  // Chance any given fruit is a bomb (0 to 1)
+
+    // Blade trail settings
+    trailLength:   20,        // How long the blade trail is
+    trailMinSpeed: 4,         // Minimum mouse speed needed to slice
+    trailColor:    '#00f5ff', // Color of the blade (try '#ff6b9d' for pink!)
+    trailWidth:    5,         // Thickness of the blade
+
+    // Scoring
+    comboWindow: 500,   // Milliseconds — how fast you must slice for a combo
+    comboBonus:  10,    // Bonus points per extra fruit in a combo
+
+    // Visual effects
+    showParticles: true,  // Explosion particles when you slice a fruit
+    particleCount: 12,    // Number of particles per slice
+    starCount:     80,    // Background stars
+};
+
+// =============================================
+// FRUITS — Add your own emojis here!
+// =============================================
+// Each fruit has:
+//   emoji  — The emoji to display
+//   color  — Particle burst color when sliced (hex color)
+//   points — Score awarded when sliced
+//   weight — How often it spawns (higher number = more common)
+//   size   — Hit radius in pixels (bigger = easier to slice)
+
+const FRUITS = [
+    { emoji: '🍉', color: '#ff6b8a', points: 1,  weight: 10, size: 36 },
+    { emoji: '🍊', color: '#ff9340', points: 1,  weight: 10, size: 32 },
+    { emoji: '🍋', color: '#ffe055', points: 2,  weight: 8,  size: 30 },
+    { emoji: '🍇', color: '#c084fc', points: 2,  weight: 7,  size: 32 },
+    { emoji: '🍓', color: '#ff4d6d', points: 3,  weight: 6,  size: 28 },
+    { emoji: '🥝', color: '#86efac', points: 3,  weight: 5,  size: 28 },
+    { emoji: '🍒', color: '#f43f5e', points: 4,  weight: 4,  size: 24 },
+    { emoji: '⭐', color: '#fde68a', points: 5,  weight: 2,  size: 30 },
+    { emoji: '💎', color: '#67e8f9', points: 10, weight: 1,  size: 26 },
+];
+
+// =============================================
+// BOMBS — Slice these and lose a life!
+// =============================================
+// Try adding: { emoji: '🪲', size: 30, weight: 2 }
+
+const BOMBS = [
+    { emoji: '💣', size: 34, weight: 3 },
+    { emoji: '🧨', size: 30, weight: 2 },
+];
+
+// =============================================
+// GAME STATE — don't modify directly!
+// =============================================
+
+let gameState = {
+    fruits:      [],
+    particles:   [],
+    popups:      [],
+    trailPoints: [],
+    score:       0,
+    highScore:   0,
+    lives:       GAME_CONFIG.lives,
+    isRunning:   false,
+    isGameOver:  false,
+    comboCount:  0,
+    lastSliceTime: 0,
+    stars:       [],
+    screenFlash: { color: '#000', alpha: 0 },
+    comboDisplay: { text: '', alpha: 0, scale: 1 },
+};
+
+let spawnIntervalId = null;
+
+// =============================================
+// FRUIT CLASS
+// =============================================
+
+class Fruit {
+    constructor(isBomb = false) {
+        const pool = isBomb ? BOMBS : FRUITS;
+        const data = pool[weightedRandom(pool.map(f => f.weight))];
+
+        this.emoji  = data.emoji;
+        this.color  = isBomb ? '#ff4444' : data.color;
+        this.points = isBomb ? 0 : data.points;
+        this.size   = data.size;
+        this.isBomb = isBomb;
+
+        // Spawn from a random spot at the bottom
+        this.x = 80 + Math.random() * (GAME_CONFIG.width - 160);
+        this.y = GAME_CONFIG.height + this.size + 5;
+
+        // Launch upward at a random angle
+        const speed = GAME_CONFIG.launchSpeedMin +
+            Math.random() * (GAME_CONFIG.launchSpeedMax - GAME_CONFIG.launchSpeedMin);
+        const angle = -Math.PI / 2 + (Math.random() - 0.5) * GAME_CONFIG.launchAngleSpread;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+
+        // Random spin
+        this.rotation      = Math.random() * Math.PI * 2;
+        this.rotationSpeed = (Math.random() - 0.5) * 0.1;
+
+        this.sliced = false;
+    }
+
+    update() {
+        this.vy += GAME_CONFIG.gravity; // Gravity pulls fruit back down
+        this.x  += this.vx;
+        this.y  += this.vy;
+        this.rotation += this.rotationSpeed;
+    }
+
+    isOffScreen() {
+        return this.y > GAME_CONFIG.height + this.size + 20;
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        ctx.font = `${this.size * 2}px serif`;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.emoji, 0, 0);
+        ctx.restore();
+    }
+}
+
+// =============================================
+// PARTICLE CLASS — explosion effect on slice
+// =============================================
+
+class Particle {
+    constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 2 + Math.random() * 7;
+        this.vx     = Math.cos(angle) * speed;
+        this.vy     = Math.sin(angle) * speed - 2;
+        this.radius = 3 + Math.random() * 5;
+        this.alpha  = 1;
+        this.decay  = 0.022 + Math.random() * 0.018;
+    }
+
+    update() {
+        this.vy     += 0.15; // Particle gravity
+        this.x      += this.vx;
+        this.y      += this.vy;
+        this.alpha  -= this.decay;
+        this.radius *= 0.97;
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, this.alpha);
+        ctx.fillStyle   = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, Math.max(0, this.radius), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    isDead() { return this.alpha <= 0; }
+}
+
+// =============================================
+// SCORE POPUP CLASS — floating "+5" text
+// =============================================
+
+class ScorePopup {
+    constructor(x, y, text, color = 'white') {
+        this.x     = x;
+        this.y     = y;
+        this.text  = text;
+        this.color = color;
+        this.alpha = 1.2;
+        this.vy    = -1.8;
+        this.scale = 1.4;
+    }
+
+    update() {
+        this.y     += this.vy;
+        this.vy    *= 0.95;
+        this.alpha -= 0.022;
+        this.scale  = Math.max(1, this.scale * 0.96);
+    }
+
+    draw(ctx) {
+        if (this.alpha <= 0) return;
+        ctx.save();
+        ctx.globalAlpha  = Math.min(1, this.alpha);
+        ctx.font         = `bold ${Math.floor(20 * this.scale)}px 'Fredoka', sans-serif`;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.strokeStyle  = 'rgba(0,0,0,0.6)';
+        ctx.lineWidth    = 3;
+        ctx.strokeText(this.text, this.x, this.y);
+        ctx.fillStyle = this.color;
+        ctx.fillText(this.text, this.x, this.y);
+        ctx.restore();
+    }
+
+    isDead() { return this.alpha <= 0; }
+}
+
+// =============================================
+// UTILITY FUNCTIONS
+// =============================================
+
+// Pick a random index, weighted by the weights array
+function weightedRandom(weights) {
+    const total = weights.reduce((a, b) => a + b, 0);
+    let r = Math.random() * total;
+    for (let i = 0; i < weights.length; i++) {
+        r -= weights[i];
+        if (r <= 0) return i;
+    }
+    return weights.length - 1;
+}
+
+// Check if the line from (x1,y1) to (x2,y2) passes through a circle
+function lineHitsCircle(x1, y1, x2, y2, cx, cy, r) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const fx = x1 - cx, fy = y1 - cy;
+    const a = dx * dx + dy * dy;
+    if (a === 0) return Math.sqrt(fx * fx + fy * fy) <= r;
+    const b    = 2 * (fx * dx + fy * dy);
+    const c    = fx * fx + fy * fy - r * r;
+    const disc = b * b - 4 * a * c;
+    if (disc < 0) return false;
+    const sq = Math.sqrt(disc);
+    const t1 = (-b - sq) / (2 * a);
+    const t2 = (-b + sq) / (2 * a);
+    return (t1 >= 0 && t1 <= 1) || (t2 >= 0 && t2 <= 1);
+}
+
+function spawnParticles(x, y, color) {
+    if (!GAME_CONFIG.showParticles) return;
+    for (let i = 0; i < GAME_CONFIG.particleCount; i++) {
+        gameState.particles.push(new Particle(x, y, color));
+    }
+}
+
+function generateStars() {
+    gameState.stars = [];
+    for (let i = 0; i < GAME_CONFIG.starCount; i++) {
+        gameState.stars.push({
+            x:     Math.random() * GAME_CONFIG.width,
+            y:     Math.random() * GAME_CONFIG.height,
+            size:  0.5 + Math.random() * 1.5,
+            alpha: 0.3 + Math.random() * 0.7,
+            phase: Math.random() * Math.PI * 2,
+            speed: 0.015 + Math.random() * 0.025,
+        });
+    }
+}
+
+// =============================================
+// CORE GAME FUNCTIONS
+// =============================================
+
+function initGame() {
+    const canvas    = document.getElementById('gameCanvas');
+    canvas.width    = GAME_CONFIG.width;
+    canvas.height   = GAME_CONFIG.height;
+
+    gameState.highScore = parseInt(localStorage.getItem('emojininja_highscore') || '0');
+    generateStars();
+    setupInput();
+    updateHUD();
+    gameLoop();
+}
+
+function startGame() {
+    if (spawnIntervalId) {
+        clearInterval(spawnIntervalId);
+        spawnIntervalId = null;
+    }
+
+    Object.assign(gameState, {
+        fruits:       [],
+        particles:    [],
+        popups:       [],
+        trailPoints:  [],
+        score:        0,
+        lives:        GAME_CONFIG.lives,
+        isRunning:    true,
+        isGameOver:   false,
+        comboCount:   0,
+        lastSliceTime: 0,
+        screenFlash:  { color: '#000', alpha: 0 },
+        comboDisplay: { text: '', alpha: 0, scale: 1 },
+    });
+
+    document.getElementById('startScreen').style.display    = 'none';
+    document.getElementById('gameOverScreen').style.display = 'none';
+    updateHUD();
+
+    // Spawn first fruit quickly so the screen isn't empty
+    setTimeout(spawnFruits, 500);
+    spawnIntervalId = setInterval(spawnFruits, GAME_CONFIG.spawnInterval);
+}
+
+function gameLoop() {
+    const canvas = document.getElementById('gameCanvas');
+    const ctx    = canvas.getContext('2d');
+    if (gameState.isRunning) update();
+    render(ctx);
+    requestAnimationFrame(gameLoop);
+}
+
+function update() {
+    // Update fruits
+    for (let i = gameState.fruits.length - 1; i >= 0; i--) {
+        const fruit = gameState.fruits[i];
+        fruit.update();
+
+        if (fruit.isOffScreen()) {
+            // Missed a fruit!
+            if (!fruit.sliced && !fruit.isBomb && GAME_CONFIG.livesLostOnMiss > 0) {
+                gameState.popups.push(
+                    new ScorePopup(fruit.x, GAME_CONFIG.height - 50, 'MISS!', '#ff6b8a')
+                );
+                loseLife();
+            }
+            gameState.fruits.splice(i, 1);
+        }
+    }
+
+    // Update particles
+    for (let i = gameState.particles.length - 1; i >= 0; i--) {
+        gameState.particles[i].update();
+        if (gameState.particles[i].isDead()) gameState.particles.splice(i, 1);
+    }
+
+    // Update score popups
+    for (let i = gameState.popups.length - 1; i >= 0; i--) {
+        gameState.popups[i].update();
+        if (gameState.popups[i].isDead()) gameState.popups.splice(i, 1);
+    }
+
+    // Fade screen flash
+    if (gameState.screenFlash.alpha > 0) {
+        gameState.screenFlash.alpha = Math.max(0, gameState.screenFlash.alpha - 0.04);
+    }
+
+    // Fade combo text
+    if (gameState.comboDisplay.alpha > 0) {
+        gameState.comboDisplay.alpha -= 0.018;
+        gameState.comboDisplay.scale  = Math.max(1, gameState.comboDisplay.scale * 0.96);
+    }
+
+    // Twinkle stars
+    for (const star of gameState.stars) star.phase += star.speed;
+}
+
+function spawnFruits() {
+    if (!gameState.isRunning) return;
+    const count = 1 + Math.floor(Math.random() * GAME_CONFIG.maxFruitsAtOnce);
+    for (let i = 0; i < count; i++) {
+        const isBomb = Math.random() < GAME_CONFIG.bombChance;
+        // Stagger each fruit slightly so they don't all launch at once
+        setTimeout(() => {
+            if (gameState.isRunning) gameState.fruits.push(new Fruit(isBomb));
+        }, i * 220);
+    }
+}
+
+function sliceFruit(fruit, sliceX, sliceY) {
+    fruit.sliced = true;
+
+    // Remove from active fruits list
+    const idx = gameState.fruits.indexOf(fruit);
+    if (idx !== -1) gameState.fruits.splice(idx, 1);
+
+    // Combo detection
+    const now = Date.now();
+    if (now - gameState.lastSliceTime < GAME_CONFIG.comboWindow) {
+        gameState.comboCount++;
+    } else {
+        gameState.comboCount = 1;
+    }
+    gameState.lastSliceTime = now;
+
+    // 💥 Hit a bomb!
+    if (fruit.isBomb) {
+        spawnParticles(sliceX, sliceY, '#ff4444');
+        gameState.screenFlash = { color: '#ff0000', alpha: 0.4 };
+        gameState.popups.push(new ScorePopup(sliceX, sliceY, '💥 BOMB!', '#ff4444'));
+        loseLife();
+        return;
+    }
+
+    // 🍉 Sliced a fruit!
+    let points   = fruit.points;
+    let popColor = 'white';
+
+    if (gameState.comboCount >= 2) {
+        const bonus = (gameState.comboCount - 1) * GAME_CONFIG.comboBonus;
+        points  += bonus;
+        popColor = '#fde68a';
+        gameState.comboDisplay = {
+            text:  gameState.comboCount + 'x COMBO!',
+            alpha: 1.6,
+            scale: 1.8,
+        };
+    }
+
+    gameState.score += points;
+    spawnParticles(sliceX, sliceY, fruit.color);
+    gameState.popups.push(new ScorePopup(sliceX, sliceY, '+' + points, popColor));
+    updateHUD();
+}
+
+function loseLife() {
+    gameState.lives = Math.max(0, gameState.lives - 1);
+    updateHUD();
+    if (gameState.lives <= 0) endGame();
+}
+
+function endGame() {
+    gameState.isRunning  = false;
+    gameState.isGameOver = true;
+
+    if (spawnIntervalId) {
+        clearInterval(spawnIntervalId);
+        spawnIntervalId = null;
+    }
+
+    const isNewRecord = gameState.score > gameState.highScore;
+    if (isNewRecord) {
+        gameState.highScore = gameState.score;
+        localStorage.setItem('emojininja_highscore', gameState.highScore.toString());
+    }
+
+    document.getElementById('finalScore').textContent     = gameState.score;
+    document.getElementById('finalHighScore').textContent = gameState.highScore;
+    document.getElementById('newRecordMsg').style.display = isNewRecord ? 'block' : 'none';
+    document.getElementById('gameOverScreen').style.display = 'flex';
+}
+
+function updateHUD() {
+    document.getElementById('scoreDisplay').textContent     = gameState.score;
+    document.getElementById('highScoreDisplay').textContent = gameState.highScore;
+
+    // Show full hearts for remaining lives, dark hearts for lost lives
+    const full  = Math.max(0, gameState.lives);
+    const empty = Math.max(0, GAME_CONFIG.lives - full);
+    document.getElementById('livesDisplay').textContent =
+        '❤️'.repeat(full) + '🖤'.repeat(empty);
+}
+
+// =============================================
+// RENDERING
+// =============================================
+
+function render(ctx) {
+    const W = GAME_CONFIG.width;
+    const H = GAME_CONFIG.height;
+
+    // Dark space background with subtle radial gradient
+    const bg = ctx.createRadialGradient(W / 2, H / 2, 80, W / 2, H / 2, W * 0.85);
+    bg.addColorStop(0, '#0d0d2b');
+    bg.addColorStop(1, '#030310');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // Twinkling stars
+    for (const star of gameState.stars) {
+        const twinkle = 0.6 + 0.4 * Math.sin(star.phase);
+        ctx.fillStyle = `rgba(255,255,255,${star.alpha * twinkle})`;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Particles (drawn behind fruits)
+    for (const p of gameState.particles) p.draw(ctx);
+
+    // Fruits
+    for (const fruit of gameState.fruits) fruit.draw(ctx);
+
+    // Blade trail
+    drawTrail(ctx);
+
+    // Score popups
+    for (const popup of gameState.popups) popup.draw(ctx);
+
+    // Combo display
+    if (gameState.comboDisplay.alpha > 0) {
+        ctx.save();
+        ctx.globalAlpha  = Math.min(1, gameState.comboDisplay.alpha);
+        const fs = Math.floor(26 * gameState.comboDisplay.scale);
+        ctx.font         = `bold ${fs}px 'Fredoka', sans-serif`;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.strokeStyle  = 'rgba(0,0,0,0.5)';
+        ctx.lineWidth    = 4;
+        ctx.strokeText(gameState.comboDisplay.text, W / 2, H * 0.38);
+        ctx.fillStyle = '#fde68a';
+        ctx.fillText(gameState.comboDisplay.text, W / 2, H * 0.38);
+        ctx.restore();
+    }
+
+    // Screen flash overlay (red for bomb hit, etc.)
+    if (gameState.screenFlash.alpha > 0) {
+        ctx.save();
+        ctx.globalAlpha = gameState.screenFlash.alpha;
+        ctx.fillStyle   = gameState.screenFlash.color;
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+    }
+}
+
+function drawTrail(ctx) {
+    const pts = gameState.trailPoints;
+    if (pts.length < 2) return;
+
+    ctx.save();
+    ctx.lineCap  = 'round';
+    ctx.lineJoin = 'round';
+
+    for (let i = 1; i < pts.length; i++) {
+        const t = i / pts.length; // 0 = oldest point, 1 = newest point
+
+        // Main blade color
+        ctx.beginPath();
+        ctx.moveTo(pts[i - 1].x, pts[i - 1].y);
+        ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.strokeStyle = GAME_CONFIG.trailColor;
+        ctx.globalAlpha = t * t * 0.9;
+        ctx.lineWidth   = t * GAME_CONFIG.trailWidth;
+        ctx.stroke();
+
+        // White core for glow effect
+        ctx.strokeStyle = 'white';
+        ctx.globalAlpha = t * 0.35;
+        ctx.lineWidth   = t * GAME_CONFIG.trailWidth * 0.3;
+        ctx.stroke();
+    }
+
+    ctx.restore();
+}
+
+// =============================================
+// INPUT HANDLING — mouse and touch
+// =============================================
+
+function setupInput() {
+    const canvas = document.getElementById('gameCanvas');
+    let isDown  = false;
+    let lastPos = null;
+
+    // Convert screen coordinates to canvas game coordinates
+    function canvasPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const sx   = GAME_CONFIG.width  / rect.width;
+        const sy   = GAME_CONFIG.height / rect.height;
+        const cx   = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy   = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: (cx - rect.left) * sx, y: (cy - rect.top) * sy };
+    }
+
+    function onDown(e) {
+        e.preventDefault();
+        isDown = true;
+        const pos = canvasPos(e);
+        lastPos = pos;
+        gameState.trailPoints = [pos];
+    }
+
+    function onMove(e) {
+        e.preventDefault();
+        if (!isDown) return;
+
+        const pos = canvasPos(e);
+
+        // Add point to blade trail
+        gameState.trailPoints.push(pos);
+        if (gameState.trailPoints.length > GAME_CONFIG.trailLength) {
+            gameState.trailPoints.shift();
+        }
+
+        // Check if the blade slices any fruit
+        if (gameState.isRunning && lastPos) {
+            const dx    = pos.x - lastPos.x;
+            const dy    = pos.y - lastPos.y;
+            const speed = Math.sqrt(dx * dx + dy * dy);
+
+            if (speed >= GAME_CONFIG.trailMinSpeed) {
+                for (const fruit of [...gameState.fruits]) {
+                    if (!fruit.sliced &&
+                        lineHitsCircle(lastPos.x, lastPos.y, pos.x, pos.y,
+                                       fruit.x, fruit.y, fruit.size)) {
+                        sliceFruit(fruit, pos.x, pos.y);
+                    }
+                }
+            }
+        }
+
+        lastPos = pos;
+    }
+
+    function onUp() {
+        isDown = false;
+        lastPos = null;
+        gameState.trailPoints = [];
+    }
+
+    canvas.addEventListener('mousedown',  onDown);
+    canvas.addEventListener('mousemove',  onMove);
+    canvas.addEventListener('mouseup',    onUp);
+    canvas.addEventListener('mouseleave', onUp);
+    canvas.addEventListener('touchstart', onDown, { passive: false });
+    canvas.addEventListener('touchmove',  onMove, { passive: false });
+    canvas.addEventListener('touchend',   onUp);
+}
+    </script>
+
+    <script>
+        // Inject game code — uses custom code from localStorage if available,
+        // otherwise falls back to the original code above.
+        (function() {
+            const customCode   = localStorage.getItem('emojininja_custom_code');
+            const originalCode = document.getElementById('originalGameCode').textContent;
+            const codeToRun    = customCode || originalCode;
+
+            const script = document.createElement('script');
+            script.id    = 'gameCode';
+            script.textContent = codeToRun;
+            document.body.appendChild(script);
+        })();
+
+        // ── Code Editor ──────────────────────────────────────────
+        let codeEditor   = null;
+        let useCodeMirror = false;
+
+        function getEditorValue() {
+            if (useCodeMirror && codeEditor) return codeEditor.getValue();
+            return document.getElementById('codeEditorFallback').value;
+        }
+
+        function loadCodeIntoEditor() {
+            const customCode   = localStorage.getItem('emojininja_custom_code');
+            const originalCode = document.getElementById('originalGameCode').textContent;
+            const code         = customCode || originalCode;
+            const container    = document.getElementById('codeEditorContainer');
+
+            if (typeof CodeMirror !== 'undefined') {
+                useCodeMirror = true;
+                codeEditor = CodeMirror(container, {
+                    value:          code,
+                    mode:           'javascript',
+                    theme:          'dracula',
+                    lineNumbers:    true,
+                    indentUnit:     4,
+                    tabSize:        4,
+                    indentWithTabs: false,
+                    lineWrapping:   true,
+                });
+            } else {
+                useCodeMirror = false;
+                const textarea    = document.createElement('textarea');
+                textarea.id       = 'codeEditorFallback';
+                textarea.value    = code;
+                container.appendChild(textarea);
+            }
+        }
+
+        function applyCode() {
+            try {
+                localStorage.setItem('emojininja_custom_code', getEditorValue());
+                location.reload();
+            } catch (error) {
+                alert('Error applying code: ' + error.message);
+            }
+        }
+
+        function resetCode() {
+            if (confirm('Reset to original code? All your changes will be lost.')) {
+                localStorage.removeItem('emojininja_custom_code');
+                location.reload();
+            }
+        }
+
+        function toggleCodeDrawer() {
+            const drawer = document.getElementById('codeDrawer');
+            drawer.classList.toggle('open');
+            if (drawer.classList.contains('open') && useCodeMirror && codeEditor) {
+                setTimeout(() => codeEditor.refresh(), 10);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadCodeIntoEditor();
+            initGame();
+        });
+    </script>
+</body>
+</html>

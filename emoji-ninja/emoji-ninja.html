@@ -405,23 +405,28 @@
 
 const GAME_CONFIG = {
     // Canvas size (pixels)
-    width:  700,
-    height: 500,
+    width:  1000,
+    height: 650,
+
+    // Overall speed — the easiest way to make the game harder or easier!
+    // Try 0.5 for slow, 0.75 for easy, 1.0 for normal, 1.5 for fast
+    // You'll need to adjust the launch speeds if you change this!
+    speed: 1,
 
     // Physics — how fruits fly through the air
-    gravity:          0.22,   // How fast fruits fall (higher = faster)
-    launchSpeedMin:   9,      // Slowest a fruit can be launched
-    launchSpeedMax:   15,     // Fastest a fruit can be launched
-    launchAngleSpread: 0.55,  // How wide the arc can spread (in radians)
+    gravity:           0.15,  // How fast fruits fall (higher = faster)
+    launchSpeedMin:    9,     // Slowest a fruit can be launched
+    launchSpeedMax:    15,    // Fastest a fruit can be launched
+    launchAngleSpread: 0.35,  // How wide the arc can spread (in radians)
 
     // Lives
     lives:           3,   // How many lives you start with
-    livesLostOnMiss: 1,   // Lives lost when a fruit falls off the bottom (set 0 for easy mode!)
+    livesLostOnMiss: 0,   // Lives lost when a fruit falls off the bottom (set 0 for easy mode!)
     livesLostOnBomb: 1,   // Lives lost when you slice a bomb
 
     // Spawning — how often and how many fruits appear
     spawnInterval:    1800,  // Milliseconds between spawns (lower = harder!)
-    maxFruitsAtOnce:  2,     // Max fruits launched per wave
+    maxFruitsAtOnce:  3,     // Max fruits launched per wave
     bombChance:       0.15,  // Chance any given fruit is a bomb (0 to 1)
 
     // Blade trail settings
@@ -431,7 +436,7 @@ const GAME_CONFIG = {
     trailWidth:    5,         // Thickness of the blade
 
     // Scoring
-    comboWindow: 500,   // Milliseconds — how fast you must slice for a combo
+    comboWindow: 800,   // Milliseconds — how fast you must slice for a combo
     comboBonus:  10,    // Bonus points per extra fruit in a combo
 
     // Visual effects
@@ -451,15 +456,15 @@ const GAME_CONFIG = {
 //   size   — Hit radius in pixels (bigger = easier to slice)
 
 const FRUITS = [
-    { emoji: '🍉', color: '#ff6b8a', points: 1,  weight: 10, size: 36 },
-    { emoji: '🍊', color: '#ff9340', points: 1,  weight: 10, size: 32 },
-    { emoji: '🍋', color: '#ffe055', points: 2,  weight: 8,  size: 30 },
-    { emoji: '🍇', color: '#c084fc', points: 2,  weight: 7,  size: 32 },
-    { emoji: '🍓', color: '#ff4d6d', points: 3,  weight: 6,  size: 28 },
-    { emoji: '🥝', color: '#86efac', points: 3,  weight: 5,  size: 28 },
-    { emoji: '🍒', color: '#f43f5e', points: 4,  weight: 4,  size: 24 },
-    { emoji: '⭐', color: '#fde68a', points: 5,  weight: 2,  size: 30 },
-    { emoji: '💎', color: '#67e8f9', points: 10, weight: 1,  size: 26 },
+    { emoji: '🍉', color: '#ff6b8a', points: 1,  weight: 10, size: 66 },
+    { emoji: '🍊', color: '#ff9340', points: 1,  weight: 10, size: 52 },
+    { emoji: '🍋', color: '#ffe055', points: 2,  weight: 8,  size: 50 },
+    { emoji: '🍇', color: '#c084fc', points: 2,  weight: 7,  size: 52 },
+    { emoji: '🍓', color: '#ff4d6d', points: 3,  weight: 6,  size: 48 },
+    { emoji: '🥝', color: '#86efac', points: 3,  weight: 5,  size: 48 },
+    { emoji: '🍒', color: '#f43f5e', points: 4,  weight: 4,  size: 44 },
+    { emoji: '⭐', color: '#fde68a', points: 5,  weight: 2,  size: 50 },
+    { emoji: '💎', color: '#67e8f9', points: 10, weight: 1,  size: 46 },
 ];
 
 // =============================================
@@ -468,8 +473,8 @@ const FRUITS = [
 // Try adding: { emoji: '🪲', size: 30, weight: 2 }
 
 const BOMBS = [
-    { emoji: '💣', size: 34, weight: 3 },
-    { emoji: '🧨', size: 30, weight: 2 },
+    { emoji: '💣', size: 54, weight: 3 },
+    { emoji: '🧨', size: 50, weight: 2 },
 ];
 
 // =============================================
@@ -514,9 +519,10 @@ class Fruit {
         this.x = 80 + Math.random() * (GAME_CONFIG.width - 160);
         this.y = GAME_CONFIG.height + this.size + 5;
 
-        // Launch upward at a random angle
-        const speed = GAME_CONFIG.launchSpeedMin +
-            Math.random() * (GAME_CONFIG.launchSpeedMax - GAME_CONFIG.launchSpeedMin);
+        // Launch upward at a random angle, scaled by the speed multiplier
+        const speed = (GAME_CONFIG.launchSpeedMin +
+            Math.random() * (GAME_CONFIG.launchSpeedMax - GAME_CONFIG.launchSpeedMin))
+            * GAME_CONFIG.speed;
         const angle = -Math.PI / 2 + (Math.random() - 0.5) * GAME_CONFIG.launchAngleSpread;
         this.vx = Math.cos(angle) * speed;
         this.vy = Math.sin(angle) * speed;

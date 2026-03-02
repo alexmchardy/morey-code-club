@@ -1126,17 +1126,17 @@ function setupInput() {
         }
 
         // ── Frame-rate correction ────────────────────────────────
-        // Physics values in GAME_CONFIG are tuned for 60 Hz. This function
+        // Physics values in GAME_CONFIG are tuned for 120 Hz. This function
         // measures the actual display refresh rate and scales the physics
         // so the game feels identical on any device — fast (120/144 Hz)
         // or slow (Chromebooks that throttle to 45 fps, etc.).
         //
-        // Velocity  (pixels/frame) scales linearly:      × k      where k = 60/fps
+        // Velocity  (pixels/frame) scales linearly:      × k      where k = 120/fps
         // Gravity   (pixels/frame²) scales quadratically: × k²
         //
         // Derived from: pixel-distance-per-second and gravitational-
-        // acceleration-per-second² must equal the 60 Hz baseline values:
-        //   v_pix/s  = v_per_frame × fps        → v_per_frame = V/fps = V × k/60
+        // acceleration-per-second² must equal the 120 Hz baseline values:
+        //   v_pix/s  = v_per_frame × fps        → v_per_frame = V/fps = V × k/120
         //   g_pix/s² = G_per_frame × fps²       → G_per_frame = A/fps²
         //
         // Stall frames (> 100 ms, caused by page-load jank) are excluded
@@ -1173,7 +1173,7 @@ function setupInput() {
                     console.log('fps', fps);
                     console.log('GAME_CONFIG.speed', GAME_CONFIG.speed);
                     if (typeof GAME_CONFIG !== 'undefined') {
-                        const k = 60 / fps;
+                        const k = 120 / fps;
                         GAME_CONFIG.speed   = (GAME_CONFIG.speed   || 1)    * k;
                         GAME_CONFIG.gravity = (GAME_CONFIG.gravity || 0.22) * k * k;
                     }

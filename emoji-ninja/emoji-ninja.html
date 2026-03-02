@@ -132,11 +132,12 @@
 
         .overlay-screen h2 {
             font-family: 'Press Start 2P', monospace;
-            font-size: 22px;
+            font-size: 32px;
             color: var(--neon-cyan);
             text-shadow: 0 0 14px var(--neon-cyan), 0 0 40px rgba(0,245,255,0.35);
             letter-spacing: 3px;
             text-align: center;
+            margin-bottom: 30px;
         }
 
         .fruit-parade {
@@ -1409,6 +1410,16 @@ function setupInput() {
             setTimeout(() => {
                 applyFpsCorrection(initGame);
             }, 1000); // Wait for page load to complete
+
+            document.addEventListener('click', (e) => {
+                const drawer = document.getElementById('codeDrawer');
+                const codeBtn = document.getElementById('codeBtn');
+                if (drawer.classList.contains('open') &&
+                    !drawer.contains(e.target) &&
+                    !codeBtn.contains(e.target)) {
+                    toggleCodeDrawer();
+                }
+            });
         });
     </script>
 

@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Fredoka:wght@400;500;600;700&display=swap');
 
@@ -290,6 +291,65 @@
             font-size: 1.25rem;
         }
 
+        /* ── Code search bar ── */
+        #codeSearchBar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background: #252526;
+            border-bottom: 1px solid #444;
+            flex-shrink: 0;
+        }
+
+        #searchInput {
+            flex: 1;
+            background: #1e1e1e;
+            border: 1px solid #555;
+            color: #d4d4d4;
+            padding: 5px 10px;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+            border-radius: 3px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        #searchInput:focus { border-color: var(--neon-cyan); }
+        #searchInput.no-match { border-color: var(--neon-red); }
+
+        #searchCount {
+            font-size: 12px;
+            color: #888;
+            min-width: 72px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            white-space: nowrap;
+        }
+
+        #searchCount.no-match { color: var(--neon-red); }
+
+        .search-nav-btn {
+            background: #3a3a3a;
+            border: 1px solid #555;
+            color: #ccc;
+            padding: 4px 9px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 1;
+            transition: background 0.1s;
+        }
+
+        .search-nav-btn:hover { background: #4a4a4a; color: white; }
+        .search-nav-btn:active { background: #555; }
+
+        /* Highlight all matches in the editor */
+        .cm-search-match {
+            background: rgba(255, 190, 11, 0.28);
+            border-radius: 2px;
+        }
+
         #codeEditorContainer { flex: 1; overflow: hidden; }
 
         #codeEditorContainer .CodeMirror { height: 100%; font-size: 13px; }
@@ -385,6 +445,12 @@
 
     <div id="codeDrawer">
         <h2>🛠️ Game Code Editor</h2>
+        <div id="codeSearchBar">
+            <input id="searchInput" type="text" placeholder="Search code…" autocomplete="off" spellcheck="false">
+            <span id="searchCount"></span>
+            <button class="search-nav-btn" onclick="searchPrev()" title="Previous match (Shift+Enter)">▲</button>
+            <button class="search-nav-btn" onclick="searchNext()" title="Next match (Enter)">▼</button>
+        </div>
         <div id="codeEditorContainer"></div>
         <div id="codeControls">
             <button id="saveCodeBtn"  onclick="applyCode()">✅ Apply Changes</button>
@@ -1122,7 +1188,103 @@ function setupInput() {
             drawer.classList.toggle('open');
             if (drawer.classList.contains('open') && useCodeMirror && codeEditor) {
                 setTimeout(() => codeEditor.refresh(), 10);
+                setTimeout(() => document.getElementById('searchInput').focus(), 50);
+            } else {
+                clearSearchHighlights();
             }
+        }
+
+        // ── Code search ──────────────────────────────────────────
+        let _searchQuery   = '';
+        let _searchMatches = [];
+        let _searchIndex   = -1;
+        let _searchMarks   = [];
+
+        // Clear all yellow highlight marks from the editor
+        function clearSearchHighlights() {
+            _searchMarks.forEach(m => m.clear());
+            _searchMarks   = [];
+            _searchMatches = [];
+            _searchIndex   = -1;
+            _searchQuery   = '';
+            const countEl = document.getElementById('searchCount');
+            if (countEl) { countEl.textContent = ''; countEl.className = ''; }
+            const input = document.getElementById('searchInput');
+            if (input) input.className = '';
+        }
+
+        // Run a search for the current input value, then jump to a match
+        function runSearch(forward) {
+            if (!useCodeMirror || !codeEditor) return;
+            const query = document.getElementById('searchInput').value;
+            const countEl = document.getElementById('searchCount');
+            const input   = document.getElementById('searchInput');
+
+            if (!query) { clearSearchHighlights(); return; }
+
+            // Re-scan when the query has changed
+            if (query !== _searchQuery) {
+                clearSearchHighlights();
+                _searchQuery = query;
+
+                const cursor = codeEditor.getSearchCursor(
+                    query, { line: 0, ch: 0 }, { caseFold: true }
+                );
+                while (cursor.findNext()) {
+                    _searchMatches.push({ from: cursor.from(), to: cursor.to() });
+                }
+
+                // Highlight every match dimly
+                _searchMarks = _searchMatches.map(m =>
+                    codeEditor.markText(m.from, m.to, { className: 'cm-search-match' })
+                );
+
+                _searchIndex = _searchMatches.length > 0
+                    ? (forward ? 0 : _searchMatches.length - 1)
+                    : -1;
+            } else if (_searchMatches.length > 0) {
+                // Same query — just move the cursor
+                const len = _searchMatches.length;
+                _searchIndex = forward
+                    ? (_searchIndex + 1) % len
+                    : (_searchIndex - 1 + len) % len;
+            }
+
+            if (_searchMatches.length === 0) {
+                countEl.textContent = 'No matches';
+                countEl.className   = 'no-match';
+                input.className     = 'no-match';
+                return;
+            }
+
+            countEl.textContent = `${_searchIndex + 1} / ${_searchMatches.length}`;
+            countEl.className   = '';
+            input.className     = '';
+
+            // Jump to and select the current match
+            const match = _searchMatches[_searchIndex];
+            codeEditor.setSelection(match.from, match.to);
+            codeEditor.scrollIntoView({ from: match.from, to: match.to }, 80);
+        }
+
+        function searchNext() { runSearch(true);  }
+        function searchPrev() { runSearch(false); }
+
+        function initSearchBar() {
+            const input = document.getElementById('searchInput');
+            input.addEventListener('input', () => {
+                _searchQuery = ''; // force re-scan on next runSearch
+                runSearch(true);
+            });
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    runSearch(!e.shiftKey); // Shift+Enter → previous
+                } else if (e.key === 'Escape') {
+                    clearSearchHighlights();
+                    input.value = '';
+                }
+            });
         }
 
         // ── Frame-rate correction ────────────────────────────────
@@ -1188,6 +1350,7 @@ function setupInput() {
 
         window.addEventListener('DOMContentLoaded', () => {
             loadCodeIntoEditor();
+            initSearchBar();
             setTimeout(() => {
                 applyFpsCorrection(initGame);
             }, 1000); // Wait for page load to complete

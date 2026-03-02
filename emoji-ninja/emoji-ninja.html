@@ -343,7 +343,7 @@
     </header>
 
     <div id="gameContainer">
-        <canvas id="gameCanvas" width="700" height="500"></canvas>
+        <canvas id="gameCanvas" width="1000" height="650"></canvas>
 
         <!-- Start screen -->
         <div id="startScreen" class="overlay-screen">
@@ -1126,19 +1126,22 @@ function setupInput() {
         }
 
         // ── Frame-rate correction ────────────────────────────────
-        // Physics values in GAME_CONFIG are tuned for 60 Hz. On higher-
-        // refresh displays (120 Hz, 144 Hz, etc.) requestAnimationFrame
-        // fires more often, so every per-frame value must be scaled down
-        // to keep the game feeling the same.
+        // Physics values in GAME_CONFIG are tuned for 60 Hz. This function
+        // measures the actual display refresh rate and scales the physics
+        // so the game feels identical on any device — fast (120/144 Hz)
+        // or slow (Chromebooks that throttle to 45 fps, etc.).
         //
-        // Velocity  (pixels/frame) scales linearly:    × k     where k = 60/fps
+        // Velocity  (pixels/frame) scales linearly:      × k      where k = 60/fps
         // Gravity   (pixels/frame²) scales quadratically: × k²
         //
-        // This is derived from the requirement that pixel distance per
-        // real second and gravitational acceleration per real second²
-        // remain identical to the 60 Hz baseline:
-        //   v_pix_per_sec   = v_per_frame × fps   → must equal 60-Hz value
-        //   g_pix_per_sec²  = G_per_frame × fps²  → must equal 60-Hz value
+        // Derived from: pixel-distance-per-second and gravitational-
+        // acceleration-per-second² must equal the 60 Hz baseline values:
+        //   v_pix/s  = v_per_frame × fps        → v_per_frame = V/fps = V × k/60
+        //   g_pix/s² = G_per_frame × fps²       → G_per_frame = A/fps²
+        //
+        // Stall frames (> 100 ms, caused by page-load jank) are excluded
+        // from the average so they don't throw off the measurement.
+        // The result is clamped to [20, 240] fps against extreme outliers.
         //
         // Students don't need to touch this — it runs automatically before
         // initGame() is called.
@@ -1147,23 +1150,34 @@ function setupInput() {
 
             function collect(ts) {
                 timestamps.push(ts);
-                if (timestamps.length < 11) {           // collect 10 frame intervals
+                if (timestamps.length < 21) {           // collect 20 frame intervals
                     requestAnimationFrame(collect);
                 } else {
-                    let total = 0;
+                    // Exclude stall frames (> 100 ms) caused by page-load jank.
+                    const intervals = [];
                     for (let i = 1; i < timestamps.length; i++) {
-                        total += timestamps[i] - timestamps[i - 1];
+                        const dt = timestamps[i] - timestamps[i - 1];
+                        if (dt < 100) intervals.push(dt);
                     }
-                    const fps = 1000 / (total / (timestamps.length - 1));
 
-                    // Only correct for genuinely high-refresh displays.
-                    // A value below ~80 fps is more likely a slow device
-                    // under load than a sub-60 Hz monitor, so leave it alone.
-                    if (fps > 80 && typeof GAME_CONFIG !== 'undefined') {
+                    // If we couldn't collect enough clean samples, skip correction.
+                    if (intervals.length < 5) {
+                        callback();
+                        return;
+                    }
+
+                    const avgMs = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+                    // Clamp to a realistic display range before computing k.
+                    const fps = Math.max(20, Math.min(240, 1000 / avgMs));
+
+                    console.log('fps', fps);
+                    console.log('GAME_CONFIG.speed', GAME_CONFIG.speed);
+                    if (typeof GAME_CONFIG !== 'undefined') {
                         const k = 60 / fps;
                         GAME_CONFIG.speed   = (GAME_CONFIG.speed   || 1)    * k;
                         GAME_CONFIG.gravity = (GAME_CONFIG.gravity || 0.22) * k * k;
                     }
+                    console.log('GAME_CONFIG.speed', GAME_CONFIG.speed);
 
                     callback();
                 }
@@ -1174,7 +1188,9 @@ function setupInput() {
 
         window.addEventListener('DOMContentLoaded', () => {
             loadCodeIntoEditor();
-            applyFpsCorrection(initGame);
+            setTimeout(() => {
+                applyFpsCorrection(initGame);
+            }, 1000); // Wait for page load to complete
         });
     </script>
 </body>

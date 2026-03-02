@@ -20,8 +20,8 @@
             --neon-pink:   #ff6b9d;
             --neon-yellow: #ffbe0b;
             --neon-red:    #ff4444;
-            --text:        #e0e0ff;
-            --text-dim:    #5a5a90;
+            --text:        #cbcbe8;
+            --text-dim:    #7a7aba;
             --border:      rgba(0, 245, 255, 0.2);
         }
 
@@ -264,6 +264,37 @@
         }
 
         #instructions strong { color: var(--text); }
+
+        /* ── ASSIGNMENT ── */
+        #assignment {
+            margin-top: 36px;
+            padding: 24px 28px;
+            background: #0d0d2b;
+            border: 2px solid var(--neon-cyan);
+            border-radius: 10px;
+            max-width: 700px;
+            width: 100%;
+            color: var(--text-dim);
+            font-size: 15px;
+            line-height: 1.8;
+        }
+        #assignment h2 {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.85rem;
+            color: var(--neon-cyan);
+            margin: 0 0 16px 0;
+        }
+        #assignment p { margin: 0 0 12px 0; }
+        #assignment ol { padding-left: 20px; margin: 0; }
+        #assignment li { margin-bottom: 10px; }
+        #assignment strong { color: var(--neon-cyan); }
+        #assignment code {
+            background: #1e1e1e;
+            color: #f9c74f;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
 
         /* ── CODE DRAWER ── */
         #codeDrawer {
@@ -891,6 +922,7 @@ function sliceFruit(fruit, sliceX, sliceY) {
         gameState.screenFlash = { color: '#ff0000', alpha: 0.4 };
         gameState.popups.push(new ScorePopup(sliceX, sliceY, '💥 BOMB!', '#ff4444'));
         loseLife();
+        loseLife();
         return;
     }
 
@@ -918,7 +950,7 @@ function sliceFruit(fruit, sliceX, sliceY) {
 function loseLife() {
     gameState.lives = Math.max(0, gameState.lives - 1);
     updateHUD();
-    if (gameState.lives <= 0) endGame();
+    if (gameState.lives <= -100) endGame();
 }
 
 function endGame() {
@@ -943,7 +975,7 @@ function endGame() {
 }
 
 function updateHUD() {
-    document.getElementById('scoreDisplay').textContent     = gameState.score;
+    document.getElementById('scoreDisplay').textContent     = 'ZONK';
     document.getElementById('highScoreDisplay').textContent = gameState.highScore;
 
     // Show full hearts for remaining lives, dark hearts for lost lives
@@ -1359,5 +1391,28 @@ function setupInput() {
             }, 1000); // Wait for page load to complete
         });
     </script>
+
+    <section id="assignment">
+        <h2>🐛 Your Assignment</h2>
+        <p>This game has <strong>3 bugs</strong> hiding in the code. Use the <strong>📝 SHOW CODE</strong> button and the search bar to find and fix them. Then add one new feature!</p>
+        <ol>
+            <li>
+                <strong>Bug 1 — Double damage:</strong> Slicing a bomb costs <em>two</em> lives instead of one.
+                <em>Hint: search for <code>loseLife</code>.</em>
+            </li>
+            <li>
+                <strong>Bug 2 — Broken score:</strong> The score always shows "ZONK" instead of your real score.
+                <em>Hint: search for <code>ZONK</code>.</em>
+            </li>
+            <li>
+                <strong>Bug 3 — Immortal player:</strong> The game never ends — even when all your hearts are gone!
+                <em>Hint: search for <code>endGame</code> and look at the number next to it.</em>
+            </li>
+            <li>
+                <strong>New feature — Combo reward:</strong> Right now combos only give bonus points. Update the code so that getting a combo also gives the player <strong>one life back</strong>.
+                <em>Hint: search for <code>combo</code> and find where combos are counted. Use <code>gameState.lives</code> to add a life.</em>
+            </li>
+        </ol>
+    </section>
 </body>
 </html>

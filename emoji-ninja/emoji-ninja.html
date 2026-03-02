@@ -284,11 +284,15 @@
 
         #codeDrawer h2 {
             color: white;
-            padding: 16px 22px;
+            padding: 10px 22px;
             background: #333;
             margin: 0;
             font-family: 'Fredoka', sans-serif;
             font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
         }
 
         /* ── Code search bar ── */
@@ -296,9 +300,6 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            padding: 8px 12px;
-            background: #252526;
-            border-bottom: 1px solid #444;
             flex-shrink: 0;
         }
 
@@ -444,15 +445,17 @@
     </div>
 
     <div id="codeDrawer">
-        <h2>🛠️ Game Code Editor</h2>
+    <h2>
+        🛠️ Game Code Editor
         <div id="codeSearchBar">
             <input id="searchInput" type="text" placeholder="Search code…" autocomplete="off" spellcheck="false">
             <span id="searchCount"></span>
             <button class="search-nav-btn" onclick="searchPrev()" title="Previous match (Shift+Enter)">▲</button>
             <button class="search-nav-btn" onclick="searchNext()" title="Next match (Enter)">▼</button>
         </div>
-        <div id="codeEditorContainer"></div>
-        <div id="codeControls">
+    </h2>
+    <div id="codeEditorContainer"></div>
+    <div id="codeControls">
             <button id="saveCodeBtn"  onclick="applyCode()">✅ Apply Changes</button>
             <button id="resetCodeBtn" onclick="resetCode()">🗑️ Reset Code</button>
             <button id="closeCodeBtn" onclick="toggleCodeDrawer()">❌ Close</button>

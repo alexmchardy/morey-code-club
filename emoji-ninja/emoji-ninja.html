@@ -113,6 +113,7 @@
             display: block;
             cursor: crosshair;
             border-radius: 2px;
+            background: var(--bg); /* Prevents white flash while FPS is being measured */
         }
 
         /* ── OVERLAY SCREENS (Start / Game Over) ── */
@@ -1124,9 +1125,56 @@ function setupInput() {
             }
         }
 
+        // ── Frame-rate correction ────────────────────────────────
+        // Physics values in GAME_CONFIG are tuned for 60 Hz. On higher-
+        // refresh displays (120 Hz, 144 Hz, etc.) requestAnimationFrame
+        // fires more often, so every per-frame value must be scaled down
+        // to keep the game feeling the same.
+        //
+        // Velocity  (pixels/frame) scales linearly:    × k     where k = 60/fps
+        // Gravity   (pixels/frame²) scales quadratically: × k²
+        //
+        // This is derived from the requirement that pixel distance per
+        // real second and gravitational acceleration per real second²
+        // remain identical to the 60 Hz baseline:
+        //   v_pix_per_sec   = v_per_frame × fps   → must equal 60-Hz value
+        //   g_pix_per_sec²  = G_per_frame × fps²  → must equal 60-Hz value
+        //
+        // Students don't need to touch this — it runs automatically before
+        // initGame() is called.
+        function applyFpsCorrection(callback) {
+            const timestamps = [];
+
+            function collect(ts) {
+                timestamps.push(ts);
+                if (timestamps.length < 11) {           // collect 10 frame intervals
+                    requestAnimationFrame(collect);
+                } else {
+                    let total = 0;
+                    for (let i = 1; i < timestamps.length; i++) {
+                        total += timestamps[i] - timestamps[i - 1];
+                    }
+                    const fps = 1000 / (total / (timestamps.length - 1));
+
+                    // Only correct for genuinely high-refresh displays.
+                    // A value below ~80 fps is more likely a slow device
+                    // under load than a sub-60 Hz monitor, so leave it alone.
+                    if (fps > 80 && typeof GAME_CONFIG !== 'undefined') {
+                        const k = 60 / fps;
+                        GAME_CONFIG.speed   = (GAME_CONFIG.speed   || 1)    * k;
+                        GAME_CONFIG.gravity = (GAME_CONFIG.gravity || 0.22) * k * k;
+                    }
+
+                    callback();
+                }
+            }
+
+            requestAnimationFrame(collect);
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             loadCodeIntoEditor();
-            initGame();
+            applyFpsCorrection(initGame);
         });
     </script>
 </body>

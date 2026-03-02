@@ -295,6 +295,26 @@
             border-radius: 3px;
             font-family: 'Courier New', monospace;
         }
+        .hint-trigger {
+            position: relative;
+        }
+        .hint-trigger .hint-tooltip {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a1a3e;
+            border: 1px solid var(--neon-cyan);
+            color: var(--text);
+            font-size: 13px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .hint-trigger:hover .hint-tooltip { display: block; }
 
         /* ── CODE DRAWER ── */
         #codeDrawer {
@@ -1397,20 +1417,28 @@ function setupInput() {
         <p>This game has <strong>3 bugs</strong> hiding in the code. Use the <strong>📝 SHOW CODE</strong> button and the search bar to find and fix them. Then add one new feature!</p>
         <ol>
             <li>
-                <strong>Bug 1 — Double damage:</strong> Slicing a bomb costs <em>two</em> lives instead of one.
-                <em>Hint: search for <code>loseLife</code>.</em>
+                <strong>Bug 1 — Double damage:</strong> Slicing a bomb costs <em>two</em> lives instead of
+                <span class="hint-trigger">one.
+                    <span class="hint-tooltip">Hint: search for <code>loseLife</code></span>
+                </span>
             </li>
             <li>
-                <strong>Bug 2 — Broken score:</strong> The score always shows "ZONK" instead of your real score.
-                <em>Hint: search for <code>ZONK</code>.</em>
+                <strong>Bug 2 — Broken score:</strong> The score always shows "ZONK" instead of your real
+                <span class="hint-trigger">score.
+                    <span class="hint-tooltip">Hint: search for <code>ZONK</code></span>
+                </span>
             </li>
             <li>
-                <strong>Bug 3 — Immortal player:</strong> The game never ends — even when all your hearts are gone!
-                <em>Hint: search for <code>endGame</code> and look at the number next to it.</em>
+                <strong>Bug 3 — Immortal player:</strong> The game never ends — even when all your hearts are
+                <span class="hint-trigger">gone!
+                    <span class="hint-tooltip">Hint: search for <code>endGame</code> and look at the number next to it</span>
+                </span>
             </li>
             <li>
-                <strong>New feature — Combo reward:</strong> Right now combos only give bonus points. Update the code so that getting a combo also gives the player <strong>one life back</strong>.
-                <em>Hint: search for <code>combo</code> and find where combos are counted. Use <code>gameState.lives</code> to add a life.</em>
+                <strong>New feature — Combo reward:</strong> Right now combos only give bonus points. Update the code so that getting a combo also gives the player one life
+                <span class="hint-trigger">back.
+                    <span class="hint-tooltip">Hint: search for <code>combo</code> and find where combos are counted. Use <code>gameState.lives</code> to add a life.</span>
+                </span>
             </li>
         </ol>
     </section>

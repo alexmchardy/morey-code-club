@@ -31,6 +31,9 @@
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
+    html { font-size: 16px; }
+    @media (min-width: 1024px) { html { font-size: 20px; } }
+
     body {
       font-family: 'Fredoka', sans-serif;
       background: var(--bg);
@@ -39,8 +42,9 @@
       flex-direction: column;
       align-items: center;
       min-height: 100vh;
-      padding: 16px;
+      padding: 1rem;
       overflow-x: hidden;
+      font-size: 1rem;
     }
 
     /* Scanline overlay */
@@ -63,8 +67,8 @@
 
     /* === HEADER === */
     #appHeader {
-      width: 700px;
-      max-width: 100%;
+      width: 100%;
+      max-width: 1200px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -73,7 +77,7 @@
       flex-wrap: wrap;
     }
     #appHeader h1 {
-      font-size: 14px;
+      font-size: 0.9rem;
       color: var(--neon-cyan);
       text-shadow: 0 0 10px var(--neon-cyan), 0 0 30px rgba(0,245,255,0.35);
       white-space: nowrap;
@@ -86,20 +90,20 @@
     .hud-item {
       text-align: center;
       font-family: 'Press Start 2P', monospace;
-      font-size: 7px;
+      font-size: 0.55rem;
       color: var(--text-dim);
       line-height: 2;
       text-transform: uppercase;
     }
     .hud-item span {
       display: block;
-      font-size: 13px;
+      font-size: 0.85rem;
       color: var(--neon-yellow);
       text-shadow: 0 0 8px rgba(255,190,11,0.5);
     }
     .ctrl-btn {
       font-family: 'Press Start 2P', monospace;
-      font-size: 8px;
+      font-size: 0.6rem;
       padding: 6px 12px;
       background: transparent;
       border: 1px solid var(--border);
@@ -137,7 +141,7 @@
       border-radius: 8px;
       padding: 8px 12px;
       font-family: 'Fredoka', sans-serif;
-      font-size: 13px;
+      font-size: 0.85rem;
       color: var(--text);
       max-width: 220px;
       text-align: center;
@@ -164,7 +168,7 @@
       border-radius: 8px;
       padding: 10px 14px;
       font-family: 'Fredoka', sans-serif;
-      font-size: 14px;
+      font-size: 0.9rem;
       color: var(--text);
       max-width: 340px;
       box-shadow: 0 0 12px rgba(57,255,20,0.15);
@@ -197,8 +201,8 @@
     .view {
       display: none;
       opacity: 0;
-      width: 700px;
-      max-width: 100%;
+      width: 100%;
+      max-width: 1200px;
       transition: opacity 0.3s ease;
     }
     .view.active {
@@ -213,7 +217,7 @@
     /* === BUTTONS === */
     .quest-btn {
       font-family: 'Press Start 2P', monospace;
-      font-size: 10px;
+      font-size: 0.7rem;
       padding: 12px 24px;
       background: transparent;
       border: 2px solid var(--neon-cyan);
@@ -249,14 +253,14 @@
       color: var(--neon-yellow);
       text-shadow: 0 0 8px var(--neon-yellow);
       box-shadow: 0 0 14px rgba(255,190,11,0.2);
-      font-size: 8px;
+      font-size: 0.6rem;
     }
     .quest-btn-secondary {
       border-color: var(--text-dim);
       color: var(--text-dim);
       text-shadow: none;
       box-shadow: none;
-      font-size: 8px;
+      font-size: 0.6rem;
     }
     .quest-btn-secondary:hover {
       border-color: var(--text);
@@ -271,14 +275,14 @@
       padding: 40px 16px;
     }
     .view-welcome h2 {
-      font-size: 18px;
+      font-size: 1.2rem;
       color: var(--neon-cyan);
       text-shadow: 0 0 14px var(--neon-cyan);
       margin: 24px 0 16px;
       line-height: 1.6;
     }
     .view-welcome p {
-      font-size: 16px;
+      font-size: 1.1rem;
       margin: 8px 0;
       color: var(--text);
     }
@@ -294,8 +298,8 @@
       padding: 30px 10px;
     }
     .level-node {
-      width: 80px;
-      height: 80px;
+      width: 110px;
+      height: 110px;
       border-radius: 50%;
       border: 3px solid var(--border);
       display: flex;
@@ -307,10 +311,10 @@
       position: relative;
       background: var(--surface);
     }
-    .level-node-icon { font-size: 24px; margin-bottom: 2px; }
+    .level-node-icon { font-size: 1.5rem; margin-bottom: 2px; }
     .level-node-title {
       font-family: 'Press Start 2P', monospace;
-      font-size: 6px;
+      font-size: 0.5rem;
       color: var(--text-dim);
       text-align: center;
     }
@@ -325,7 +329,7 @@
       top: -6px; right: -6px;
       background: var(--neon-green);
       color: var(--bg);
-      font-size: 11px; font-weight: bold;
+      font-size: 0.75rem; font-weight: bold;
       width: 18px; height: 18px;
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
@@ -356,14 +360,18 @@
       box-shadow: 0 0 8px rgba(57,255,20,0.3);
     }
     .level-node-wrap {
+      position: relative;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 6px;
+      padding-bottom: 30px;
     }
     .mini-game-btn {
+      position: absolute;
+      bottom: 4px;
       font-family: 'Press Start 2P', monospace;
-      font-size: 5px;
+      font-size: 0.45rem;
       background: var(--surface-light);
       border: 1px solid var(--neon-pink);
       color: var(--neon-pink);
@@ -386,15 +394,15 @@
     }
     .view-map h2 {
       text-align: center;
-      font-size: 16px;
+      font-size: 1.1rem;
       color: var(--neon-cyan);
       margin-bottom: 10px;
     }
 
     /* === STEP INDICATOR === */
     .step-indicator {
-      width: 700px;
-      max-width: 100%;
+      width: 100%;
+      max-width: 1200px;
       margin-bottom: 16px;
     }
     .step-indicator.hidden { display: none; }
@@ -428,7 +436,7 @@
     }
     .step-label {
       font-family: 'Press Start 2P', monospace;
-      font-size: 5px;
+      font-size: 0.45rem;
       color: var(--text-dim);
       white-space: nowrap;
     }
@@ -454,19 +462,19 @@
 
     /* === EXPLANATION VIEW === */
     .explanation-icon {
-      font-size: 48px;
+      font-size: 3rem;
       text-align: center;
       margin: 16px 0 8px;
     }
     .view-explanation h2 {
-      font-size: 14px;
+      font-size: 0.9rem;
       color: var(--neon-cyan);
       text-align: center;
       margin-bottom: 16px;
       line-height: 1.6;
     }
     .explanation-body {
-      font-size: 16px;
+      font-size: 1.1rem;
       line-height: 1.8;
       margin: 12px 0;
     }
@@ -480,17 +488,17 @@
     }
     .callout-label {
       font-family: 'Press Start 2P', monospace;
-      font-size: 7px;
+      font-size: 0.55rem;
       color: var(--neon-yellow);
       text-transform: uppercase;
       margin-bottom: 6px;
     }
-    .callout-box p { font-size: 14px; line-height: 1.6; }
+    .callout-box p { font-size: 0.9rem; line-height: 1.6; }
     .view-explanation .quest-btn { display: block; margin: 24px auto 0; }
 
     /* === EXAMPLE VIEW === */
     .view-example h3 {
-      font-size: 12px;
+      font-size: 0.8rem;
       color: var(--neon-cyan);
       margin-bottom: 12px;
     }
@@ -501,13 +509,13 @@
       overflow: hidden;
       margin: 12px 0;
     }
-    .code-panel .CodeMirror { height: auto; min-height: 80px; font-size: 14px; }
+    .code-panel .CodeMirror { height: auto; min-height: 80px; font-size: 0.9rem; }
     .code-fallback {
       background: var(--surface-code);
       color: #f8f8f2;
       padding: 14px;
       font-family: 'Share Tech Mono', monospace;
-      font-size: 14px;
+      font-size: 0.9rem;
       border-radius: 4px;
       white-space: pre-wrap;
       word-break: break-word;
@@ -519,11 +527,11 @@
       gap: 10px;
       padding: 6px 0;
       border-bottom: 1px solid rgba(255,255,255,0.05);
-      font-size: 13px;
+      font-size: 0.85rem;
     }
     .annotation-line {
       font-family: 'Share Tech Mono', monospace;
-      font-size: 10px;
+      font-size: 0.7rem;
       color: var(--neon-cyan);
       background: var(--surface);
       padding: 2px 8px;
@@ -539,14 +547,14 @@
       border-radius: 4px;
       padding: 10px 14px;
       font-family: 'Share Tech Mono', monospace;
-      font-size: 13px;
+      font-size: 0.85rem;
       color: var(--neon-green);
       min-height: 40px;
       margin: 12px 0;
     }
     .output-label {
       font-family: 'Press Start 2P', monospace;
-      font-size: 7px;
+      font-size: 0.55rem;
       color: var(--text-dim);
       text-transform: uppercase;
       margin-bottom: 6px;
@@ -565,7 +573,7 @@
 
     /* === CHALLENGE VIEW === */
     .challenge-header h3 {
-      font-size: 10px;
+      font-size: 0.7rem;
       color: var(--neon-pink);
       margin-bottom: 12px;
     }
@@ -574,7 +582,7 @@
       border-left: 4px solid var(--neon-cyan);
       padding: 12px 16px;
       border-radius: 0 6px 6px 0;
-      font-size: 15px;
+      font-size: 1rem;
       line-height: 1.6;
       margin: 12px 0;
     }
@@ -584,7 +592,7 @@
       padding: 1px 5px;
       border-radius: 3px;
       font-family: 'Share Tech Mono', monospace;
-      font-size: 14px;
+      font-size: 0.9rem;
     }
     .challenge-editor {
       margin: 12px 0;
@@ -597,7 +605,7 @@
       border-color: var(--neon-cyan);
       box-shadow: 0 0 12px rgba(0,245,255,0.15);
     }
-    .challenge-editor .CodeMirror { height: 180px; font-size: 14px; }
+    .challenge-editor .CodeMirror { height: 180px; font-size: 0.9rem; }
     .editor-fallback {
       width: 100%;
       height: 180px;
@@ -605,7 +613,7 @@
       color: #f8f8f2;
       padding: 14px;
       font-family: 'Share Tech Mono', monospace;
-      font-size: 14px;
+      font-size: 0.9rem;
       border: none;
       outline: none;
       resize: vertical;
@@ -623,7 +631,7 @@
       font-weight: 500;
       margin: 10px 0;
       display: none;
-      font-size: 14px;
+      font-size: 0.9rem;
       line-height: 1.5;
     }
     .result-message.success {
@@ -645,7 +653,7 @@
       padding: 30px 16px;
     }
     .celebration h2 {
-      font-size: 18px;
+      font-size: 1.2rem;
       color: var(--neon-yellow);
       text-shadow: 0 0 14px rgba(255,190,11,0.6);
       margin: 16px 0;
@@ -653,7 +661,7 @@
     }
     .xp-earned {
       font-family: 'Press Start 2P', monospace;
-      font-size: 14px;
+      font-size: 0.9rem;
       color: var(--neon-green);
       text-shadow: 0 0 10px rgba(57,255,20,0.5);
       margin: 12px 0 20px;
@@ -689,7 +697,7 @@
     /* === QUEST COMPLETE VIEW === */
     .view-quest-complete { text-align: center; padding: 30px 16px; }
     .view-quest-complete h2 {
-      font-size: 16px;
+      font-size: 1.1rem;
       color: var(--neon-yellow);
       text-shadow: 0 0 14px rgba(255,190,11,0.6);
       margin: 16px 0;
@@ -701,13 +709,13 @@
 
     /* === RESPONSIVE === */
     @media (max-width: 500px) {
-      #appHeader h1 { font-size: 11px; }
-      .hud-item { font-size: 6px; }
-      .hud-item span { font-size: 11px; }
+      #appHeader h1 { font-size: 0.75rem; }
+      .hud-item { font-size: 0.45rem; }
+      .hud-item span { font-size: 0.7rem; }
       .level-node { width: 60px; height: 60px; }
-      .level-node-icon { font-size: 18px; }
+      .level-node-icon { font-size: 1.2rem; }
       .level-connector { width: 16px; margin-top: 30px; }
-      .mini-game-btn { font-size: 4px; padding: 2px 4px; }
+      .mini-game-btn { font-size: 0.35rem; padding: 2px 4px; }
       .step-connector { width: 12px; }
     }
   </style>

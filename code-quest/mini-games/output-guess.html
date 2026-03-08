@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Output Guess - Code Quest</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Fredoka:wght@400;500;600;700&display=swap');
+
+    :root {
+      --bg: #030310;
+      --surface: #0d0d2b;
+      --surface-light: #151538;
+      --neon-cyan: #00f5ff;
+      --neon-pink: #ff6b9d;
+      --neon-yellow: #ffbe0b;
+      --neon-green: #39ff14;
+      --neon-red: #ff4444;
+      --text: #cbcbe8;
+      --text-dim: #7a7aba;
+      --border: rgba(0, 245, 255, 0.2);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Fredoka', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px;
+      overflow-x: hidden;
+    }
+
+    /* Scanline overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        transparent, transparent 3px,
+        rgba(0,0,0,0.035) 3px, rgba(0,0,0,0.035) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: 'Press Start 2P', monospace;
+      font-weight: 400;
+    }
+
+    /* === LAYOUT === */
+    .game-container {
+      width: 650px;
+      max-width: 100%;
+    }
+
+    /* === BACK LINK === */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      color: var(--text-dim);
+      text-decoration: none;
+      margin-bottom: 16px;
+      transition: color 0.2s;
+    }
+    .back-link:hover {
+      color: var(--neon-cyan);
+    }
+    .back-link::before {
+      content: '\2190';
+    }
+
+    /* === HUD (score + question) === */
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .hud-item {
+      text-align: center;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--text-dim);
+      line-height: 2;
+      text-transform: uppercase;
+    }
+    .hud-item span {
+      display: block;
+      font-size: 14px;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 8px rgba(255,190,11,0.5);
+    }
+    .hud-item.question-num span {
+      color: var(--neon-cyan);
+      text-shadow: 0 0 8px rgba(0,245,255,0.5);
+    }
+
+    /* === LEVEL BADGE === */
+    .level-badge {
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .level-badge span {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--neon-pink);
+      text-shadow: 0 0 8px rgba(255,107,157,0.4);
+      background: rgba(255,107,157,0.1);
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,107,157,0.25);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* === CODE PANEL === */
+    .code-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    /* Timer bar */
+    .timer-bar-track {
+      height: 5px;
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+    }
+    .timer-bar {
+      height: 100%;
+      width: 100%;
+      background: var(--neon-cyan);
+      box-shadow: 0 0 8px var(--neon-cyan);
+      transition: width 0.1s linear, background 0.3s, box-shadow 0.3s;
+      border-radius: 0 3px 3px 0;
+    }
+    .timer-bar.warning {
+      background: var(--neon-yellow);
+      box-shadow: 0 0 8px var(--neon-yellow);
+    }
+    .timer-bar.danger {
+      background: var(--neon-red);
+      box-shadow: 0 0 8px var(--neon-red);
+    }
+
+    .code-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px 8px;
+    }
+    .code-panel-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .timer-text {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 6px rgba(0,245,255,0.4);
+      transition: color 0.3s;
+    }
+    .timer-text.warning { color: var(--neon-yellow); }
+    .timer-text.danger { color: var(--neon-red); }
+
+    .code-block {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 16px;
+      line-height: 1.7;
+      color: #e0e0e0;
+      padding: 12px 20px 18px;
+      white-space: pre;
+      overflow-x: auto;
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+    }
+
+    /* === PROMPT TEXT === */
+    .prompt-text {
+      text-align: center;
+      font-family: 'Fredoka', sans-serif;
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    /* === ANSWER BUTTONS === */
+    .answers-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .answer-btn {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 14px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, transform 0.1s, box-shadow 0.2s;
+      text-align: center;
+      word-break: break-word;
+      position: relative;
+      overflow: hidden;
+    }
+    .answer-btn:hover:not(.disabled) {
+      border-color: var(--neon-cyan);
+      background: var(--surface-light);
+      transform: translateY(-2px);
+      box-shadow: 0 0 16px rgba(0,245,255,0.15);
+    }
+    .answer-btn:active:not(.disabled) {
+      transform: translateY(0);
+    }
+    .answer-btn.disabled {
+      cursor: default;
+      pointer-events: none;
+    }
+
+    /* Correct answer */
+    .answer-btn.correct {
+      border-color: var(--neon-green);
+      background: rgba(57,255,20,0.12);
+      box-shadow: 0 0 20px rgba(57,255,20,0.25);
+      color: var(--neon-green);
+    }
+    .answer-btn.correct::after {
+      content: '\2713';
+      position: absolute;
+      top: 6px;
+      right: 10px;
+      font-size: 14px;
+    }
+
+    /* Wrong answer */
+    .answer-btn.wrong {
+      border-color: var(--neon-red);
+      background: rgba(255,68,68,0.12);
+      box-shadow: 0 0 20px rgba(255,68,68,0.25);
+      color: var(--neon-red);
+      animation: shake 0.4s ease;
+    }
+    .answer-btn.wrong::after {
+      content: '\2717';
+      position: absolute;
+      top: 6px;
+      right: 10px;
+      font-size: 14px;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+
+    /* === CELEBRATION PARTICLES === */
+    .celebration {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1000;
+    }
+    .particle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      animation: particleFall 1s ease-out forwards;
+    }
+    @keyframes particleFall {
+      0% { opacity: 1; transform: translate(0, 0) scale(1); }
+      100% { opacity: 0; transform: translate(var(--drift, 0px), 120px) scale(0.3); }
+    }
+
+    /* === END SCREEN === */
+    .end-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding-top: 10px;
+    }
+    .end-screen.visible {
+      display: flex;
+    }
+
+    .final-score-box {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 30px 40px;
+      text-align: center;
+    }
+    .final-score-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .final-score-value {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 36px;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 16px rgba(255,190,11,0.6);
+      margin-bottom: 6px;
+    }
+    .final-score-sub {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 16px;
+      color: var(--text-dim);
+    }
+    .final-message {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      color: var(--neon-green);
+      text-shadow: 0 0 8px rgba(57,255,20,0.4);
+      text-align: center;
+      line-height: 1.8;
+    }
+
+    .end-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .end-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      padding: 14px 22px;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 2px solid;
+      transition: transform 0.15s, box-shadow 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .end-btn:hover {
+      transform: translateY(-2px);
+    }
+    .end-btn.primary {
+      background: rgba(0,245,255,0.1);
+      border-color: var(--neon-cyan);
+      color: var(--neon-cyan);
+      box-shadow: 0 0 12px rgba(0,245,255,0.2);
+    }
+    .end-btn.primary:hover {
+      box-shadow: 0 0 20px rgba(0,245,255,0.35);
+    }
+    .end-btn.secondary {
+      background: rgba(255,107,157,0.08);
+      border-color: var(--neon-pink);
+      color: var(--neon-pink);
+      box-shadow: 0 0 10px rgba(255,107,157,0.15);
+    }
+    .end-btn.secondary:hover {
+      box-shadow: 0 0 20px rgba(255,107,157,0.3);
+    }
+
+    /* === GAME AREA (hidden when end screen shows) === */
+    .game-area { display: block; }
+    .game-area.hidden { display: none; }
+
+    /* === RESPONSIVE === */
+    @media (max-width: 500px) {
+      .answers-grid {
+        grid-template-columns: 1fr;
+      }
+      .code-block {
+        font-size: 14px;
+      }
+      .final-score-value {
+        font-size: 28px;
+      }
+      .final-score-box {
+        padding: 24px 20px;
+      }
+      .end-btn {
+        font-size: 8px;
+        padding: 12px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="game-container">
+  <a class="back-link" href="../code-quest.html">Code Quest</a>
+
+  <!-- HUD -->
+  <div class="hud">
+    <div class="hud-item question-num">
+      Question
+      <span id="questionNum">1/8</span>
+    </div>
+    <div class="hud-item">
+      Score
+      <span id="scoreDisplay">0</span>
+    </div>
+  </div>
+
+  <!-- Level badge -->
+  <div class="level-badge">
+    <span id="levelBadge">strings</span>
+  </div>
+
+  <!-- GAME AREA -->
+  <div class="game-area" id="gameArea">
+    <!-- Code panel -->
+    <div class="code-panel">
+      <div class="timer-bar-track">
+        <div class="timer-bar" id="timerBar"></div>
+      </div>
+      <div class="code-panel-header">
+        <div class="code-panel-label">What does this output?</div>
+        <div class="timer-text" id="timerText">15s</div>
+      </div>
+      <div class="code-block" id="codeBlock"></div>
+    </div>
+
+    <!-- Answer buttons -->
+    <div class="answers-grid" id="answersGrid"></div>
+  </div>
+
+  <!-- END SCREEN -->
+  <div class="end-screen" id="endScreen">
+    <div class="final-score-box">
+      <div class="final-score-label">Final Score</div>
+      <div class="final-score-value" id="finalScore">0/8</div>
+      <div class="final-score-sub" id="finalSub"></div>
+    </div>
+    <div class="final-message" id="finalMessage"></div>
+    <div class="end-buttons">
+      <button class="end-btn primary" id="playAgainBtn">Play Again</button>
+      <a class="end-btn secondary" href="../code-quest.html">Back to Code Quest</a>
+    </div>
+  </div>
+</div>
+
+<!-- Celebration container -->
+<div class="celebration" id="celebration"></div>
+
+<script>
+// =========================================================
+// QUIZ DATA
+// =========================================================
+const OUTPUT_QUIZZES = {
+  string: [
+    {
+      code: 'let x = "Code";\nconsole.log(x);',
+      options: ['Code', '"Code"', 'x', 'undefined'],
+      correct: 0
+    },
+    {
+      code: 'let a = "Hello";\nlet b = "World";\nconsole.log(a + " " + b);',
+      options: ['Hello World', 'HelloWorld', 'a + " " + b', 'Hello + World'],
+      correct: 0
+    },
+    {
+      code: 'console.log("5" + "3");',
+      options: ['8', '53', '"53"', 'Error'],
+      correct: 1
+    },
+    {
+      code: 'let name = "Mono";\nconsole.log("Hi " + name + "!");',
+      options: ['Hi Mono!', 'Hi name!', '"Hi " + name + "!"', 'Hi Mono'],
+      correct: 0
+    },
+    {
+      code: 'let word = "Bug";\nconsole.log(word + word);',
+      options: ['BugBug', 'Bug Bug', 'Bug', 'wordword'],
+      correct: 0
+    },
+    {
+      code: 'let a = "abc";\nconsole.log(a.length);',
+      options: ['3', 'abc', 'length', 'undefined'],
+      correct: 0
+    },
+  ],
+  variable: [
+    {
+      code: 'let a = 5;\nlet b = a;\nconsole.log(b);',
+      options: ['5', 'a', 'undefined', 'b'],
+      correct: 0
+    },
+    {
+      code: 'let x = 10;\nconsole.log(typeof x);',
+      options: ['number', '10', 'x', 'integer'],
+      correct: 0
+    },
+    {
+      code: 'let flag = true;\nconsole.log(flag);',
+      options: ['true', '"true"', '1', 'flag'],
+      correct: 0
+    },
+    {
+      code: 'let a = "hello";\nconsole.log(typeof a);',
+      options: ['string', 'hello', '"string"', 'text'],
+      correct: 0
+    },
+    {
+      code: 'let x;\nconsole.log(x);',
+      options: ['undefined', 'null', '0', 'Error'],
+      correct: 0
+    },
+  ],
+  operator: [
+    {
+      code: 'let x = 10;\nlet y = 3;\nconsole.log(x % y);',
+      options: ['3.33', '1', '3', '0'],
+      correct: 1
+    },
+    {
+      code: 'console.log(5 + 3 * 2);',
+      options: ['16', '11', '13', '10'],
+      correct: 1
+    },
+    {
+      code: 'let a = 7;\nlet b = 2;\nconsole.log(a - b);',
+      options: ['5', '9', '72', '14'],
+      correct: 0
+    },
+    {
+      code: 'console.log(10 / 2);',
+      options: ['5', '20', '2', '0.5'],
+      correct: 0
+    },
+    {
+      code: 'console.log(2 ** 3);',
+      options: ['8', '6', '9', '23'],
+      correct: 0
+    },
+  ],
+  comparison: [
+    {
+      code: 'console.log(5 === 5);',
+      options: ['true', 'false', '5', '10'],
+      correct: 0
+    },
+    {
+      code: 'console.log(3 > 7);',
+      options: ['true', 'false', '3', '7'],
+      correct: 1
+    },
+    {
+      code: 'let x = 10;\nconsole.log(x !== 10);',
+      options: ['true', 'false', '10', 'x'],
+      correct: 1
+    },
+    {
+      code: 'console.log(5 >= 5);',
+      options: ['true', 'false', '5', '0'],
+      correct: 0
+    },
+    {
+      code: 'console.log("apple" === "Apple");',
+      options: ['true', 'false', 'apple', 'Error'],
+      correct: 1
+    },
+  ],
+  assignment: [
+    {
+      code: 'let x = 5;\nx = x + 3;\nconsole.log(x);',
+      options: ['8', '5', '3', '53'],
+      correct: 0
+    },
+    {
+      code: 'let a = 10;\na = 3;\nconsole.log(a);',
+      options: ['10', '3', '13', '7'],
+      correct: 1
+    },
+    {
+      code: 'let n = 1;\nn = n * 4;\nn = n + 1;\nconsole.log(n);',
+      options: ['5', '4', '6', '1'],
+      correct: 0
+    },
+    {
+      code: 'let hp = 100;\nhp = hp - 30;\nhp = hp - 20;\nconsole.log(hp);',
+      options: ['50', '70', '80', '100'],
+      correct: 0
+    },
+    {
+      code: 'let score = 0;\nscore = score + 10;\nscore = score + 10;\nscore = score + 10;\nconsole.log(score);',
+      options: ['30', '10', '0', '40'],
+      correct: 0
+    },
+  ],
+  conditional: [
+    {
+      code: 'let x = 5;\nif (x > 10) {\n  console.log("big");\n} else {\n  console.log("small");\n}',
+      options: ['big', 'small', 'true', '5'],
+      correct: 1
+    },
+    {
+      code: 'let age = 18;\nif (age >= 18) {\n  console.log("adult");\n} else {\n  console.log("minor");\n}',
+      options: ['adult', 'minor', '18', 'true'],
+      correct: 0
+    },
+    {
+      code: 'let x = 0;\nif (x === 0) {\n  console.log("zero");\n} else {\n  console.log("not zero");\n}',
+      options: ['zero', 'not zero', '0', 'false'],
+      correct: 0
+    },
+    {
+      code: 'let a = 3;\nlet b = 3;\nif (a > b) {\n  console.log("a wins");\n} else {\n  console.log("tie or b");\n}',
+      options: ['a wins', 'tie or b', '3', 'true'],
+      correct: 1
+    },
+    {
+      code: 'let temp = 35;\nif (temp > 30) {\n  console.log("hot");\n} else {\n  console.log("cool");\n}',
+      options: ['hot', 'cool', '35', 'true'],
+      correct: 0
+    },
+  ],
+};
+
+// =========================================================
+// GAME STATE
+// =========================================================
+const TOTAL_QUESTIONS = 8;
+const TIME_PER_QUESTION = 15; // seconds
+
+let currentLevel = 'string';
+let questions = [];
+let currentIndex = 0;
+let score = 0;
+let timerInterval = null;
+let timeLeft = TIME_PER_QUESTION;
+let answered = false;
+
+// DOM refs
+const questionNumEl = document.getElementById('questionNum');
+const scoreDisplayEl = document.getElementById('scoreDisplay');
+const levelBadgeEl = document.getElementById('levelBadge');
+const codeBlockEl = document.getElementById('codeBlock');
+const answersGridEl = document.getElementById('answersGrid');
+const timerBarEl = document.getElementById('timerBar');
+const timerTextEl = document.getElementById('timerText');
+const gameAreaEl = document.getElementById('gameArea');
+const endScreenEl = document.getElementById('endScreen');
+const finalScoreEl = document.getElementById('finalScore');
+const finalSubEl = document.getElementById('finalSub');
+const finalMessageEl = document.getElementById('finalMessage');
+const playAgainBtn = document.getElementById('playAgainBtn');
+const celebrationEl = document.getElementById('celebration');
+
+// =========================================================
+// LEVEL LABELS
+// =========================================================
+const LEVEL_LABELS = {
+  string: 'Strings',
+  variable: 'Variables',
+  assignment: 'Assignment',
+  operator: 'Operators',
+  comparison: 'Comparison',
+  conditional: 'Conditionals',
+};
+
+// =========================================================
+// INIT
+// =========================================================
+function init() {
+  // Read level from URL
+  const params = new URLSearchParams(window.location.search);
+  const lvl = params.get('level');
+  if (lvl && OUTPUT_QUIZZES[lvl]) {
+    currentLevel = lvl;
+  }
+
+  levelBadgeEl.textContent = LEVEL_LABELS[currentLevel] || currentLevel;
+
+  // Build question pool: all from this level + mixed from others
+  let pool = [...OUTPUT_QUIZZES[currentLevel]];
+  const otherKeys = Object.keys(OUTPUT_QUIZZES).filter(k => k !== currentLevel);
+  let extras = [];
+  otherKeys.forEach(k => {
+    extras = extras.concat(OUTPUT_QUIZZES[k]);
+  });
+  shuffle(extras);
+
+  // Fill to have enough questions
+  // Take all from current level first, then pad with extras
+  shuffle(pool);
+  pool = pool.concat(extras);
+
+  // Pick TOTAL_QUESTIONS unique questions
+  questions = pool.slice(0, TOTAL_QUESTIONS);
+  shuffle(questions);
+
+  currentIndex = 0;
+  score = 0;
+  scoreDisplayEl.textContent = '0';
+
+  gameAreaEl.classList.remove('hidden');
+  endScreenEl.classList.remove('visible');
+
+  showQuestion();
+}
+
+// =========================================================
+// SHUFFLE (Fisher-Yates)
+// =========================================================
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// =========================================================
+// SHOW QUESTION
+// =========================================================
+function showQuestion() {
+  answered = false;
+  const q = questions[currentIndex];
+
+  // Update HUD
+  questionNumEl.textContent = (currentIndex + 1) + '/' + TOTAL_QUESTIONS;
+
+  // Show code
+  codeBlockEl.textContent = q.code;
+
+  // Build shuffled options
+  // Create an array of { text, originalIndex } then shuffle
+  const optionMap = q.options.map((text, idx) => ({ text, originalIndex: idx }));
+  shuffle(optionMap);
+
+  answersGridEl.innerHTML = '';
+  optionMap.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.textContent = opt.text;
+    btn.dataset.originalIndex = opt.originalIndex;
+    btn.addEventListener('click', () => handleAnswer(btn, opt.originalIndex, q.correct, optionMap));
+    answersGridEl.appendChild(btn);
+  });
+
+  // Start timer
+  startTimer();
+}
+
+// =========================================================
+// HANDLE ANSWER
+// =========================================================
+function handleAnswer(btn, selectedIdx, correctIdx, optionMap) {
+  if (answered) return;
+  answered = true;
+  stopTimer();
+
+  const buttons = answersGridEl.querySelectorAll('.answer-btn');
+  buttons.forEach(b => b.classList.add('disabled'));
+
+  if (selectedIdx === correctIdx) {
+    // Correct
+    btn.classList.add('correct');
+    score++;
+    scoreDisplayEl.textContent = score;
+    spawnCelebration();
+    setTimeout(nextQuestion, 1200);
+  } else {
+    // Wrong: flash selected red, then reveal correct
+    btn.classList.add('wrong');
+    setTimeout(() => {
+      buttons.forEach(b => {
+        if (parseInt(b.dataset.originalIndex) === correctIdx) {
+          b.classList.add('correct');
+        }
+      });
+      setTimeout(nextQuestion, 1200);
+    }, 600);
+  }
+}
+
+// =========================================================
+// TIMER
+// =========================================================
+function startTimer() {
+  timeLeft = TIME_PER_QUESTION;
+  updateTimerDisplay();
+  timerBarEl.style.width = '100%';
+  timerBarEl.className = 'timer-bar';
+  timerTextEl.className = 'timer-text';
+
+  const startTime = Date.now();
+  const totalMs = TIME_PER_QUESTION * 1000;
+
+  timerInterval = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const remaining = Math.max(0, totalMs - elapsed);
+    timeLeft = remaining / 1000;
+
+    // Update bar width
+    const pct = (remaining / totalMs) * 100;
+    timerBarEl.style.width = pct + '%';
+
+    // Color classes
+    if (timeLeft <= 5) {
+      timerBarEl.className = 'timer-bar danger';
+      timerTextEl.className = 'timer-text danger';
+    } else if (timeLeft <= 9) {
+      timerBarEl.className = 'timer-bar warning';
+      timerTextEl.className = 'timer-text warning';
+    } else {
+      timerBarEl.className = 'timer-bar';
+      timerTextEl.className = 'timer-text';
+    }
+
+    updateTimerDisplay();
+
+    if (remaining <= 0) {
+      timeUp();
+    }
+  }, 50);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+}
+
+function updateTimerDisplay() {
+  timerTextEl.textContent = Math.ceil(timeLeft) + 's';
+}
+
+function timeUp() {
+  if (answered) return;
+  answered = true;
+  stopTimer();
+
+  timerTextEl.textContent = '0s';
+  timerBarEl.style.width = '0%';
+
+  const q = questions[currentIndex];
+  const buttons = answersGridEl.querySelectorAll('.answer-btn');
+  buttons.forEach(b => {
+    b.classList.add('disabled');
+    if (parseInt(b.dataset.originalIndex) === q.correct) {
+      b.classList.add('correct');
+    }
+  });
+
+  setTimeout(nextQuestion, 1500);
+}
+
+// =========================================================
+// NEXT QUESTION / END GAME
+// =========================================================
+function nextQuestion() {
+  currentIndex++;
+  if (currentIndex >= TOTAL_QUESTIONS) {
+    endGame();
+  } else {
+    showQuestion();
+  }
+}
+
+function endGame() {
+  stopTimer();
+  gameAreaEl.classList.add('hidden');
+  endScreenEl.classList.add('visible');
+
+  finalScoreEl.textContent = score + '/' + TOTAL_QUESTIONS;
+
+  // Determine message & subtitle
+  const pct = score / TOTAL_QUESTIONS;
+  if (pct === 1) {
+    finalMessageEl.textContent = 'PERFECT SCORE!';
+    finalSubEl.textContent = 'You are a code master!';
+  } else if (pct >= 0.75) {
+    finalMessageEl.textContent = 'GREAT JOB!';
+    finalSubEl.textContent = 'Almost there, keep it up!';
+  } else if (pct >= 0.5) {
+    finalMessageEl.textContent = 'NICE TRY!';
+    finalSubEl.textContent = 'Practice makes perfect.';
+  } else {
+    finalMessageEl.textContent = 'KEEP GOING!';
+    finalSubEl.textContent = 'Try again to level up.';
+  }
+
+  // Big celebration for perfect score
+  if (pct === 1) {
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => spawnCelebration(40), i * 300);
+    }
+  }
+}
+
+// =========================================================
+// CELEBRATION PARTICLES
+// =========================================================
+function spawnCelebration(count = 16) {
+  const colors = ['#00f5ff', '#ff6b9d', '#ffbe0b', '#39ff14', '#a78bfa'];
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = (30 + Math.random() * 40) + '%';
+    p.style.top = (20 + Math.random() * 30) + '%';
+    p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    p.style.animationDuration = (0.6 + Math.random() * 0.6) + 's';
+    p.style.animationDelay = (Math.random() * 0.2) + 's';
+
+    // Random horizontal drift
+    const drift = (Math.random() - 0.5) * 100;
+    p.style.setProperty('--drift', drift + 'px');
+
+    celebrationEl.appendChild(p);
+    setTimeout(() => p.remove(), 1400);
+  }
+}
+
+// =========================================================
+// PLAY AGAIN
+// =========================================================
+playAgainBtn.addEventListener('click', init);
+
+// =========================================================
+// START
+// =========================================================
+init();
+</script>
+
+</body>
+</html>

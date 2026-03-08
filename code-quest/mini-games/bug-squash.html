@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bug Squash - Code Quest</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Fredoka:wght@400;500;600;700&display=swap');
+
+    :root {
+      --bg: #030310;
+      --surface: #0d0d2b;
+      --surface-light: #151538;
+      --neon-cyan: #00f5ff;
+      --neon-pink: #ff6b9d;
+      --neon-yellow: #ffbe0b;
+      --neon-green: #39ff14;
+      --neon-red: #ff4444;
+      --text: #cbcbe8;
+      --text-dim: #7a7aba;
+      --border: rgba(0, 245, 255, 0.2);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Fredoka', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px;
+      overflow-x: hidden;
+    }
+
+    /* Scanline overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        transparent, transparent 3px,
+        rgba(0,0,0,0.035) 3px, rgba(0,0,0,0.035) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: 'Press Start 2P', monospace;
+      font-weight: 400;
+    }
+
+    /* === BACK LINK === */
+    .back-link {
+      align-self: flex-start;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--text-dim);
+      text-decoration: none;
+      margin-bottom: 12px;
+      transition: color 0.15s;
+    }
+    .back-link:hover {
+      color: var(--neon-cyan);
+    }
+
+    /* === HEADER / HUD === */
+    .game-header {
+      width: 600px;
+      max-width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .game-header h1 {
+      font-size: 14px;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 10px var(--neon-cyan), 0 0 30px rgba(0,245,255,0.35);
+      white-space: nowrap;
+    }
+    .hud {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+    .hud-item {
+      text-align: center;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--text-dim);
+      line-height: 2;
+      text-transform: uppercase;
+    }
+    .hud-item span {
+      display: block;
+      font-size: 13px;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 8px rgba(255,190,11,0.5);
+    }
+    .hud-item .hearts {
+      font-size: 14px;
+      color: var(--neon-red);
+      text-shadow: 0 0 8px rgba(255,68,68,0.5);
+      letter-spacing: 2px;
+    }
+    .hud-item .hearts .lost {
+      opacity: 0.2;
+    }
+
+    /* === ROUND INFO === */
+    .round-info {
+      width: 600px;
+      max-width: 100%;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .round-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+    }
+    .round-prompt {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--neon-pink);
+      text-shadow: 0 0 8px rgba(255,107,157,0.3);
+    }
+
+    /* === CODE BLOCK === */
+    .code-block {
+      width: 600px;
+      max-width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .code-title {
+      background: var(--surface-light);
+      padding: 8px 14px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .code-title .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .code-title .dot:nth-child(1) { background: var(--neon-red); }
+    .code-title .dot:nth-child(2) { background: var(--neon-yellow); }
+    .code-title .dot:nth-child(3) { background: var(--neon-green); }
+
+    .code-lines {
+      padding: 4px 0;
+    }
+
+    .code-line {
+      display: flex;
+      align-items: stretch;
+      cursor: pointer;
+      transition: background 0.15s;
+      position: relative;
+      border-left: 3px solid transparent;
+    }
+    .code-line:hover {
+      background: rgba(0, 245, 255, 0.06);
+      border-left-color: var(--neon-cyan);
+    }
+    .code-line.disabled {
+      pointer-events: none;
+    }
+    .line-number {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+      color: var(--text-dim);
+      padding: 6px 12px;
+      text-align: right;
+      min-width: 44px;
+      user-select: none;
+      border-right: 1px solid var(--border);
+      background: rgba(0,0,0,0.15);
+    }
+    .line-code {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 14px;
+      color: var(--text);
+      padding: 6px 14px;
+      white-space: pre;
+      flex: 1;
+      min-height: 28px;
+    }
+
+    /* Flash animations */
+    .code-line.correct {
+      background: rgba(57, 255, 20, 0.15);
+      border-left-color: var(--neon-green);
+      animation: flashGreen 0.6s ease;
+    }
+    .code-line.correct .line-code {
+      color: var(--neon-green);
+      text-shadow: 0 0 10px rgba(57,255,20,0.6);
+    }
+    .code-line.wrong {
+      background: rgba(255, 68, 68, 0.15);
+      border-left-color: var(--neon-red);
+      animation: flashRed 0.5s ease;
+    }
+    .code-line.wrong .line-code {
+      color: var(--neon-red);
+      text-shadow: 0 0 10px rgba(255,68,68,0.6);
+    }
+
+    @keyframes flashGreen {
+      0% { background: rgba(57, 255, 20, 0.4); }
+      100% { background: rgba(57, 255, 20, 0.15); }
+    }
+    @keyframes flashRed {
+      0% { background: rgba(255, 68, 68, 0.4); }
+      100% { background: rgba(255, 68, 68, 0.15); }
+    }
+
+    /* === FEEDBACK === */
+    .feedback {
+      width: 600px;
+      max-width: 100%;
+      min-height: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+    .feedback-text {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 11px;
+      text-align: center;
+      line-height: 1.8;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .feedback-text.visible {
+      opacity: 1;
+    }
+    .feedback-text.success {
+      color: var(--neon-green);
+      text-shadow: 0 0 10px rgba(57,255,20,0.5);
+    }
+    .feedback-text.fail {
+      color: var(--neon-red);
+      text-shadow: 0 0 10px rgba(255,68,68,0.5);
+    }
+    .explanation {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      margin-top: 6px;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .explanation.visible {
+      opacity: 1;
+    }
+
+    /* === NEXT BUTTON === */
+    .next-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      padding: 10px 24px;
+      background: transparent;
+      border: 2px solid var(--neon-cyan);
+      color: var(--neon-cyan);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-shadow: 0 0 8px rgba(0,245,255,0.4);
+      display: none;
+    }
+    .next-btn:hover {
+      background: rgba(0, 245, 255, 0.1);
+      box-shadow: 0 0 15px rgba(0,245,255,0.3);
+    }
+    .next-btn.visible {
+      display: inline-block;
+    }
+
+    /* === GAME OVER SCREEN === */
+    .game-over {
+      width: 600px;
+      max-width: 100%;
+      text-align: center;
+      display: none;
+    }
+    .game-over.visible {
+      display: block;
+    }
+    .game-over h2 {
+      font-size: 18px;
+      color: var(--neon-pink);
+      text-shadow: 0 0 15px rgba(255,107,157,0.5);
+      margin-bottom: 20px;
+    }
+    .final-score {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 24px;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 15px rgba(255,190,11,0.6);
+      margin-bottom: 8px;
+    }
+    .final-label {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 16px;
+      color: var(--text-dim);
+      margin-bottom: 24px;
+    }
+    .game-over-msg {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 28px;
+    }
+    .end-btns {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .end-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+    .end-btn.primary {
+      background: transparent;
+      border: 2px solid var(--neon-cyan);
+      color: var(--neon-cyan);
+    }
+    .end-btn.primary:hover {
+      background: rgba(0,245,255,0.1);
+      box-shadow: 0 0 15px rgba(0,245,255,0.3);
+    }
+    .end-btn.secondary {
+      background: transparent;
+      border: 2px solid var(--neon-pink);
+      color: var(--neon-pink);
+    }
+    .end-btn.secondary:hover {
+      background: rgba(255,107,157,0.1);
+      box-shadow: 0 0 15px rgba(255,107,157,0.3);
+    }
+
+    /* === BUG MASCOT === */
+    .bug-mascot {
+      font-size: 28px;
+      margin-bottom: 10px;
+      animation: bugBounce 1s infinite;
+    }
+    @keyframes bugBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+
+    /* === LEVEL BADGE === */
+    .level-badge {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      padding: 4px 8px;
+      border-radius: 3px;
+      border: 1px solid var(--neon-pink);
+      color: var(--neon-pink);
+      text-transform: uppercase;
+      display: inline-block;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <a href="../code-quest.html" class="back-link">&lt; Back to Code Quest</a>
+
+  <!-- GAME SCREEN -->
+  <div id="gameScreen">
+    <div class="game-header">
+      <h1>Bug Squash</h1>
+      <div class="hud">
+        <div class="hud-item">
+          Round
+          <span id="roundNum">1/10</span>
+        </div>
+        <div class="hud-item">
+          Score
+          <span id="scoreNum">0</span>
+        </div>
+        <div class="hud-item">
+          Lives
+          <div class="hearts" id="heartsDisplay"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="levelBadge" class="level-badge"></div>
+
+    <div class="round-info">
+      <div class="round-prompt">Find the line with the bug and squash it!</div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-title">
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+        script.js
+      </div>
+      <div class="code-lines" id="codeLines"></div>
+    </div>
+
+    <div class="feedback">
+      <div class="feedback-text" id="feedbackText"></div>
+      <div class="explanation" id="explanationText"></div>
+    </div>
+
+    <button class="next-btn" id="nextBtn" onclick="nextRound()">Next &gt;&gt;</button>
+  </div>
+
+  <!-- GAME OVER SCREEN -->
+  <div class="game-over" id="gameOverScreen">
+    <div class="bug-mascot">&#x1F41B;</div>
+    <h2>Game Over!</h2>
+    <div class="final-score" id="finalScore">0</div>
+    <div class="final-label">bugs squashed out of 10</div>
+    <div class="game-over-msg" id="gameOverMsg"></div>
+    <div class="end-btns">
+      <button class="end-btn primary" onclick="restartGame()">Play Again</button>
+      <a href="../code-quest.html" class="end-btn secondary">Back to Code Quest</a>
+    </div>
+  </div>
+
+<script>
+// ===== PUZZLE DATA =====
+const BUG_PUZZLES = {
+  string: [
+    {
+      lines: [
+        'let name = "Alex";',
+        'let greeting = "Hello, " + name;',
+        'consloe.log(greeting);',
+        'let upper = greeting.toUpperCase();'
+      ],
+      bugLine: 2,
+      explanation: '"consloe" should be "console" \u2014 it\'s misspelled!'
+    },
+    {
+      lines: [
+        'let food = "pizza";',
+        'let message = "I love " + food;',
+        'let shout = message.toUperCase();',
+        'console.log(shout);'
+      ],
+      bugLine: 2,
+      explanation: '"toUperCase" should be "toUpperCase" \u2014 missing a "p"!'
+    },
+    {
+      lines: [
+        'let first = "Code";',
+        'let second = "Quest";',
+        'let combo = first + " " + second;',
+        'console.log(combo.lenght);'
+      ],
+      bugLine: 3,
+      explanation: '"lenght" should be "length" \u2014 the letters are swapped!'
+    },
+    {
+      lines: [
+        'let color = "blue";',
+        'let sentence = "The sky is " + colour;',
+        'console.log(sentence);',
+        'let size = sentence.length;'
+      ],
+      bugLine: 1,
+      explanation: 'The variable is called "color" but line 2 uses "colour" \u2014 wrong name!'
+    }
+  ],
+  variable: [
+    {
+      lines: [
+        'lt score = 0;',
+        'score = score + 10;',
+        'console.log(score);',
+        'let doubled = score * 2;'
+      ],
+      bugLine: 0,
+      explanation: '"lt" should be "let" \u2014 the keyword is misspelled!'
+    },
+    {
+      lines: [
+        'let width = 10;',
+        'let height = 20;',
+        'let area = width * height;',
+        'console.log(aera);'
+      ],
+      bugLine: 3,
+      explanation: '"aera" should be "area" \u2014 the variable name is misspelled!'
+    },
+    {
+      lines: [
+        'let apples = 5;',
+        'let bananas = 3;',
+        'let total = apples + bananas;',
+        'console.log("Fruit: " + totl);'
+      ],
+      bugLine: 3,
+      explanation: '"totl" should be "total" \u2014 the variable name is misspelled!'
+    },
+    {
+      lines: [
+        'let x = 100;',
+        'let y = 200;',
+        'let sum = x + y;',
+        'cosole.log(sum);'
+      ],
+      bugLine: 3,
+      explanation: '"cosole" should be "console" \u2014 missing the "n"!'
+    }
+  ],
+  assignment: [
+    {
+      lines: [
+        'let lives = 3;',
+        'let score = 0;',
+        'score = score + 50;',
+        'lives = lives == 1;'
+      ],
+      bugLine: 3,
+      explanation: '"==" checks equality. Use "=" to assign and "-" to subtract: "lives = lives - 1"!'
+    },
+    {
+      lines: [
+        'let count = 0;',
+        'count = count + 1;',
+        'let result = count;',
+        'result + 10;'
+      ],
+      bugLine: 3,
+      explanation: 'This adds 10 but doesn\'t save it! It should be "result = result + 10"!'
+    },
+    {
+      lines: [
+        'let price = 25;',
+        'let tax = 5;',
+        'let total = price + tax;',
+        'consle.log(total);'
+      ],
+      bugLine: 3,
+      explanation: '"consle" should be "console" \u2014 missing the "o"!'
+    },
+    {
+      lines: [
+        'let speed = 10;',
+        'let boost = 5;',
+        'let newSpeed === speed + boost;',
+        'console.log(newSpeed);'
+      ],
+      bugLine: 2,
+      explanation: '"===" is for comparison, not assignment! Use "=" to assign a value.'
+    }
+  ],
+  operator: [
+    {
+      lines: [
+        'let a = 10;',
+        'let b = 3;',
+        'let sum = a - b;',
+        'console.log("Sum: " + sum);'
+      ],
+      bugLine: 2,
+      explanation: 'We want the sum, but "-" subtracts! Use "+" to add.'
+    },
+    {
+      lines: [
+        'let total = 100;',
+        'let discount = 20;',
+        'let final = total + discount;',
+        'console.log("You pay: " + final);'
+      ],
+      bugLine: 2,
+      explanation: 'A discount should be subtracted! Use "-" instead of "+".'
+    },
+    {
+      lines: [
+        'let width = 8;',
+        'let height = 4;',
+        'let area = width + height;',
+        'console.log("Area: " + area);'
+      ],
+      bugLine: 2,
+      explanation: 'Area = width * height, not width + height! Use "*" to multiply.'
+    },
+    {
+      lines: [
+        'let cookies = 12;',
+        'let people = 4;',
+        'let each = cookies * people;',
+        'console.log(each + " cookies each");'
+      ],
+      bugLine: 2,
+      explanation: 'To split cookies evenly, divide! Use "/" instead of "*".'
+    }
+  ],
+  comparison: [
+    {
+      lines: [
+        'let age = 15;',
+        'let canDrive = age > 16;',
+        'console.log(canDrive);',
+        'let isTeenager = age >= 13;'
+      ],
+      bugLine: 1,
+      explanation: 'Age 15 is NOT greater than 16. To include 16, use ">=" (greater or equal)!'
+    },
+    {
+      lines: [
+        'let score = 100;',
+        'let passingScore = 60;',
+        'let passed = score = passingScore;',
+        'console.log("Passed: " + passed);'
+      ],
+      bugLine: 2,
+      explanation: '"=" assigns a value! Use "===" to compare if they are equal.'
+    },
+    {
+      lines: [
+        'let temp = 30;',
+        'let isHot = temp >= 30;',
+        'let isCold = temp < 10;',
+        'let isFreezing = temp =< 0;'
+      ],
+      bugLine: 3,
+      explanation: '"=<" is not valid! The correct operator is "<=" (less than or equal).'
+    },
+    {
+      lines: [
+        'let password = "abc123";',
+        'let guess = "abc123";',
+        'let match = password = guess;',
+        'console.log("Match: " + match);'
+      ],
+      bugLine: 2,
+      explanation: '"=" assigns a value! Use "===" to check if two values are equal.'
+    }
+  ],
+  conditional: [
+    {
+      lines: [
+        'let score = 85;',
+        'if score > 90 {',
+        '  console.log("A grade!");',
+        '}'
+      ],
+      bugLine: 1,
+      explanation: 'The condition needs parentheses! It should be "if (score > 90) {".'
+    },
+    {
+      lines: [
+        'let age = 12;',
+        'if (age >= 13) {',
+        '  console.log("Teen!");',
+        '} esle {',
+      ],
+      bugLine: 3,
+      explanation: '"esle" should be "else" \u2014 the letters are swapped!'
+    },
+    {
+      lines: [
+        'let raining = true;',
+        'if (raining = true) {',
+        '  console.log("Bring umbrella");',
+        '}'
+      ],
+      bugLine: 1,
+      explanation: '"=" assigns a value! Use "===" to compare: "if (raining === true)".'
+    },
+    {
+      lines: [
+        'let lives = 0;',
+        'if (lives <= 0) {',
+        '  consolelog("Game over!");',
+        '}'
+      ],
+      bugLine: 2,
+      explanation: '"consolelog" should be "console.log" \u2014 it needs a dot in the middle!'
+    }
+  ]
+};
+
+// ===== GAME STATE =====
+const TOTAL_ROUNDS = 10;
+const STARTING_LIVES = 3;
+
+let currentRound = 0;
+let score = 0;
+let lives = STARTING_LIVES;
+let roundAnswered = false;
+let puzzleQueue = [];
+let currentPuzzle = null;
+let selectedLevel = null;
+
+// ===== INIT =====
+function init() {
+  // Read level from URL parameter
+  const params = new URLSearchParams(window.location.search);
+  const level = params.get('level');
+  const validLevels = ['string', 'variable', 'assignment', 'operator', 'comparison', 'conditional'];
+
+  if (level && validLevels.includes(level)) {
+    selectedLevel = level;
+    document.getElementById('levelBadge').textContent = level;
+    document.getElementById('levelBadge').style.display = 'inline-block';
+  } else {
+    selectedLevel = null;
+    document.getElementById('levelBadge').style.display = 'none';
+  }
+
+  buildPuzzleQueue();
+  resetGame();
+}
+
+function buildPuzzleQueue() {
+  let pool = [];
+
+  if (selectedLevel) {
+    pool = BUG_PUZZLES[selectedLevel].map((p, i) => ({ ...p, _level: selectedLevel, _idx: i }));
+  } else {
+    for (const [level, puzzles] of Object.entries(BUG_PUZZLES)) {
+      puzzles.forEach((p, i) => {
+        pool.push({ ...p, _level: level, _idx: i });
+      });
+    }
+  }
+
+  // Shuffle
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+
+  // If we have fewer puzzles than rounds, repeat some
+  puzzleQueue = [];
+  while (puzzleQueue.length < TOTAL_ROUNDS) {
+    // Shuffle again for repeats to avoid same order
+    if (puzzleQueue.length > 0 && puzzleQueue.length % pool.length === 0) {
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+    }
+    puzzleQueue.push(pool[puzzleQueue.length % pool.length]);
+  }
+}
+
+function resetGame() {
+  currentRound = 0;
+  score = 0;
+  lives = STARTING_LIVES;
+  roundAnswered = false;
+
+  document.getElementById('gameScreen').style.display = '';
+  document.getElementById('gameOverScreen').classList.remove('visible');
+
+  updateHUD();
+  loadRound();
+}
+
+function restartGame() {
+  buildPuzzleQueue();
+  resetGame();
+}
+
+function updateHUD() {
+  document.getElementById('roundNum').textContent = (currentRound + 1) + '/' + TOTAL_ROUNDS;
+  document.getElementById('scoreNum').textContent = score;
+
+  let heartsHTML = '';
+  for (let i = 0; i < STARTING_LIVES; i++) {
+    if (i < lives) {
+      heartsHTML += '\u2764';
+    } else {
+      heartsHTML += '<span class="lost">\u2764</span>';
+    }
+  }
+  document.getElementById('heartsDisplay').innerHTML = heartsHTML;
+}
+
+function loadRound() {
+  roundAnswered = false;
+  currentPuzzle = puzzleQueue[currentRound];
+
+  const container = document.getElementById('codeLines');
+  container.innerHTML = '';
+
+  currentPuzzle.lines.forEach((line, index) => {
+    const row = document.createElement('div');
+    row.className = 'code-line';
+    row.dataset.index = index;
+    row.onclick = () => handleLineClick(index, row);
+
+    const numEl = document.createElement('div');
+    numEl.className = 'line-number';
+    numEl.textContent = index + 1;
+
+    const codeEl = document.createElement('div');
+    codeEl.className = 'line-code';
+    codeEl.textContent = line;
+
+    row.appendChild(numEl);
+    row.appendChild(codeEl);
+    container.appendChild(row);
+  });
+
+  // Clear feedback
+  const feedbackEl = document.getElementById('feedbackText');
+  feedbackEl.classList.remove('visible', 'success', 'fail');
+  feedbackEl.textContent = '';
+
+  const explanationEl = document.getElementById('explanationText');
+  explanationEl.classList.remove('visible');
+  explanationEl.textContent = '';
+
+  document.getElementById('nextBtn').classList.remove('visible');
+
+  updateHUD();
+}
+
+function handleLineClick(index, rowEl) {
+  if (roundAnswered) return;
+  roundAnswered = true;
+
+  const feedbackEl = document.getElementById('feedbackText');
+  const explanationEl = document.getElementById('explanationText');
+  const allLines = document.querySelectorAll('.code-line');
+
+  // Disable further clicks
+  allLines.forEach(line => line.classList.add('disabled'));
+
+  if (index === currentPuzzle.bugLine) {
+    // Correct!
+    score++;
+    rowEl.classList.add('correct');
+    feedbackEl.textContent = 'Bug Squashed!';
+    feedbackEl.className = 'feedback-text visible success';
+  } else {
+    // Wrong
+    lives--;
+    rowEl.classList.add('wrong');
+
+    // Show the correct line
+    const correctLine = allLines[currentPuzzle.bugLine];
+    setTimeout(() => {
+      correctLine.classList.add('correct');
+    }, 400);
+
+    feedbackEl.textContent = 'Not quite!';
+    feedbackEl.className = 'feedback-text visible fail';
+  }
+
+  // Show explanation
+  setTimeout(() => {
+    explanationEl.textContent = currentPuzzle.explanation;
+    explanationEl.classList.add('visible');
+  }, 300);
+
+  updateHUD();
+
+  // Check if game is over
+  if (lives <= 0 || currentRound >= TOTAL_ROUNDS - 1) {
+    setTimeout(() => showGameOver(), 1800);
+  } else {
+    setTimeout(() => {
+      document.getElementById('nextBtn').classList.add('visible');
+    }, 600);
+  }
+}
+
+function nextRound() {
+  currentRound++;
+  loadRound();
+}
+
+function showGameOver() {
+  document.getElementById('gameScreen').style.display = 'none';
+  document.getElementById('gameOverScreen').classList.add('visible');
+  document.getElementById('finalScore').textContent = score;
+
+  const msgEl = document.getElementById('gameOverMsg');
+  if (lives <= 0) {
+    if (score >= 7) {
+      msgEl.textContent = 'So close! You found ' + score + ' bugs before running out of lives!';
+    } else if (score >= 4) {
+      msgEl.textContent = 'Nice effort! Keep practicing to find more bugs!';
+    } else {
+      msgEl.textContent = 'Bugs are tricky! Try again and look extra carefully.';
+    }
+  } else {
+    if (score === TOTAL_ROUNDS) {
+      msgEl.textContent = 'PERFECT SCORE! You are the ultimate bug squasher!';
+    } else if (score >= 8) {
+      msgEl.textContent = 'Amazing! You have eagle eyes for bugs!';
+    } else if (score >= 6) {
+      msgEl.textContent = 'Good job! A few bugs slipped past, but solid work!';
+    } else {
+      msgEl.textContent = 'Keep practicing! Spotting bugs gets easier over time.';
+    }
+  }
+}
+
+// Start the game
+init();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speed Type - Code Quest</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Fredoka:wght@400;500;600;700&display=swap');
+
+    :root {
+      --bg: #030310;
+      --surface: #0d0d2b;
+      --surface-light: #151538;
+      --neon-cyan: #00f5ff;
+      --neon-pink: #ff6b9d;
+      --neon-yellow: #ffbe0b;
+      --neon-green: #39ff14;
+      --neon-red: #ff4444;
+      --text: #cbcbe8;
+      --text-dim: #7a7aba;
+      --border: rgba(0, 245, 255, 0.2);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Fredoka', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px;
+      overflow-x: hidden;
+    }
+
+    /* CRT scanline overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        transparent, transparent 3px,
+        rgba(0,0,0,0.035) 3px, rgba(0,0,0,0.035) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: 'Press Start 2P', monospace;
+      font-weight: 400;
+    }
+
+    /* Header */
+    .header {
+      width: 700px;
+      max-width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .header h1 {
+      font-size: 14px;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 10px var(--neon-cyan), 0 0 30px rgba(0,245,255,0.35);
+    }
+
+    .back-link {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 14px;
+      color: var(--neon-pink);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.2s;
+    }
+    .back-link:hover {
+      color: var(--neon-cyan);
+    }
+
+    /* Main container */
+    .container {
+      width: 700px;
+      max-width: 100%;
+    }
+
+    /* Level badge */
+    .level-badge {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      color: var(--neon-yellow);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+      text-shadow: 0 0 8px rgba(255,190,11,0.4);
+    }
+
+    /* Stats bar */
+    .stats-bar {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .stat-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .stat-value {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 18px;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 8px rgba(0,245,255,0.5);
+    }
+    .stat-value.wpm { color: var(--neon-green); text-shadow: 0 0 8px rgba(57,255,20,0.5); }
+    .stat-value.accuracy { color: var(--neon-pink); text-shadow: 0 0 8px rgba(255,107,157,0.5); }
+
+    /* Progress dots */
+    .progress-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .progress-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--surface-light);
+      border: 2px solid var(--border);
+      transition: all 0.3s;
+    }
+    .progress-dot.active {
+      background: var(--neon-cyan);
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 8px var(--neon-cyan);
+    }
+    .progress-dot.done {
+      background: var(--neon-green);
+      border-color: var(--neon-green);
+      box-shadow: 0 0 8px var(--neon-green);
+    }
+    .progress-connector {
+      width: 24px;
+      height: 2px;
+      background: var(--border);
+    }
+
+    /* Code display area */
+    .code-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px 24px;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .code-block::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink), var(--neon-yellow));
+    }
+
+    .code-display {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 22px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-all;
+      user-select: none;
+      -webkit-user-select: none;
+      min-height: 40px;
+    }
+
+    /* Character spans */
+    .char {
+      position: relative;
+      transition: color 0.1s;
+      border-radius: 2px;
+    }
+    .char.untyped {
+      color: var(--text-dim);
+    }
+    .char.correct {
+      color: var(--neon-green);
+    }
+    .char.wrong {
+      color: var(--neon-red);
+      background: rgba(255,68,68,0.2);
+      animation: shake 0.3s ease;
+    }
+    .char.current {
+      color: var(--text);
+    }
+    .char.current::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 3px;
+      background: var(--neon-cyan);
+      box-shadow: 0 0 6px var(--neon-cyan);
+      animation: blink 0.8s step-end infinite;
+    }
+    .char.newline-marker {
+      color: var(--text-dim);
+      opacity: 0.35;
+      font-size: 14px;
+    }
+    .char.newline-marker.correct {
+      color: var(--neon-green);
+      opacity: 0.5;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-3px); }
+      40% { transform: translateX(3px); }
+      60% { transform: translateX(-2px); }
+      80% { transform: translateX(2px); }
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+    .char.just-typed {
+      animation: popIn 0.15s ease;
+    }
+
+    /* Instruction hint */
+    .hint {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 15px;
+      color: var(--text-dim);
+      text-align: center;
+      margin-bottom: 16px;
+      min-height: 22px;
+    }
+    .hint .key-hint {
+      display: inline-block;
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+      color: var(--neon-cyan);
+    }
+
+    /* Completion / results screen */
+    .results-screen {
+      display: none;
+      text-align: center;
+    }
+    .results-screen.visible {
+      display: block;
+    }
+    .results-title {
+      font-size: 16px;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 12px rgba(255,190,11,0.5);
+      margin-bottom: 24px;
+    }
+    .results-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 16px;
+    }
+    .result-card .label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .result-card .value {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 22px;
+    }
+    .result-card .value.green { color: var(--neon-green); text-shadow: 0 0 10px rgba(57,255,20,0.5); }
+    .result-card .value.cyan { color: var(--neon-cyan); text-shadow: 0 0 10px rgba(0,245,255,0.5); }
+    .result-card .value.pink { color: var(--neon-pink); text-shadow: 0 0 10px rgba(255,107,157,0.5); }
+    .result-card .value.yellow { color: var(--neon-yellow); text-shadow: 0 0 10px rgba(255,190,11,0.5); }
+
+    /* Snippet complete flash */
+    .snippet-complete {
+      display: none;
+      text-align: center;
+      padding: 32px;
+    }
+    .snippet-complete.visible {
+      display: block;
+    }
+    .snippet-complete h3 {
+      font-size: 12px;
+      color: var(--neon-green);
+      text-shadow: 0 0 10px rgba(57,255,20,0.5);
+      margin-bottom: 10px;
+    }
+    .snippet-complete p {
+      font-size: 16px;
+      color: var(--text-dim);
+    }
+
+    /* Buttons */
+    .btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      padding: 14px 24px;
+      border: 2px solid var(--neon-cyan);
+      background: transparent;
+      color: var(--neon-cyan);
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: all 0.2s;
+      text-transform: uppercase;
+    }
+    .btn:hover {
+      background: rgba(0,245,255,0.1);
+      box-shadow: 0 0 16px rgba(0,245,255,0.3);
+    }
+    .btn.primary {
+      background: var(--neon-cyan);
+      color: var(--bg);
+    }
+    .btn.primary:hover {
+      box-shadow: 0 0 20px rgba(0,245,255,0.5);
+    }
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* Mobile warning for very small screens */
+    .mobile-note {
+      display: none;
+      font-size: 14px;
+      color: var(--neon-yellow);
+      text-align: center;
+      padding: 16px;
+      background: var(--surface);
+      border: 1px solid rgba(255,190,11,0.3);
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 480px) {
+      .mobile-note { display: block; }
+      .code-display { font-size: 16px; }
+    }
+
+    /* Focus trap: invisible textarea for mobile keyboard support */
+    .focus-trap {
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <!-- Invisible textarea to grab keyboard focus on touch devices -->
+  <textarea class="focus-trap" id="focusTrap" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"></textarea>
+
+  <div class="header">
+    <h1>Speed Type</h1>
+    <a href="../code-quest.html" class="back-link">&larr; Back to Code Quest</a>
+  </div>
+
+  <div class="container">
+    <div class="level-badge" id="levelBadge">Level: string</div>
+
+    <!-- Live stats -->
+    <div class="stats-bar" id="statsBar">
+      <div class="stat">
+        <span class="stat-label">WPM</span>
+        <span class="stat-value wpm" id="wpmDisplay">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Errors</span>
+        <span class="stat-value accuracy" id="errorDisplay">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Snippet</span>
+        <span class="stat-value" id="snippetNum">1/3</span>
+      </div>
+    </div>
+
+    <!-- Progress dots -->
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-dot active" id="dot0"></div>
+      <div class="progress-connector"></div>
+      <div class="progress-dot" id="dot1"></div>
+      <div class="progress-connector"></div>
+      <div class="progress-dot" id="dot2"></div>
+    </div>
+
+    <div class="mobile-note">
+      Tap the code area to bring up your keyboard!
+    </div>
+
+    <!-- Code block with the target snippet -->
+    <div class="code-block" id="codeBlock">
+      <div class="code-display" id="codeDisplay"></div>
+    </div>
+
+    <!-- Typing hint -->
+    <div class="hint" id="hint">Start typing to begin...</div>
+
+    <!-- Snippet complete interstitial -->
+    <div class="snippet-complete" id="snippetComplete">
+      <h3>Nice!</h3>
+      <p>Press any key for the next snippet...</p>
+    </div>
+
+    <!-- Final results -->
+    <div class="results-screen" id="resultsScreen">
+      <h2 class="results-title">Session Complete!</h2>
+      <div class="results-grid">
+        <div class="result-card">
+          <div class="label">Best WPM</div>
+          <div class="value green" id="resBestWpm">0</div>
+        </div>
+        <div class="result-card">
+          <div class="label">Avg WPM</div>
+          <div class="value cyan" id="resAvgWpm">0</div>
+        </div>
+        <div class="result-card">
+          <div class="label">Accuracy</div>
+          <div class="value pink" id="resAccuracy">0%</div>
+        </div>
+        <div class="result-card">
+          <div class="label">Total Time</div>
+          <div class="value yellow" id="resTotalTime">0s</div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" id="retryBtn">Try Again</button>
+        <a href="../code-quest.html" class="btn">Code Quest</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== SNIPPET DATA =====
+    const TYPE_SNIPPETS = {
+      string: [
+        'let name = "Mono";',
+        'console.log("Hello!");',
+        'let msg = "Code" + " Quest";',
+        'let greeting = "Hi there!";',
+        'let color = "neon";\nconsole.log(color);',
+        'let a = "foo";\nlet b = "bar";\nconsole.log(a + b);'
+      ],
+      variable: [
+        'let score = 0;',
+        'let name = "Alex";\nlet age = 12;',
+        'let x = 5;\nlet y = 10;\nlet sum = x + y;',
+        'let lives = 3;',
+        'let speed = 2.5;\nconsole.log(speed);',
+        'let level = 1;\nlet xp = 0;\nconsole.log(level);'
+      ],
+      assignment: [
+        'let count = 1;\ncount = 5;',
+        'let hp = 100;\nhp = hp - 25;',
+        'let score = 0;\nscore = score + 10;\nconsole.log(score);',
+        'let coins = 50;\ncoins = coins + 25;',
+        'let lives = 3;\nlives = lives - 1;',
+        'let x = 1;\nx = x * 2;\nx = x * 2;\nconsole.log(x);'
+      ],
+      operator: [
+        'let area = 8 * 5;',
+        'let total = 10 + 3;\nlet diff = 10 - 3;',
+        'let rem = 17 % 5;\nconsole.log(rem);',
+        'let avg = (80 + 90) / 2;',
+        'let double = 7 * 2;\nconsole.log(double);',
+        'let a = 12;\nlet b = 4;\nlet result = a / b;\nconsole.log(result);'
+      ],
+      comparison: [
+        'let ok = 5 === 5;',
+        'let big = 10 > 3;\nconsole.log(big);',
+        'let age = 15;\nlet canDrive = age >= 16;',
+        'let same = "a" === "b";',
+        'let x = 7;\nlet small = x < 10;',
+        'let a = 3;\nlet b = 5;\nconsole.log(a !== b);'
+      ],
+      conditional: [
+        'if (x > 0) {\n  console.log("yes");\n}',
+        'if (score >= 100) {\n  console.log("You win!");\n}',
+        'let x = 5;\nif (x !== 0) {\n  console.log(x);\n}',
+        'if (lives > 0) {\n  console.log("Go!");\n}',
+        'let age = 13;\nif (age >= 13) {\n  console.log("teen");\n}',
+        'if (hp <= 0) {\n  console.log("Game over");\n}'
+      ]
+    };
+
+    // ===== GAME STATE =====
+    const params = new URLSearchParams(window.location.search);
+    const level = params.get('level') || 'string';
+    const validLevels = ['string', 'variable', 'assignment', 'operator', 'comparison', 'conditional'];
+    const activeLevel = validLevels.includes(level) ? level : 'string';
+
+    // Display level name
+    document.getElementById('levelBadge').textContent = 'Level: ' + activeLevel;
+
+    // Pick 3 snippets for this session (in order of difficulty: indices 0-1, 2-3, 4-5)
+    function pickSnippets() {
+      const pool = TYPE_SNIPPETS[activeLevel];
+      const easy = pool.slice(0, 2);
+      const med = pool.slice(2, 4);
+      const hard = pool.slice(4, 6);
+      return [
+        easy[Math.floor(Math.random() * easy.length)],
+        med[Math.floor(Math.random() * med.length)],
+        hard[Math.floor(Math.random() * hard.length)]
+      ];
+    }
+
+    let snippets = pickSnippets();
+    let snippetIndex = 0;
+    let target = '';         // current target string
+    let pos = 0;             // current typing position
+    let started = false;     // has user started typing?
+    let finished = false;    // is current snippet done?
+    let sessionDone = false; // all 3 done?
+    let waitingNext = false; // waiting for key to go to next snippet
+
+    let startTime = 0;
+    let totalErrors = 0;     // errors in current snippet
+    let totalKeystrokes = 0; // total keystrokes in current snippet
+
+    // Per-snippet results
+    let results = []; // [{wpm, accuracy, errors, time}]
+
+    // DOM refs
+    const codeDisplay = document.getElementById('codeDisplay');
+    const wpmDisplay = document.getElementById('wpmDisplay');
+    const errorDisplay = document.getElementById('errorDisplay');
+    const snippetNum = document.getElementById('snippetNum');
+    const hint = document.getElementById('hint');
+    const codeBlock = document.getElementById('codeBlock');
+    const snippetComplete = document.getElementById('snippetComplete');
+    const resultsScreen = document.getElementById('resultsScreen');
+    const statsBar = document.getElementById('statsBar');
+    const progressBar = document.getElementById('progressBar');
+    const focusTrap = document.getElementById('focusTrap');
+
+    // ===== RENDER TARGET =====
+    function renderTarget() {
+      codeDisplay.innerHTML = '';
+      for (let i = 0; i < target.length; i++) {
+        const span = document.createElement('span');
+        span.classList.add('char');
+        if (target[i] === '\n') {
+          // Show a visible return symbol then an actual newline
+          span.classList.add('newline-marker');
+          span.textContent = '\u21B5'; // return arrow
+          codeDisplay.appendChild(span);
+          codeDisplay.appendChild(document.createTextNode('\n'));
+        } else {
+          span.textContent = target[i];
+          codeDisplay.appendChild(span);
+        }
+        if (i === 0) {
+          span.classList.add('current');
+        } else {
+          span.classList.add('untyped');
+        }
+      }
+    }
+
+    // Get char spans (skip raw text nodes used for actual newlines)
+    function getCharSpans() {
+      return Array.from(codeDisplay.querySelectorAll('.char'));
+    }
+
+    function updateDisplay() {
+      const spans = getCharSpans();
+      for (let i = 0; i < spans.length; i++) {
+        spans[i].classList.remove('current', 'untyped', 'correct', 'wrong', 'just-typed');
+        if (i < pos) {
+          spans[i].classList.add('correct');
+        } else if (i === pos) {
+          spans[i].classList.add('current');
+        } else {
+          spans[i].classList.add('untyped');
+        }
+      }
+    }
+
+    function calcWPM() {
+      if (!started || pos === 0) return 0;
+      const elapsed = (Date.now() - startTime) / 1000 / 60; // minutes
+      if (elapsed < 0.005) return 0;
+      // Standard: 1 word = 5 characters
+      const words = pos / 5;
+      return Math.round(words / elapsed);
+    }
+
+    function updateStats() {
+      wpmDisplay.textContent = calcWPM();
+      errorDisplay.textContent = totalErrors;
+    }
+
+    // ===== START SNIPPET =====
+    function startSnippet(index) {
+      snippetIndex = index;
+      target = snippets[index];
+      pos = 0;
+      started = false;
+      finished = false;
+      waitingNext = false;
+      totalErrors = 0;
+      totalKeystrokes = 0;
+      startTime = 0;
+
+      snippetNum.textContent = (index + 1) + '/3';
+      wpmDisplay.textContent = '0';
+      errorDisplay.textContent = '0';
+      hint.innerHTML = 'Start typing to begin...';
+
+      // Update progress dots
+      for (let i = 0; i < 3; i++) {
+        const dot = document.getElementById('dot' + i);
+        dot.classList.remove('active', 'done');
+        if (i < index) dot.classList.add('done');
+        if (i === index) dot.classList.add('active');
+      }
+
+      codeBlock.style.display = '';
+      snippetComplete.classList.remove('visible');
+      resultsScreen.classList.remove('visible');
+      statsBar.style.display = '';
+      progressBar.style.display = '';
+
+      renderTarget();
+    }
+
+    // ===== HANDLE KEYDOWN =====
+    function handleKey(e) {
+      // Prevent default for keys we handle to avoid scrolling, etc.
+      if (sessionDone) return;
+
+      // Waiting for next snippet
+      if (waitingNext) {
+        e.preventDefault();
+        waitingNext = false;
+        snippetComplete.classList.remove('visible');
+        codeBlock.style.display = '';
+        startSnippet(snippetIndex + 1);
+        return;
+      }
+
+      if (finished) return;
+
+      const key = e.key;
+
+      // Ignore modifier-only keys, function keys, etc.
+      if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab', 'Escape',
+           'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End',
+           'PageUp', 'PageDown', 'Insert', 'Delete', 'F1', 'F2', 'F3', 'F4',
+           'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12'].includes(key)) {
+        return;
+      }
+
+      e.preventDefault();
+
+      // Backspace
+      if (key === 'Backspace') {
+        if (pos > 0) {
+          pos--;
+          updateDisplay();
+          updateHint();
+        }
+        return;
+      }
+
+      // Start timer on first real keypress
+      if (!started) {
+        started = true;
+        startTime = Date.now();
+        hint.innerHTML = '';
+      }
+
+      totalKeystrokes++;
+
+      // Determine expected character
+      const expected = target[pos];
+
+      // Map Enter to \n
+      let typed = key;
+      if (key === 'Enter') typed = '\n';
+
+      // Only accept single characters or Enter
+      if (typed.length !== 1) return;
+
+      const spans = getCharSpans();
+      const currentSpan = spans[pos];
+
+      if (typed === expected) {
+        // Correct!
+        pos++;
+        updateDisplay();
+        // Add pop animation to the just-typed character
+        if (currentSpan) {
+          currentSpan.classList.add('just-typed');
+        }
+        updateStats();
+        updateHint();
+
+        // Check if snippet is complete
+        if (pos >= target.length) {
+          finishSnippet();
+        }
+      } else {
+        // Wrong!
+        totalErrors++;
+        if (currentSpan) {
+          currentSpan.classList.remove('current');
+          currentSpan.classList.add('wrong');
+          setTimeout(() => {
+            currentSpan.classList.remove('wrong');
+            currentSpan.classList.add('current');
+          }, 350);
+        }
+        updateStats();
+      }
+    }
+
+    function updateHint() {
+      if (!started) {
+        hint.innerHTML = 'Start typing to begin...';
+        return;
+      }
+      if (finished) return;
+
+      const expected = target[pos];
+      if (expected === '\n') {
+        hint.innerHTML = 'Press <span class="key-hint">Enter</span> for new line';
+      } else if (expected === ' ') {
+        hint.innerHTML = 'Press <span class="key-hint">Space</span>';
+      } else {
+        hint.innerHTML = '';
+      }
+    }
+
+    // ===== FINISH SNIPPET =====
+    function finishSnippet() {
+      finished = true;
+      const elapsed = (Date.now() - startTime) / 1000;
+      const wpm = calcWPM();
+      const accuracy = totalKeystrokes > 0
+        ? Math.round(((totalKeystrokes - totalErrors) / totalKeystrokes) * 100)
+        : 100;
+
+      results.push({ wpm, accuracy, errors: totalErrors, time: elapsed });
+
+      // Mark current dot done
+      document.getElementById('dot' + snippetIndex).classList.remove('active');
+      document.getElementById('dot' + snippetIndex).classList.add('done');
+
+      if (snippetIndex < 2) {
+        // Show interstitial
+        codeBlock.style.display = 'none';
+        hint.innerHTML = '';
+        snippetComplete.classList.add('visible');
+        waitingNext = true;
+      } else {
+        // All done - show results
+        showResults();
+      }
+    }
+
+    // ===== SHOW RESULTS =====
+    function showResults() {
+      sessionDone = true;
+      codeBlock.style.display = 'none';
+      hint.innerHTML = '';
+      statsBar.style.display = 'none';
+      progressBar.style.display = 'none';
+      snippetComplete.classList.remove('visible');
+
+      const bestWpm = Math.max(...results.map(r => r.wpm));
+      const avgWpm = Math.round(results.reduce((s, r) => s + r.wpm, 0) / results.length);
+      const avgAccuracy = Math.round(results.reduce((s, r) => s + r.accuracy, 0) / results.length);
+      const totalTime = Math.round(results.reduce((s, r) => s + r.time, 0));
+
+      document.getElementById('resBestWpm').textContent = bestWpm;
+      document.getElementById('resAvgWpm').textContent = avgWpm;
+      document.getElementById('resAccuracy').textContent = avgAccuracy + '%';
+      document.getElementById('resTotalTime').textContent = totalTime + 's';
+
+      resultsScreen.classList.add('visible');
+    }
+
+    // ===== RETRY =====
+    document.getElementById('retryBtn').addEventListener('click', () => {
+      sessionDone = false;
+      results = [];
+      snippets = pickSnippets();
+      resultsScreen.classList.remove('visible');
+      startSnippet(0);
+    });
+
+    // ===== FOCUS / KEYBOARD HANDLING =====
+    // Use keydown on the document for desktop
+    document.addEventListener('keydown', handleKey);
+
+    // On touch devices, tap the code block to open keyboard via hidden textarea
+    codeBlock.addEventListener('click', () => {
+      focusTrap.focus();
+    });
+
+    // The focus trap mirrors keystrokes - we intercept them via input event as a fallback
+    focusTrap.addEventListener('input', (e) => {
+      // The input event fires after the character is added
+      const val = focusTrap.value;
+      if (val.length === 0) {
+        // Backspace was pressed
+        handleKey({ key: 'Backspace', preventDefault: () => {} });
+      } else {
+        const lastChar = val[val.length - 1];
+        if (lastChar === '\n') {
+          handleKey({ key: 'Enter', preventDefault: () => {} });
+        } else {
+          handleKey({ key: lastChar, preventDefault: () => {} });
+        }
+      }
+      // Clear it so we can detect next input
+      focusTrap.value = '';
+    });
+
+    // Handle backspace on mobile (beforeinput event)
+    focusTrap.addEventListener('beforeinput', (e) => {
+      if (e.inputType === 'deleteContentBackward') {
+        handleKey({ key: 'Backspace', preventDefault: () => {} });
+        e.preventDefault();
+      }
+    });
+
+    // WPM update ticker
+    setInterval(() => {
+      if (started && !finished && !sessionDone) {
+        wpmDisplay.textContent = calcWPM();
+      }
+    }, 500);
+
+    // ===== INIT =====
+    startSnippet(0);
+  </script>
+</body>
+</html>

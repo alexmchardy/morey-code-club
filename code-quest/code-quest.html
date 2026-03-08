@@ -1,0 +1,1966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Quest</title>
+  <!-- CodeMirror (optional - falls back to styled textarea if blocked) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Fredoka:wght@400;500;600;700&display=swap');
+
+    :root {
+      --bg: #030310;
+      --surface: #0d0d2b;
+      --surface-light: #151538;
+      --surface-code: #1e1e1e;
+      --neon-cyan: #00f5ff;
+      --neon-pink: #ff6b9d;
+      --neon-yellow: #ffbe0b;
+      --neon-green: #39ff14;
+      --neon-red: #ff4444;
+      --neon-purple: #a78bfa;
+      --text: #cbcbe8;
+      --text-dim: #7a7aba;
+      --text-bright: #ffffff;
+      --border: rgba(0, 245, 255, 0.2);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Fredoka', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px;
+      overflow-x: hidden;
+    }
+
+    /* Scanline overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        transparent, transparent 3px,
+        rgba(0,0,0,0.035) 3px, rgba(0,0,0,0.035) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: 'Press Start 2P', monospace;
+      font-weight: 400;
+    }
+
+    /* === HEADER === */
+    #appHeader {
+      width: 700px;
+      max-width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    #appHeader h1 {
+      font-size: 14px;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 10px var(--neon-cyan), 0 0 30px rgba(0,245,255,0.35);
+      white-space: nowrap;
+    }
+    #hudBar {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+    .hud-item {
+      text-align: center;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--text-dim);
+      line-height: 2;
+      text-transform: uppercase;
+    }
+    .hud-item span {
+      display: block;
+      font-size: 13px;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 8px rgba(255,190,11,0.5);
+    }
+    .ctrl-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .ctrl-btn:hover {
+      border-color: var(--neon-cyan);
+      color: var(--neon-cyan);
+    }
+
+    /* === MONO MASCOT === */
+    .mono-container {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+    .mono-pixel {
+      display: block;
+      width: 1px;
+      height: 1px;
+      transform-origin: top left;
+      image-rendering: pixelated;
+    }
+    .mono-speech-bubble {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface);
+      border: 2px solid var(--neon-green);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: 'Fredoka', sans-serif;
+      font-size: 13px;
+      color: var(--text);
+      max-width: 220px;
+      text-align: center;
+      white-space: normal;
+      z-index: 10;
+      box-shadow: 0 0 12px rgba(57,255,20,0.15);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+    .mono-speech-bubble.visible { opacity: 1; }
+    .mono-speech-bubble::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: var(--neon-green);
+    }
+    .mono-speech-inline {
+      background: var(--surface);
+      border: 2px solid var(--neon-green);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: 'Fredoka', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      max-width: 340px;
+      box-shadow: 0 0 12px rgba(57,255,20,0.15);
+    }
+    .mono-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 16px 0;
+    }
+
+    @keyframes mono-bob {
+      from { transform: translateY(0); }
+      to { transform: translateY(-3px); }
+    }
+    @keyframes mono-jump {
+      0% { transform: translateY(0); }
+      40% { transform: translateY(-12px); }
+      100% { transform: translateY(0); }
+    }
+    @keyframes mono-celebrate {
+      from { transform: translateY(0) rotate(-3deg); }
+      to { transform: translateY(-6px) rotate(3deg); }
+    }
+    .mono-anim-bob { animation: mono-bob 0.8s ease-in-out infinite alternate; }
+    .mono-anim-jump { animation: mono-jump 0.5s ease-out; }
+    .mono-anim-celebrate { animation: mono-celebrate 0.5s ease-in-out infinite alternate; }
+
+    /* === VIEWS === */
+    .view {
+      display: none;
+      opacity: 0;
+      width: 700px;
+      max-width: 100%;
+      transition: opacity 0.3s ease;
+    }
+    .view.active {
+      display: block;
+      opacity: 1;
+    }
+    .lesson-content {
+      max-width: 620px;
+      margin: 0 auto;
+    }
+
+    /* === BUTTONS === */
+    .quest-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      padding: 12px 24px;
+      background: transparent;
+      border: 2px solid var(--neon-cyan);
+      color: var(--neon-cyan);
+      border-radius: 3px;
+      cursor: pointer;
+      text-shadow: 0 0 8px var(--neon-cyan);
+      box-shadow: 0 0 14px rgba(0,245,255,0.25), inset 0 0 14px rgba(0,245,255,0.05);
+      transition: all 0.15s ease;
+      letter-spacing: 1px;
+      display: inline-block;
+      margin: 6px 4px;
+      line-height: 1.6;
+    }
+    .quest-btn:hover {
+      background: rgba(0,245,255,0.1);
+      box-shadow: 0 0 28px rgba(0,245,255,0.45), inset 0 0 20px rgba(0,245,255,0.1);
+      transform: translateY(-2px);
+    }
+    .quest-btn:active { transform: translateY(1px); }
+    .quest-btn-run {
+      border-color: var(--neon-green);
+      color: var(--neon-green);
+      text-shadow: 0 0 8px var(--neon-green);
+      box-shadow: 0 0 14px rgba(57,255,20,0.25);
+    }
+    .quest-btn-run:hover {
+      background: rgba(57,255,20,0.1);
+      box-shadow: 0 0 28px rgba(57,255,20,0.45);
+    }
+    .quest-btn-hint {
+      border-color: var(--neon-yellow);
+      color: var(--neon-yellow);
+      text-shadow: 0 0 8px var(--neon-yellow);
+      box-shadow: 0 0 14px rgba(255,190,11,0.2);
+      font-size: 8px;
+    }
+    .quest-btn-secondary {
+      border-color: var(--text-dim);
+      color: var(--text-dim);
+      text-shadow: none;
+      box-shadow: none;
+      font-size: 8px;
+    }
+    .quest-btn-secondary:hover {
+      border-color: var(--text);
+      color: var(--text);
+      background: transparent;
+      box-shadow: none;
+    }
+
+    /* === WELCOME VIEW === */
+    .view-welcome {
+      text-align: center;
+      padding: 40px 16px;
+    }
+    .view-welcome h2 {
+      font-size: 18px;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 14px var(--neon-cyan);
+      margin: 24px 0 16px;
+      line-height: 1.6;
+    }
+    .view-welcome p {
+      font-size: 16px;
+      margin: 8px 0;
+      color: var(--text);
+    }
+    .view-welcome .quest-btn { margin-top: 24px; }
+
+    /* === LEVEL MAP === */
+    .level-path {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 0;
+      padding: 30px 10px;
+    }
+    .level-node {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 3px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      background: var(--surface);
+    }
+    .level-node-icon { font-size: 24px; margin-bottom: 2px; }
+    .level-node-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: var(--text-dim);
+      text-align: center;
+    }
+    .level-node.completed {
+      border-color: var(--neon-green);
+      box-shadow: 0 0 16px rgba(57,255,20,0.3);
+    }
+    .level-node.completed .level-node-title { color: var(--neon-green); }
+    .level-node.completed::after {
+      content: '\2713';
+      position: absolute;
+      top: -6px; right: -6px;
+      background: var(--neon-green);
+      color: var(--bg);
+      font-size: 11px; font-weight: bold;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .level-node.available {
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 16px rgba(0,245,255,0.3);
+      animation: node-pulse 1.5s ease-in-out infinite alternate;
+    }
+    .level-node.available:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 28px rgba(0,245,255,0.5);
+    }
+    .level-node.locked {
+      opacity: 0.35;
+      filter: grayscale(0.8);
+      cursor: not-allowed;
+    }
+    .level-connector {
+      width: 30px;
+      height: 3px;
+      background: var(--border);
+      align-self: flex-start;
+      margin-top: 40px;
+    }
+    .level-connector.active {
+      background: var(--neon-green);
+      box-shadow: 0 0 8px rgba(57,255,20,0.3);
+    }
+    .level-node-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .mini-game-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 5px;
+      background: var(--surface-light);
+      border: 1px solid var(--neon-pink);
+      color: var(--neon-pink);
+      padding: 3px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .mini-game-btn:hover {
+      background: rgba(255,107,157,0.15);
+      box-shadow: 0 0 8px rgba(255,107,157,0.4);
+      transform: scale(1.1);
+    }
+    @keyframes node-pulse {
+      from { box-shadow: 0 0 12px rgba(0,245,255,0.2); }
+      to { box-shadow: 0 0 24px rgba(0,245,255,0.45); }
+    }
+    .view-map h2 {
+      text-align: center;
+      font-size: 16px;
+      color: var(--neon-cyan);
+      margin-bottom: 10px;
+    }
+
+    /* === STEP INDICATOR === */
+    .step-indicator {
+      width: 700px;
+      max-width: 100%;
+      margin-bottom: 16px;
+    }
+    .step-indicator.hidden { display: none; }
+    .steps {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .step-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: transparent;
+      transition: all 0.3s;
+    }
+    .step.completed .step-dot {
+      background: var(--neon-green);
+      border-color: var(--neon-green);
+      box-shadow: 0 0 6px rgba(57,255,20,0.4);
+    }
+    .step.current .step-dot {
+      background: var(--neon-cyan);
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 6px rgba(0,245,255,0.4);
+    }
+    .step-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 5px;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+    .step-connector {
+      width: 20px;
+      height: 2px;
+      background: var(--border);
+      margin: 0 2px;
+      margin-bottom: 14px;
+    }
+    .step-connector.active { background: var(--neon-green); }
+    .step.clickable { cursor: pointer; }
+    .step.clickable .step-dot {
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .step.clickable:hover .step-dot {
+      transform: scale(1.4);
+      box-shadow: 0 0 10px rgba(0,245,255,0.6);
+    }
+    .step.clickable:hover .step-label {
+      color: var(--neon-cyan);
+    }
+
+    /* === EXPLANATION VIEW === */
+    .explanation-icon {
+      font-size: 48px;
+      text-align: center;
+      margin: 16px 0 8px;
+    }
+    .view-explanation h2 {
+      font-size: 14px;
+      color: var(--neon-cyan);
+      text-align: center;
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+    .explanation-body {
+      font-size: 16px;
+      line-height: 1.8;
+      margin: 12px 0;
+    }
+    .explanation-body strong { color: var(--neon-cyan); }
+    .callout-box {
+      background: var(--surface-light);
+      border: 2px solid var(--neon-yellow);
+      border-radius: 8px;
+      padding: 14px;
+      margin: 16px 0;
+    }
+    .callout-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--neon-yellow);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .callout-box p { font-size: 14px; line-height: 1.6; }
+    .view-explanation .quest-btn { display: block; margin: 24px auto 0; }
+
+    /* === EXAMPLE VIEW === */
+    .view-example h3 {
+      font-size: 12px;
+      color: var(--neon-cyan);
+      margin-bottom: 12px;
+    }
+    .code-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 12px 0;
+    }
+    .code-panel .CodeMirror { height: auto; min-height: 80px; font-size: 14px; }
+    .code-fallback {
+      background: var(--surface-code);
+      color: #f8f8f2;
+      padding: 14px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 14px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .annotations-list { margin: 12px 0; }
+    .annotation {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 13px;
+    }
+    .annotation-line {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      color: var(--neon-cyan);
+      background: var(--surface);
+      padding: 2px 8px;
+      border-radius: 3px;
+      white-space: nowrap;
+      min-width: 44px;
+      text-align: center;
+    }
+    .annotation-text { color: var(--text); line-height: 1.5; }
+    .output-panel {
+      background: #0a0a1a;
+      border: 1px solid var(--neon-green);
+      border-radius: 4px;
+      padding: 10px 14px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+      color: var(--neon-green);
+      min-height: 40px;
+      margin: 12px 0;
+    }
+    .output-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .output-panel.error {
+      border-color: var(--neon-red);
+      color: var(--neon-red);
+    }
+    .output-panel pre {
+      margin: 0;
+      font-family: inherit;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .view-example .quest-btn { display: block; margin: 20px auto 0; }
+
+    /* === CHALLENGE VIEW === */
+    .challenge-header h3 {
+      font-size: 10px;
+      color: var(--neon-pink);
+      margin-bottom: 12px;
+    }
+    .challenge-prompt {
+      background: var(--surface-light);
+      border-left: 4px solid var(--neon-cyan);
+      padding: 12px 16px;
+      border-radius: 0 6px 6px 0;
+      font-size: 15px;
+      line-height: 1.6;
+      margin: 12px 0;
+    }
+    .challenge-prompt code {
+      background: var(--surface-code);
+      color: var(--neon-yellow);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 14px;
+    }
+    .challenge-editor {
+      margin: 12px 0;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 2px solid var(--border);
+      transition: border-color 0.2s;
+    }
+    .challenge-editor:focus-within {
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 12px rgba(0,245,255,0.15);
+    }
+    .challenge-editor .CodeMirror { height: 180px; font-size: 14px; }
+    .editor-fallback {
+      width: 100%;
+      height: 180px;
+      background: var(--surface-code);
+      color: #f8f8f2;
+      padding: 14px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 14px;
+      border: none;
+      outline: none;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    .challenge-controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 8px 0;
+    }
+    .result-message {
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-weight: 500;
+      margin: 10px 0;
+      display: none;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .result-message.success {
+      display: block;
+      background: rgba(57,255,20,0.1);
+      border: 1px solid var(--neon-green);
+      color: var(--neon-green);
+    }
+    .result-message.failure {
+      display: block;
+      background: rgba(255,68,68,0.1);
+      border: 1px solid var(--neon-red);
+      color: var(--neon-red);
+    }
+
+    /* === LEVEL COMPLETE VIEW === */
+    .celebration {
+      text-align: center;
+      padding: 30px 16px;
+    }
+    .celebration h2 {
+      font-size: 18px;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 14px rgba(255,190,11,0.6);
+      margin: 16px 0;
+      line-height: 1.6;
+    }
+    .xp-earned {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 14px;
+      color: var(--neon-green);
+      text-shadow: 0 0 10px rgba(57,255,20,0.5);
+      margin: 12px 0 20px;
+      animation: xp-pop 0.5s ease-out;
+    }
+    @keyframes xp-pop {
+      0% { transform: scale(0.5); opacity: 0; }
+      60% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .confetti-container {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 100;
+      overflow: hidden;
+    }
+    .confetti-piece {
+      position: absolute;
+      width: 8px; height: 8px;
+      top: -10px;
+      animation: confetti-fall 2s ease-in forwards;
+    }
+    @keyframes confetti-fall {
+      to {
+        top: 110%;
+        transform: rotate(720deg) translateX(var(--drift));
+      }
+    }
+    .celebration .quest-btn { margin: 8px; }
+
+    /* === QUEST COMPLETE VIEW === */
+    .view-quest-complete { text-align: center; padding: 30px 16px; }
+    .view-quest-complete h2 {
+      font-size: 16px;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 14px rgba(255,190,11,0.6);
+      margin: 16px 0;
+      line-height: 1.6;
+    }
+
+    /* === HIDDEN === */
+    .hidden { display: none !important; }
+
+    /* === RESPONSIVE === */
+    @media (max-width: 500px) {
+      #appHeader h1 { font-size: 11px; }
+      .hud-item { font-size: 6px; }
+      .hud-item span { font-size: 11px; }
+      .level-node { width: 60px; height: 60px; }
+      .level-node-icon { font-size: 18px; }
+      .level-connector { width: 16px; margin-top: 30px; }
+      .mini-game-btn { font-size: 4px; padding: 2px 4px; }
+      .step-connector { width: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header id="appHeader">
+    <h1>Code Quest</h1>
+    <div id="hudBar">
+      <div class="hud-item"><div>XP</div><span id="xpDisplay">0</span></div>
+      <div class="hud-item"><div>Level</div><span id="levelDisplay">1</span></div>
+      <button class="ctrl-btn" onclick="showView('map')">Map</button>
+      <button class="ctrl-btn" onclick="resetProgress()">Reset</button>
+    </div>
+  </header>
+
+  <!-- STEP INDICATOR -->
+  <div id="stepIndicator" class="step-indicator hidden"></div>
+
+  <!-- VIEW: Welcome -->
+  <div class="view view-welcome" id="viewWelcome">
+    <div class="mono-container" id="monoWelcome"></div>
+    <h2>Welcome to Code Quest!</h2>
+    <p>Learn to code step by step with Mono the Code Monkey!</p>
+    <p style="margin-top:8px; color:var(--text-dim); font-size:14px;">Complete levels, solve challenges, and play mini-games.</p>
+    <button class="quest-btn" onclick="startQuest()">Start Quest</button>
+  </div>
+
+  <!-- VIEW: Level Map -->
+  <div class="view view-map" id="viewMap">
+    <h2>Quest Map</h2>
+    <div class="level-path" id="levelPath"></div>
+    <div style="text-align:center; margin-top: 8px;">
+      <div class="mono-container" id="monoMap"></div>
+      <div class="mono-speech-inline" id="monoMapSpeech" style="margin: 12px auto; max-width: 300px;"></div>
+    </div>
+  </div>
+
+  <!-- VIEW: Explanation -->
+  <div class="view view-explanation" id="viewExplanation">
+    <div class="lesson-content">
+      <div class="explanation-icon" id="explanationIcon"></div>
+      <h2 id="explanationTitle"></h2>
+      <div class="explanation-body" id="explanationBody"></div>
+      <div class="callout-box">
+        <div class="callout-label">Real World</div>
+        <p id="realWorldText"></p>
+      </div>
+      <div class="mono-row">
+        <div class="mono-container" id="monoExplain"></div>
+        <div class="mono-speech-inline" id="monoExplainSpeech"></div>
+      </div>
+      <button class="quest-btn" onclick="goToExample()">Show Me the Code!</button>
+    </div>
+  </div>
+
+  <!-- VIEW: Example -->
+  <div class="view view-example" id="viewExample">
+    <div class="lesson-content">
+      <h3>Example</h3>
+      <div class="code-panel" id="exampleCodePanel"></div>
+      <div class="annotations-list" id="annotationsList"></div>
+      <div class="output-panel">
+        <div class="output-label">Output</div>
+        <pre id="exampleOutputText"></pre>
+      </div>
+      <button class="quest-btn" onclick="goToChallenge()">Try It Yourself!</button>
+    </div>
+  </div>
+
+  <!-- VIEW: Challenge -->
+  <div class="view view-challenge" id="viewChallenge">
+    <div class="lesson-content">
+      <div class="challenge-header">
+        <h3 id="challengeLabel">Challenge 1 of 3</h3>
+      </div>
+      <div class="challenge-prompt" id="challengePrompt"></div>
+      <div class="challenge-editor" id="challengeEditor"></div>
+      <div class="challenge-controls">
+        <button class="quest-btn quest-btn-run" onclick="runChallenge()">Run Code</button>
+        <button class="quest-btn quest-btn-hint" id="hintBtn" onclick="showHint()">Hint</button>
+      </div>
+      <div class="output-panel" id="challengeOutputPanel" style="display:none">
+        <div class="output-label">Output</div>
+        <pre id="challengeOutputText"></pre>
+      </div>
+      <div class="result-message" id="resultMessage"></div>
+      <div class="mono-row" id="challengeMonoRow" style="display:none">
+        <div class="mono-container" id="monoChallenge"></div>
+        <div class="mono-speech-inline" id="monoChallengeSpeech"></div>
+      </div>
+      <button class="quest-btn hidden" id="nextChallengeBtn" onclick="nextChallenge()">Next</button>
+    </div>
+  </div>
+
+  <!-- VIEW: Level Complete -->
+  <div class="view view-complete" id="viewComplete">
+    <div class="celebration">
+      <div class="mono-container" id="monoCelebrate"></div>
+      <h2>Level Complete!</h2>
+      <div class="xp-earned" id="xpEarned">+0 XP</div>
+      <button class="quest-btn" id="miniGameBtn" onclick="openMiniGame()">Play a Mini-Game!</button>
+      <button class="quest-btn quest-btn-secondary" onclick="continueQuest()">Continue</button>
+    </div>
+  </div>
+
+  <!-- VIEW: Quest Complete -->
+  <div class="view view-quest-complete" id="viewQuestComplete">
+    <div class="celebration">
+      <div class="mono-container" id="monoFinish"></div>
+      <h2>Quest Complete!</h2>
+      <p style="font-size:18px; margin: 12px 0;">You finished all 6 levels!</p>
+      <div class="xp-earned" id="totalXp">Total: 0 XP</div>
+      <p style="color:var(--text-dim); font-size:14px; margin: 16px 0;">You've learned strings, variables, assignment, operators, comparisons, and conditionals. You're ready to build real things!</p>
+      <button class="quest-btn" onclick="showView('map')">View Map</button>
+      <button class="quest-btn quest-btn-secondary" onclick="resetProgress()">Play Again</button>
+    </div>
+  </div>
+
+<script>
+// ============================================================
+// CONFIGURATION
+// ============================================================
+const CURRENT_LANGUAGE = 'javascript';
+
+const LANGUAGE_CONFIG = {
+  javascript: {
+    name: 'JavaScript',
+    codemirrorMode: 'javascript',
+    printFunction: 'console.log'
+  }
+};
+
+// ============================================================
+// MONO PIXEL ART SPRITES (12 wide x 14 tall)
+// ============================================================
+const MONO_COLORS = {
+  'D': '#5C3A1E',  // dark brown (outline, ears)
+  'B': '#8B5E3C',  // brown (body)
+  'T': '#DEB887',  // tan (face, belly)
+  'E': '#1a1a2e',  // eyes
+  'M': '#5C3A1E',  // mouth
+};
+
+const MONO_SPRITES = {
+  idle: [
+    '..DD....DD..',
+    '.DBBD..DBBD.',
+    '..BBBBBBBB..',
+    '.BTTTTTTTTB.',
+    '.BTETTTTETB.',
+    '.BTTTTTTTTB.',
+    '.BTTTMMTTTB.',
+    '..BTTTTTTB..',
+    '....BBBB....',
+    'BB..BTTB..BB',
+    'B...BTTB...B',
+    '....BBBB....',
+    '....B..B....',
+    '...BB..BB...',
+  ],
+  wave: [
+    '..DD....DD..',
+    '.DBBD..DBBD.',
+    '..BBBBBBBB..',
+    '.BTTTTTTTTBB',
+    '.BTETTTTETBB',
+    '.BTTTTTTTTB.',
+    '.BTTTMMTTTB.',
+    '..BTTTTTTB..',
+    '....BBBB....',
+    'BB..BTTB....',
+    'B...BTTB....',
+    '....BBBB....',
+    '....B..B....',
+    '...BB..BB...',
+  ],
+};
+
+function renderMono(containerId, spriteName, scale) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const rows = MONO_SPRITES[spriteName] || MONO_SPRITES.idle;
+  let pixel = container.querySelector('.mono-pixel');
+  if (!pixel) {
+    pixel = document.createElement('div');
+    pixel.className = 'mono-pixel';
+    container.appendChild(pixel);
+  }
+  const shadows = [];
+  for (let y = 0; y < rows.length; y++) {
+    for (let x = 0; x < rows[y].length; x++) {
+      const ch = rows[y][x];
+      if (ch !== '.' && MONO_COLORS[ch]) {
+        shadows.push(x + 'px ' + y + 'px 0 ' + MONO_COLORS[ch]);
+      }
+    }
+  }
+  pixel.style.boxShadow = shadows.join(',');
+  pixel.style.transform = 'scale(' + scale + ')';
+  pixel.style.transformOrigin = 'top left';
+  container.style.width = (rows[0].length * scale + 4) + 'px';
+  container.style.height = (rows.length * scale + 4) + 'px';
+  container.style.display = 'inline-block';
+}
+
+// ============================================================
+// LESSON DATA
+// ============================================================
+const LESSONS = [
+  {
+    id: 'string',
+    title: 'Strings',
+    icon: '\uD83D\uDCDD',
+    explanation: {
+      title: 'What is a String?',
+      body: 'A <strong>string</strong> is a piece of text in your code. You wrap text in quotes to tell the computer "this is text, not code."',
+      realWorld: 'Think of a string like a name tag \u2014 it holds text like your name, a message, or even an emoji!',
+      monoSays: 'Strings are everywhere! Your name, a message, even this sentence could be a string.'
+    },
+    languages: {
+      javascript: {
+        example: {
+          code: 'let greeting = "Hello, World!";\nconsole.log(greeting);',
+          output: 'Hello, World!',
+          annotations: [
+            { line: 1, text: 'Create a string by wrapping text in double quotes' },
+            { line: 2, text: 'console.log() prints the string to the screen' }
+          ]
+        },
+        challenges: [
+          {
+            id: 'string-1',
+            prompt: 'Create a string variable called <code>myName</code> that holds your name.',
+            starterCode: '// Type your code below\n',
+            hint: 'Use: let myName = "YourName";',
+            validate: { type: 'variable', varName: 'myName', varType: 'string' },
+            xpReward: 10,
+            monoSuccess: 'Nice! You just made your first string!',
+            monoFail: 'Almost! Make sure you wrap your name in quotes.'
+          },
+          {
+            id: 'string-2',
+            prompt: 'Create a variable <code>food</code> set to your favorite food, then use <code>console.log(food)</code> to print it.',
+            starterCode: '// Create your food variable\n\n// Print it out\n',
+            hint: 'First line: let food = "pizza";\nSecond line: console.log(food);',
+            validate: {
+              type: 'multi',
+              checks: [
+                { type: 'variable', varName: 'food', varType: 'string' },
+                { type: 'outputNotEmpty' }
+              ]
+            },
+            xpReward: 15,
+            monoSuccess: 'Yum! You printed your food to the screen!',
+            monoFail: 'Did you remember to use console.log() to print it?'
+          },
+          {
+            id: 'string-3',
+            prompt: 'Create <code>firstName</code> and <code>lastName</code> strings. Then create <code>fullName</code> that combines them with a space between. Print fullName.',
+            starterCode: '// Create firstName and lastName\n\n// Combine them into fullName\n\n// Print fullName\n',
+            hint: 'You can combine strings with +\nExample: "hello" + " " + "world"',
+            validate: { type: 'custom', fn: 'validateStringConcat' },
+            xpReward: 20,
+            monoSuccess: 'String concatenation unlocked! You\'re combining text like a pro!',
+            monoFail: 'Make sure fullName uses firstName + " " + lastName'
+          }
+        ]
+      }
+    },
+    miniGameAfter: 'speed-type'
+  },
+  {
+    id: 'variable',
+    title: 'Variables',
+    icon: '\uD83D\uDCE6',
+    explanation: {
+      title: 'What is a Variable?',
+      body: 'A <strong>variable</strong> is like a labeled box that stores a value. You give it a name, then put something inside. Variables can hold strings, numbers, or true/false values.',
+      realWorld: 'Imagine a labeled jar. The label is the variable name. What\'s inside is the value. You can swap out what\'s inside anytime!',
+      monoSays: 'Variables are how your code remembers things! Without them, your program would forget everything instantly.'
+    },
+    languages: {
+      javascript: {
+        example: {
+          code: 'let score = 0;\nlet playerName = "Alex";\nlet isPlaying = true;\n\nconsole.log(playerName);\nconsole.log(score);',
+          output: 'Alex\n0',
+          annotations: [
+            { line: 1, text: 'A number variable \u2014 no quotes needed for numbers' },
+            { line: 2, text: 'A string variable \u2014 text goes in quotes' },
+            { line: 3, text: 'A boolean variable \u2014 true or false, no quotes' }
+          ]
+        },
+        challenges: [
+          {
+            id: 'variable-1',
+            prompt: 'Create a variable called <code>age</code> and set it to your age (a number, no quotes!).',
+            starterCode: '// Create your age variable\n',
+            hint: 'Use: let age = 12;\n(but with your real age)',
+            validate: { type: 'variable', varName: 'age', varType: 'number' },
+            xpReward: 10,
+            monoSuccess: 'A number variable! Notice \u2014 no quotes around numbers.',
+            monoFail: 'Make sure your age is a number, not a string. No quotes!'
+          },
+          {
+            id: 'variable-2',
+            prompt: 'Create three variables: <code>game</code> (a string), <code>lives</code> (a number), and <code>isGameOver</code> (set to <code>false</code>).',
+            starterCode: '// Create your three variables\n',
+            hint: 'let game = "Mario";\nlet lives = 3;\nlet isGameOver = false;',
+            validate: {
+              type: 'multi',
+              checks: [
+                { type: 'variable', varName: 'game', varType: 'string' },
+                { type: 'variable', varName: 'lives', varType: 'number' },
+                { type: 'variable', varName: 'isGameOver', varType: 'boolean' }
+              ]
+            },
+            xpReward: 20,
+            monoSuccess: 'Three types of variables \u2014 string, number, and boolean! You got them all!',
+            monoFail: 'Check that game has quotes, lives is a number (no quotes), and isGameOver is false (no quotes).'
+          }
+        ]
+      }
+    },
+    miniGameAfter: 'variable-match'
+  },
+  {
+    id: 'assignment',
+    title: 'Assignment',
+    icon: '\u2B05\uFE0F',
+    explanation: {
+      title: 'Assignment: Changing Values',
+      body: 'The <strong>=</strong> sign in code doesn\'t mean "equals" like in math. It means <strong>"put this value into that variable."</strong> You can change a variable\'s value anytime by assigning a new one.',
+      realWorld: 'Think of your score in a game. It starts at 0, then goes up every time you earn points. The score variable gets updated over and over.',
+      monoSays: 'The = sign is the assignment operator. It\'s like an arrow pointing left \u2014 the value on the right goes INTO the variable on the left.'
+    },
+    languages: {
+      javascript: {
+        example: {
+          code: 'let score = 0;\nconsole.log(score);\n\nscore = 10;\nconsole.log(score);\n\nscore = score + 5;\nconsole.log(score);',
+          output: '0\n10\n15',
+          annotations: [
+            { line: 1, text: 'Start with score = 0' },
+            { line: 4, text: 'Reassign score to 10 (no "let" needed \u2014 it already exists)' },
+            { line: 7, text: 'score = score + 5 means: take current score (10), add 5, store result (15)' }
+          ]
+        },
+        challenges: [
+          {
+            id: 'assignment-1',
+            prompt: 'Create a variable <code>count</code> set to 1. Then change it to 5. Print the final value.',
+            starterCode: '// Create count\n\n// Change it to 5\n\n// Print it\n',
+            hint: 'First: let count = 1;\nThen: count = 5;\nThen: console.log(count);',
+            validate: {
+              type: 'multi',
+              checks: [
+                { type: 'value', varName: 'count', expectedValue: 5 },
+                { type: 'output', expectedOutput: '5' }
+              ]
+            },
+            xpReward: 10,
+            monoSuccess: 'You reassigned the variable! The old value (1) is gone \u2014 replaced by 5.',
+            monoFail: 'Make sure you change count to 5 after creating it, and print it with console.log.'
+          },
+          {
+            id: 'assignment-2',
+            prompt: 'Create <code>health</code> starting at 100. Subtract 25 from it. Then subtract 10 more. Print the final health.',
+            starterCode: '// Start with 100 health\n\n// Take 25 damage\n\n// Take 10 more damage\n\n// Print remaining health\n',
+            hint: 'health = health - 25;\nthen: health = health - 10;',
+            validate: {
+              type: 'multi',
+              checks: [
+                { type: 'value', varName: 'health', expectedValue: 65 },
+                { type: 'output', expectedOutput: '65' }
+              ]
+            },
+            xpReward: 20,
+            monoSuccess: '100 - 25 - 10 = 65. Your health tracking is on point!',
+            monoFail: 'Start at 100, subtract 25, then subtract 10 more. The answer should be 65.'
+          }
+        ]
+      }
+    },
+    miniGameAfter: 'bug-squash'
+  },
+  {
+    id: 'operator',
+    title: 'Operators',
+    icon: '\u2795',
+    explanation: {
+      title: 'Math Operators',
+      body: 'Operators let you do math and combine values. The basic operators are <strong>+</strong> (add), <strong>-</strong> (subtract), <strong>*</strong> (multiply), <strong>/</strong> (divide), and <strong>%</strong> (remainder).',
+      realWorld: 'Operators are just like the math you already know, except the computer does the calculating. The % (modulo) operator is new \u2014 it gives the remainder after division.',
+      monoSays: 'Fun fact: + works on strings too! "Hello" + " " + "World" gives you "Hello World".'
+    },
+    languages: {
+      javascript: {
+        example: {
+          code: 'let a = 10;\nlet b = 3;\n\nconsole.log(a + b);\nconsole.log(a - b);\nconsole.log(a * b);\nconsole.log(a % b);',
+          output: '13\n7\n30\n1',
+          annotations: [
+            { line: 4, text: '10 + 3 = 13' },
+            { line: 5, text: '10 - 3 = 7' },
+            { line: 6, text: '10 * 3 = 30 (asterisk means multiply)' },
+            { line: 7, text: '10 % 3 = 1 (remainder: 10 \u00f7 3 = 3 remainder 1)' }
+          ]
+        },
+        challenges: [
+          {
+            id: 'operator-1',
+            prompt: 'Create <code>width</code> (set to 8) and <code>height</code> (set to 5). Create <code>area</code> that multiplies them. Print the area.',
+            starterCode: '// Create width and height\n\n// Calculate area\n\n// Print it\n',
+            hint: 'let area = width * height;',
+            validate: {
+              type: 'multi',
+              checks: [
+                { type: 'value', varName: 'area', expectedValue: 40 },
+                { type: 'output', expectedOutput: '40' }
+              ]
+            },
+            xpReward: 15,
+            monoSuccess: '8 times 5 is 40! You calculated area like a geometry pro!',
+            monoFail: 'Use * to multiply width and height together.'
+          },
+          {
+            id: 'operator-2',
+            prompt: 'You have 17 cookies and 5 friends. Create <code>cookiesEach</code> (how many whole cookies each friend gets) and <code>leftover</code> (how many are left over). Print both.',
+            starterCode: '// Figure out cookies per friend and leftover\nlet cookies = 17;\nlet friends = 5;\n\n',
+            hint: 'Use Math.floor(17 / 5) for whole cookies.\nUse 17 % 5 for remainder.',
+            validate: { type: 'custom', fn: 'validateCookieMath' },
+            xpReward: 25,
+            monoSuccess: '3 cookies each with 2 left over! The % operator is super useful!',
+            monoFail: 'cookiesEach should be 3 (use Math.floor for whole number) and leftover should be 2 (use % for remainder).'
+          }
+        ]
+      }
+    },
+    miniGameAfter: 'code-scramble'
+  },
+  {
+    id: 'comparison',
+    title: 'Comparisons',
+    icon: '\u2696\uFE0F',
+    explanation: {
+      title: 'Comparing Values',
+      body: 'Comparison operators ask a yes-or-no question about two values. The answer is always <strong>true</strong> or <strong>false</strong>. Use <strong>===</strong> (equal?), <strong>!==</strong> (not equal?), <strong>&lt;</strong>, <strong>&gt;</strong>, <strong>&lt;=</strong>, and <strong>&gt;=</strong>.',
+      realWorld: 'Comparisons are like asking questions: "Is my score higher than the high score?" The computer answers true or false.',
+      monoSays: 'Important! Use === (three equals) to compare, not = (one equals). One = means assign, three === means compare!'
+    },
+    languages: {
+      javascript: {
+        example: {
+          code: 'let score = 85;\nlet passingScore = 70;\n\nconsole.log(score > passingScore);\nconsole.log(score === 100);\nconsole.log(score >= passingScore);',
+          output: 'true\nfalse\ntrue',
+          annotations: [
+            { line: 4, text: 'Is 85 greater than 70? true!' },
+            { line: 5, text: 'Is 85 exactly equal to 100? false' },
+            { line: 6, text: 'Is 85 greater than or equal to 70? true!' }
+          ]
+        },
+        challenges: [
+          {
+            id: 'comparison-1',
+            prompt: 'Create <code>myAge</code> set to your age. Create <code>canDrive</code> that checks if myAge >= 16. Print canDrive.',
+            starterCode: '// Your age\n\n// Can you drive?\n\n// Print the result\n',
+            hint: 'let canDrive = myAge >= 16;',
+            validate: {
+              type: 'multi',
+              checks: [
+                { type: 'variable', varName: 'myAge', varType: 'number' },
+                { type: 'variable', varName: 'canDrive', varType: 'boolean' },
+                { type: 'outputNotEmpty' }
+              ]
+            },
+            xpReward: 15,
+            monoSuccess: 'You stored a comparison result in a variable! canDrive is a boolean \u2014 true or false.',
+            monoFail: 'Set canDrive equal to the comparison myAge >= 16. No quotes needed.'
+          },
+          {
+            id: 'comparison-2',
+            prompt: 'Create <code>a</code> set to 10 and <code>b</code> set to 10. Print whether they are equal (===), then print whether a > b.',
+            starterCode: '// Create a and b\n\n// Print if they are equal\n\n// Print if a is greater than b\n',
+            hint: 'console.log(a === b);\nconsole.log(a > b);',
+            validate: { type: 'output', expectedOutput: 'true\nfalse' },
+            xpReward: 15,
+            monoSuccess: '10 === 10 is true, but 10 > 10 is false. Equal is not greater!',
+            monoFail: 'The output should be true on the first line and false on the second.'
+          }
+        ]
+      }
+    },
+    miniGameAfter: 'output-guess'
+  },
+  {
+    id: 'conditional',
+    title: 'Conditionals',
+    icon: '\uD83D\uDEA6',
+    explanation: {
+      title: 'Making Decisions with if/else',
+      body: 'An <strong>if</strong> statement lets your code make decisions. If a condition is true, one block of code runs. If it\'s false, the <strong>else</strong> block runs instead.',
+      realWorld: 'Think of a traffic light. IF the light is green, you go. ELSE (if it\'s not green), you stop. Your code makes decisions like this constantly.',
+      monoSays: 'Conditionals are the brain of your program! Without them, code would just do the same thing every time, no matter what.'
+    },
+    languages: {
+      javascript: {
+        example: {
+          code: 'let temperature = 95;\n\nif (temperature > 90) {\n  console.log("It\'s hot outside!");\n} else {\n  console.log("Not too hot.");\n}',
+          output: "It's hot outside!",
+          annotations: [
+            { line: 1, text: 'Set temperature to 95' },
+            { line: 3, text: 'Check: is temperature > 90? (95 > 90 is true!)' },
+            { line: 4, text: 'Since the condition is true, this line runs' },
+            { line: 5, text: 'The else block is skipped because the if was true' }
+          ]
+        },
+        challenges: [
+          {
+            id: 'conditional-1',
+            prompt: 'Create <code>score</code> set to 85. Write an if/else: print "You passed!" if score >= 70, or "Try again" otherwise.',
+            starterCode: 'let score = 85;\n\n// Write your if/else here\n',
+            hint: 'if (score >= 70) {\n  console.log("You passed!");\n} else {\n  console.log("Try again");\n}',
+            validate: { type: 'output', expectedOutput: 'You passed!' },
+            xpReward: 20,
+            monoSuccess: '85 >= 70 is true, so "You passed!" prints! You wrote your first if/else!',
+            monoFail: 'Check your condition: score >= 70. Make sure the strings match exactly.'
+          },
+          {
+            id: 'conditional-2',
+            prompt: 'Create <code>hour</code> set to 14. If hour < 12, print "Good morning!" \u2014 otherwise print "Good afternoon!"',
+            starterCode: 'let hour = 14;\n\n// Write your if/else\n',
+            hint: 'if (hour < 12) {\n  console.log("Good morning!");\n} else {\n  console.log("Good afternoon!");\n}',
+            validate: { type: 'output', expectedOutput: 'Good afternoon!' },
+            xpReward: 20,
+            monoSuccess: '14 is not less than 12, so the else block runs. Good afternoon!',
+            monoFail: 'Since hour is 14 (which is >= 12), the else block should print "Good afternoon!"'
+          },
+          {
+            id: 'conditional-3',
+            prompt: 'Create <code>lives</code> set to 0. If lives === 0, print "Game Over" \u2014 otherwise print "Keep playing!"',
+            starterCode: 'let lives = 0;\n\n// Check if game is over\n',
+            hint: 'if (lives === 0) {\n  console.log("Game Over");\n} else {\n  console.log("Keep playing!");\n}',
+            validate: { type: 'output', expectedOutput: 'Game Over' },
+            xpReward: 25,
+            monoSuccess: 'You completed all the lessons! You are now a Code Quest champion!',
+            monoFail: 'Use === to check if lives equals 0. Remember: === for comparison, = for assignment.'
+          }
+        ]
+      }
+    },
+    miniGameAfter: 'bug-squash'
+  }
+];
+
+// ============================================================
+// CUSTOM VALIDATORS
+// ============================================================
+const CUSTOM_VALIDATORS = {
+  validateStringConcat(result) {
+    if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
+    if (typeof result.vars.firstName !== 'string')
+      return { pass: false, message: 'firstName should be a string.' };
+    if (typeof result.vars.lastName !== 'string')
+      return { pass: false, message: 'lastName should be a string.' };
+    if (typeof result.vars.fullName !== 'string')
+      return { pass: false, message: 'fullName should be a string that combines firstName and lastName.' };
+    const expected = result.vars.firstName + ' ' + result.vars.lastName;
+    if (result.vars.fullName !== expected)
+      return { pass: false, message: 'fullName should be firstName + " " + lastName (with a space between).' };
+    if (result.output.length === 0)
+      return { pass: false, message: 'Don\'t forget to print fullName with console.log()!' };
+    return { pass: true };
+  },
+
+  validateCookieMath(result) {
+    if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
+    if (result.vars.cookiesEach !== 3)
+      return { pass: false, message: 'cookiesEach should be 3 (17 divided by 5, rounded down). Try Math.floor(17 / 5).' };
+    if (result.vars.leftover !== 2)
+      return { pass: false, message: 'leftover should be 2 (17 % 5 = 2). The % operator gives you the remainder.' };
+    if (result.output.length === 0)
+      return { pass: false, message: 'Don\'t forget to print the results with console.log()!' };
+    return { pass: true };
+  }
+};
+
+// ============================================================
+// VALIDATION ENGINE
+// ============================================================
+function extractDeclaredVarNames(code) {
+  const regex = /(?:let|const|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g;
+  const names = [];
+  let match;
+  while ((match = regex.exec(code)) !== null) {
+    names.push(match[1]);
+  }
+  return names;
+}
+
+const VALIDATORS = {
+  javascript: {
+    execute(code) {
+      const capturedOutput = [];
+      const sandboxConsole = {
+        log: function() {
+          const args = Array.prototype.slice.call(arguments);
+          capturedOutput.push(args.join(' '));
+        }
+      };
+      try {
+        const varNames = extractDeclaredVarNames(code);
+        let returnBlock = 'return {';
+        varNames.forEach(function(name, i) {
+          if (i > 0) returnBlock += ',';
+          returnBlock += '"' + name + '": (typeof ' + name + ' !== "undefined" ? ' + name + ' : undefined)';
+        });
+        returnBlock += '};';
+        const wrapped = '"use strict";\n' + code + '\n' + returnBlock;
+        const fn = new Function('console', 'Math', wrapped);
+        const result = fn(sandboxConsole, Math);
+        return { success: true, vars: result || {}, output: capturedOutput, error: null };
+      } catch (e) {
+        return { success: false, vars: {}, output: capturedOutput, error: e.message };
+      }
+    },
+
+    checkVariable(result, varName, varType) {
+      if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
+      if (!(varName in result.vars) || result.vars[varName] === undefined)
+        return { pass: false, message: 'I don\'t see a variable called ' + varName + '. Did you create it with let?' };
+      if (varType && typeof result.vars[varName] !== varType)
+        return { pass: false, message: varName + ' should be a ' + varType + ', but it\'s a ' + typeof result.vars[varName] + '.' };
+      return { pass: true };
+    },
+
+    checkValue(result, varName, expectedValue) {
+      const varCheck = this.checkVariable(result, varName);
+      if (!varCheck.pass) return varCheck;
+      if (result.vars[varName] !== expectedValue)
+        return { pass: false, message: varName + ' should equal ' + expectedValue + ', but it equals ' + result.vars[varName] + '.' };
+      return { pass: true };
+    },
+
+    checkOutput(result, expectedOutput) {
+      if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
+      const actual = result.output.join('\n').trim();
+      const expected = expectedOutput.trim();
+      if (actual !== expected) {
+        if (actual === '') return { pass: false, message: 'Your code didn\'t print anything. Did you use console.log()?' };
+        return { pass: false, message: 'Expected output:\n' + expected + '\n\nYour output:\n' + actual };
+      }
+      return { pass: true };
+    },
+
+    checkOutputNotEmpty(result) {
+      if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
+      if (result.output.length === 0)
+        return { pass: false, message: 'Your code didn\'t print anything. Use console.log() to print!' };
+      return { pass: true };
+    }
+  }
+};
+
+function validateChallenge(code, challengeConfig) {
+  const lang = VALIDATORS[CURRENT_LANGUAGE];
+  const result = lang.execute(code);
+  const v = challengeConfig.validate;
+
+  switch (v.type) {
+    case 'variable':
+      return { validation: lang.checkVariable(result, v.varName, v.varType), result: result };
+    case 'value':
+      return { validation: lang.checkValue(result, v.varName, v.expectedValue), result: result };
+    case 'output':
+      return { validation: lang.checkOutput(result, v.expectedOutput), result: result };
+    case 'outputNotEmpty':
+      return { validation: lang.checkOutputNotEmpty(result), result: result };
+    case 'multi':
+      for (var i = 0; i < v.checks.length; i++) {
+        var subResult = validateChallenge(code, { validate: v.checks[i] });
+        if (!subResult.validation.pass) return subResult;
+      }
+      return { validation: { pass: true }, result: result };
+    case 'custom':
+      return { validation: CUSTOM_VALIDATORS[v.fn](result), result: result };
+    default:
+      return { validation: { pass: false, message: 'Unknown validator.' }, result: result };
+  }
+}
+
+// ============================================================
+// STATE MANAGEMENT
+// ============================================================
+const STATE_KEY = 'codequest_progress';
+const defaultState = {
+  currentLevel: 0,
+  currentStep: 'welcome',
+  currentChallenge: 0,
+  completedLevels: [],
+  completedChallenges: {},
+  xp: 0,
+  hintsUsed: {},
+  levelProgress: {}   // { levelIndex: furthestStepIndex } — tracks how far the student got in each level
+};
+
+let appState;
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem(STATE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return Object.assign({}, defaultState, parsed);
+    }
+  } catch (e) {}
+  return Object.assign({}, defaultState);
+}
+
+function saveState() {
+  localStorage.setItem(STATE_KEY, JSON.stringify(appState));
+}
+
+function addXP(amount) {
+  appState.xp += amount;
+  saveState();
+  document.getElementById('xpDisplay').textContent = appState.xp;
+}
+
+function resetProgress() {
+  if (confirm('Reset all progress? This cannot be undone.')) {
+    localStorage.removeItem(STATE_KEY);
+    location.reload();
+  }
+}
+
+// ============================================================
+// EDITOR MANAGEMENT
+// ============================================================
+let challengeEditorInstance = null;
+let exampleEditorInstance = null;
+let useCodeMirror = typeof CodeMirror !== 'undefined';
+
+function initChallengeEditor(starterCode) {
+  const container = document.getElementById('challengeEditor');
+  container.innerHTML = '';
+  if (useCodeMirror) {
+    challengeEditorInstance = CodeMirror(container, {
+      value: starterCode,
+      mode: LANGUAGE_CONFIG[CURRENT_LANGUAGE].codemirrorMode,
+      theme: 'dracula',
+      lineNumbers: true,
+      indentUnit: 2,
+      tabSize: 2,
+      indentWithTabs: false,
+      lineWrapping: true,
+      extraKeys: { 'Ctrl-Enter': runChallenge, 'Cmd-Enter': runChallenge }
+    });
+    setTimeout(function() { challengeEditorInstance.focus(); }, 50);
+  } else {
+    var textarea = document.createElement('textarea');
+    textarea.id = 'challengeEditorFallback';
+    textarea.className = 'editor-fallback';
+    textarea.value = starterCode;
+    textarea.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); runChallenge(); }
+    });
+    container.appendChild(textarea);
+    textarea.focus();
+  }
+}
+
+function getChallengeCode() {
+  if (useCodeMirror && challengeEditorInstance) return challengeEditorInstance.getValue();
+  var fb = document.getElementById('challengeEditorFallback');
+  return fb ? fb.value : '';
+}
+
+function initExampleEditor(code) {
+  const container = document.getElementById('exampleCodePanel');
+  container.innerHTML = '';
+  if (useCodeMirror) {
+    exampleEditorInstance = CodeMirror(container, {
+      value: code,
+      mode: LANGUAGE_CONFIG[CURRENT_LANGUAGE].codemirrorMode,
+      theme: 'dracula',
+      lineNumbers: true,
+      readOnly: true,
+      lineWrapping: true
+    });
+  } else {
+    var pre = document.createElement('pre');
+    pre.className = 'code-fallback';
+    pre.textContent = code;
+    container.appendChild(pre);
+  }
+}
+
+// ============================================================
+// VIEW SWITCHING
+// ============================================================
+function showView(viewName) {
+  document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
+  var target = document.getElementById('view' + viewName.charAt(0).toUpperCase() + viewName.slice(1));
+  if (target) {
+    requestAnimationFrame(function() {
+      target.classList.add('active');
+      // CodeMirror needs a refresh after becoming visible (hidden container measurement bug)
+      setTimeout(function() {
+        target.querySelectorAll('.CodeMirror').forEach(function(el) {
+          if (el.CodeMirror) el.CodeMirror.refresh();
+        });
+      }, 50);
+    });
+  }
+  var indicator = document.getElementById('stepIndicator');
+  var lessonViews = ['explanation', 'example', 'challenge'];
+  if (lessonViews.indexOf(viewName) !== -1) {
+    indicator.classList.remove('hidden');
+  } else {
+    indicator.classList.add('hidden');
+  }
+}
+
+// ============================================================
+// STEP INDICATOR
+// ============================================================
+function stepIndexFor(step, challengeIndex) {
+  if (step === 'explanation') return 0;
+  if (step === 'example') return 1;
+  return 2 + (challengeIndex || 0);
+}
+
+function updateStepIndicator(lessonIndex, currentStep, challengeIndex) {
+  var lesson = LESSONS[lessonIndex];
+  var langData = lesson.languages[CURRENT_LANGUAGE];
+  var challengeCount = langData.challenges.length;
+  var steps = [
+    { label: 'Learn', id: 'explanation' },
+    { label: 'Example', id: 'example' }
+  ];
+  for (var i = 0; i < challengeCount; i++) {
+    steps.push({ label: 'Q' + (i + 1), id: 'challenge-' + i });
+  }
+
+  var currentIdx = stepIndexFor(currentStep, challengeIndex);
+
+  // Track the furthest step reached in this level
+  var prevFurthest = appState.levelProgress[lessonIndex] || 0;
+  if (currentIdx > prevFurthest) {
+    appState.levelProgress[lessonIndex] = currentIdx;
+    saveState();
+  }
+  var furthest = appState.levelProgress[lessonIndex] || 0;
+
+  var html = '<div class="steps">';
+  steps.forEach(function(step, i) {
+    var status = i < currentIdx ? 'completed' : (i === currentIdx ? 'current' : '');
+    var clickable = i <= furthest && i !== currentIdx;
+    html += '<div class="step ' + status + (clickable ? ' clickable' : '') + '"';
+    if (clickable) {
+      html += ' onclick="navigateToStep(' + lessonIndex + ',' + i + ')" title="Go to ' + step.label + '"';
+    }
+    html += '>';
+    html += '<div class="step-dot"></div>';
+    html += '<div class="step-label">' + step.label + '</div>';
+    html += '</div>';
+    if (i < steps.length - 1) {
+      html += '<div class="step-connector ' + (i < currentIdx ? 'active' : '') + '"></div>';
+    }
+  });
+  html += '</div>';
+  document.getElementById('stepIndicator').innerHTML = html;
+}
+
+function navigateToStep(lessonIndex, stepIndex) {
+  appState.currentLevel = lessonIndex;
+  if (stepIndex === 0) {
+    appState.currentStep = 'explanation';
+    saveState();
+    showExplanation(lessonIndex);
+  } else if (stepIndex === 1) {
+    appState.currentStep = 'example';
+    saveState();
+    goToExample();
+  } else {
+    var challengeIdx = stepIndex - 2;
+    appState.currentChallenge = challengeIdx;
+    appState.currentStep = 'challenge';
+    saveState();
+    showCurrentChallenge();
+  }
+}
+
+// ============================================================
+// LEVEL MAP
+// ============================================================
+var MINI_GAME_NAMES = {
+  'speed-type': '⌨️ Speed Type',
+  'variable-match': '🃏 Var Match',
+  'bug-squash': '🐛 Bug Squash',
+  'code-scramble': '🔀 Scramble',
+  'output-guess': '🤔 Output Guess'
+};
+
+function renderLevelMap() {
+  var container = document.getElementById('levelPath');
+  var html = '';
+  LESSONS.forEach(function(lesson, i) {
+    var status;
+    var isCompleted = appState.completedLevels.indexOf(lesson.id) !== -1;
+    if (isCompleted) {
+      status = 'completed';
+    } else if (i === 0 || appState.completedLevels.indexOf(LESSONS[i - 1].id) !== -1) {
+      status = 'available';
+    } else {
+      status = 'locked';
+    }
+
+    if (i > 0) {
+      var connActive = appState.completedLevels.indexOf(LESSONS[i - 1].id) !== -1 ? 'active' : '';
+      html += '<div class="level-connector ' + connActive + '"></div>';
+    }
+
+    html += '<div class="level-node-wrap">';
+    html += '<div class="level-node ' + status + '" onclick="selectLevel(' + i + ')" title="' + lesson.title + '">';
+    html += '<div class="level-node-icon">' + lesson.icon + '</div>';
+    html += '<div class="level-node-title">' + lesson.title + '</div>';
+    html += '</div>';
+
+    // Mini-game replay button for completed levels
+    if (isCompleted && lesson.miniGameAfter) {
+      var gameName = MINI_GAME_NAMES[lesson.miniGameAfter] || lesson.miniGameAfter;
+      html += '<a class="mini-game-btn" href="mini-games/' + lesson.miniGameAfter + '.html?level=' + lesson.id + '" target="_blank" onclick="event.stopPropagation()">' + gameName + '</a>';
+    }
+
+    html += '</div>';
+  });
+  container.innerHTML = html;
+
+  // Update Mono on map
+  renderMono('monoMap', 'idle', 4);
+  var allDone = appState.completedLevels.length >= LESSONS.length;
+  var speech = document.getElementById('monoMapSpeech');
+  if (allDone) {
+    speech.textContent = 'You completed everything! Amazing work!';
+  } else {
+    var msgs = ['Pick a level!', 'Which level next?', 'Ready for a challenge?', 'Let\'s learn something new!'];
+    speech.textContent = msgs[Math.floor(Math.random() * msgs.length)];
+  }
+}
+
+function selectLevel(index) {
+  var lesson = LESSONS[index];
+  // Check if locked
+  if (index > 0 && appState.completedLevels.indexOf(LESSONS[index - 1].id) === -1) {
+    return; // locked
+  }
+  appState.currentLevel = index;
+  appState.currentChallenge = 0;
+  appState.currentStep = 'explanation';
+  saveState();
+  showExplanation(index);
+}
+
+// ============================================================
+// EXPLANATION VIEW
+// ============================================================
+function showExplanation(lessonIndex) {
+  var lesson = LESSONS[lessonIndex];
+  document.getElementById('explanationIcon').textContent = lesson.icon;
+  document.getElementById('explanationTitle').textContent = lesson.explanation.title;
+  document.getElementById('explanationBody').innerHTML = lesson.explanation.body;
+  document.getElementById('realWorldText').textContent = lesson.explanation.realWorld;
+  document.getElementById('monoExplainSpeech').textContent = lesson.explanation.monoSays;
+  renderMono('monoExplain', 'idle', 4);
+  document.getElementById('levelDisplay').textContent = lessonIndex + 1;
+  updateStepIndicator(lessonIndex, 'explanation', 0);
+  showView('explanation');
+}
+
+// ============================================================
+// EXAMPLE VIEW
+// ============================================================
+function goToExample() {
+  var lesson = LESSONS[appState.currentLevel];
+  var langData = lesson.languages[CURRENT_LANGUAGE];
+  var example = langData.example;
+
+  initExampleEditor(example.code);
+
+  // Annotations
+  var annotHtml = '';
+  example.annotations.forEach(function(ann) {
+    annotHtml += '<div class="annotation">';
+    annotHtml += '<div class="annotation-line">Line ' + ann.line + '</div>';
+    annotHtml += '<div class="annotation-text">' + ann.text + '</div>';
+    annotHtml += '</div>';
+  });
+  document.getElementById('annotationsList').innerHTML = annotHtml;
+  document.getElementById('exampleOutputText').textContent = example.output;
+
+  updateStepIndicator(appState.currentLevel, 'example', 0);
+  showView('example');
+}
+
+// ============================================================
+// CHALLENGE VIEW
+// ============================================================
+function goToChallenge() {
+  appState.currentChallenge = 0;
+  appState.currentStep = 'challenge';
+  saveState();
+  showCurrentChallenge();
+}
+
+function showCurrentChallenge() {
+  var lesson = LESSONS[appState.currentLevel];
+  var langData = lesson.languages[CURRENT_LANGUAGE];
+  var challenges = langData.challenges;
+  var ci = appState.currentChallenge;
+  var challenge = challenges[ci];
+
+  document.getElementById('challengeLabel').textContent = 'Challenge ' + (ci + 1) + ' of ' + challenges.length;
+  document.getElementById('challengePrompt').innerHTML = challenge.prompt;
+
+  // Reset UI
+  document.getElementById('challengeOutputPanel').style.display = 'none';
+  document.getElementById('challengeOutputText').textContent = '';
+  var rm = document.getElementById('resultMessage');
+  rm.className = 'result-message';
+  rm.textContent = '';
+  document.getElementById('nextChallengeBtn').classList.add('hidden');
+  document.getElementById('challengeMonoRow').style.display = 'none';
+
+  initChallengeEditor(challenge.starterCode);
+  updateStepIndicator(appState.currentLevel, 'challenge', ci);
+  showView('challenge');
+}
+
+function runChallenge() {
+  var lesson = LESSONS[appState.currentLevel];
+  var langData = lesson.languages[CURRENT_LANGUAGE];
+  var challenge = langData.challenges[appState.currentChallenge];
+  var code = getChallengeCode();
+
+  // Execute and validate
+  var result = validateChallenge(code, challenge);
+  var validation = result.validation;
+  var execResult = result.result;
+
+  // Show output
+  var outputPanel = document.getElementById('challengeOutputPanel');
+  var outputText = document.getElementById('challengeOutputText');
+  if (execResult.output.length > 0) {
+    outputPanel.style.display = 'block';
+    outputPanel.className = 'output-panel';
+    outputText.textContent = execResult.output.join('\n');
+  } else if (execResult.error) {
+    outputPanel.style.display = 'block';
+    outputPanel.className = 'output-panel error';
+    outputText.textContent = 'Error: ' + execResult.error;
+  }
+
+  // Show result
+  var rm = document.getElementById('resultMessage');
+  var monoRow = document.getElementById('challengeMonoRow');
+
+  if (validation.pass) {
+    rm.className = 'result-message success';
+    rm.textContent = '\u2705 Correct!';
+    monoRow.style.display = 'flex';
+    renderMono('monoChallenge', 'wave', 3);
+    document.getElementById('monoChallengeSpeech').textContent = challenge.monoSuccess;
+    document.querySelector('#monoChallenge').classList.add('mono-anim-jump');
+
+    // Award XP (only first time)
+    if (!appState.completedChallenges[challenge.id]) {
+      addXP(challenge.xpReward);
+      appState.completedChallenges[challenge.id] = true;
+      saveState();
+    }
+
+    // Show next button
+    document.getElementById('nextChallengeBtn').classList.remove('hidden');
+    var challenges = langData.challenges;
+    var isLast = appState.currentChallenge >= challenges.length - 1;
+    document.getElementById('nextChallengeBtn').textContent = isLast ? 'Complete Level!' : 'Next Challenge';
+  } else {
+    rm.className = 'result-message failure';
+    rm.textContent = '\u274C ' + (validation.message || 'Not quite right. Try again!');
+    monoRow.style.display = 'flex';
+    renderMono('monoChallenge', 'idle', 3);
+    document.getElementById('monoChallengeSpeech').textContent = challenge.monoFail;
+  }
+}
+
+function showHint() {
+  var lesson = LESSONS[appState.currentLevel];
+  var challenge = lesson.languages[CURRENT_LANGUAGE].challenges[appState.currentChallenge];
+  var monoRow = document.getElementById('challengeMonoRow');
+  monoRow.style.display = 'flex';
+  renderMono('monoChallenge', 'idle', 3);
+  document.getElementById('monoChallengeSpeech').textContent = '\uD83D\uDCA1 ' + challenge.hint;
+}
+
+function nextChallenge() {
+  var lesson = LESSONS[appState.currentLevel];
+  var challenges = lesson.languages[CURRENT_LANGUAGE].challenges;
+
+  if (appState.currentChallenge < challenges.length - 1) {
+    appState.currentChallenge++;
+    appState.currentStep = 'challenge';
+    saveState();
+    showCurrentChallenge();
+  } else {
+    // Level complete!
+    completeLevel();
+  }
+}
+
+// ============================================================
+// LEVEL COMPLETE
+// ============================================================
+function completeLevel() {
+  var lesson = LESSONS[appState.currentLevel];
+  if (appState.completedLevels.indexOf(lesson.id) === -1) {
+    appState.completedLevels.push(lesson.id);
+  }
+  appState.currentStep = 'map';
+  saveState();
+
+  // Calculate XP earned this level
+  var challenges = lesson.languages[CURRENT_LANGUAGE].challenges;
+  var levelXp = 0;
+  challenges.forEach(function(c) { levelXp += c.xpReward; });
+
+  document.getElementById('xpEarned').textContent = '+' + levelXp + ' XP';
+  renderMono('monoCelebrate', 'wave', 6);
+  document.querySelector('#monoCelebrate').classList.add('mono-anim-celebrate');
+
+  // Mini game button
+  var miniBtn = document.getElementById('miniGameBtn');
+  if (lesson.miniGameAfter) {
+    miniBtn.classList.remove('hidden');
+  } else {
+    miniBtn.classList.add('hidden');
+  }
+
+  showView('complete');
+  spawnConfetti();
+}
+
+function openMiniGame() {
+  var lesson = LESSONS[appState.currentLevel];
+  if (lesson.miniGameAfter) {
+    window.open('mini-games/' + lesson.miniGameAfter + '.html?level=' + lesson.id, '_blank');
+  }
+}
+
+function continueQuest() {
+  // Check if all levels done
+  if (appState.completedLevels.length >= LESSONS.length) {
+    document.getElementById('totalXp').textContent = 'Total: ' + appState.xp + ' XP';
+    renderMono('monoFinish', 'wave', 6);
+    document.querySelector('#monoFinish').classList.add('mono-anim-celebrate');
+    showView('questComplete');
+    return;
+  }
+  // Find next uncompleted level
+  for (var i = 0; i < LESSONS.length; i++) {
+    if (appState.completedLevels.indexOf(LESSONS[i].id) === -1) {
+      appState.currentLevel = i;
+      break;
+    }
+  }
+  appState.currentStep = 'map';
+  appState.currentChallenge = 0;
+  saveState();
+  renderLevelMap();
+  showView('map');
+}
+
+// ============================================================
+// CONFETTI
+// ============================================================
+function spawnConfetti() {
+  var container = document.createElement('div');
+  container.className = 'confetti-container';
+  document.body.appendChild(container);
+  var colors = ['#00f5ff', '#ff6b9d', '#ffbe0b', '#39ff14', '#a78bfa', '#ff4444'];
+  for (var i = 0; i < 40; i++) {
+    var piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + '%';
+    piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDelay = (Math.random() * 0.8) + 's';
+    piece.style.animationDuration = (1.5 + Math.random()) + 's';
+    piece.style.setProperty('--drift', (Math.random() * 100 - 50) + 'px');
+    piece.style.width = (4 + Math.random() * 6) + 'px';
+    piece.style.height = piece.style.width;
+    container.appendChild(piece);
+  }
+  setTimeout(function() { container.remove(); }, 3000);
+}
+
+// ============================================================
+// NAVIGATION HELPERS
+// ============================================================
+function startQuest() {
+  appState.currentStep = 'map';
+  saveState();
+  renderLevelMap();
+  showView('map');
+}
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+function init() {
+  appState = loadState();
+  if (!appState.levelProgress) appState.levelProgress = {};
+
+  // Backfill levelProgress for already-completed levels
+  LESSONS.forEach(function(lesson, i) {
+    if (appState.completedLevels.indexOf(lesson.id) !== -1) {
+      var totalSteps = 2 + lesson.languages[CURRENT_LANGUAGE].challenges.length - 1;
+      appState.levelProgress[i] = totalSteps;
+    }
+  });
+
+  document.getElementById('xpDisplay').textContent = appState.xp;
+
+  // Render welcome Mono
+  renderMono('monoWelcome', 'wave', 6);
+  document.querySelector('#monoWelcome').classList.add('mono-anim-bob');
+
+  // Resume from saved state
+  if (appState.currentStep === 'welcome' && appState.completedLevels.length === 0) {
+    showView('welcome');
+  } else if (appState.currentStep === 'explanation') {
+    renderLevelMap();
+    showExplanation(appState.currentLevel);
+  } else if (appState.currentStep === 'challenge') {
+    renderLevelMap();
+    document.getElementById('levelDisplay').textContent = appState.currentLevel + 1;
+    showCurrentChallenge();
+  } else {
+    renderLevelMap();
+    showView('map');
+  }
+}
+
+init();
+</script>
+</body>
+</html>

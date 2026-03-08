@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Scramble - Code Quest</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Fredoka:wght@400;500;600;700&display=swap');
+
+    :root {
+      --bg: #030310;
+      --surface: #0d0d2b;
+      --surface-light: #151538;
+      --neon-cyan: #00f5ff;
+      --neon-pink: #ff6b9d;
+      --neon-yellow: #ffbe0b;
+      --neon-green: #39ff14;
+      --neon-red: #ff4444;
+      --text: #cbcbe8;
+      --text-dim: #7a7aba;
+      --border: rgba(0, 245, 255, 0.2);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Fredoka', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px;
+      overflow-x: hidden;
+    }
+
+    /* Scanline overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        transparent, transparent 3px,
+        rgba(0,0,0,0.035) 3px, rgba(0,0,0,0.035) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: 'Press Start 2P', monospace;
+      font-weight: 400;
+    }
+
+    /* === HEADER === */
+    #appHeader {
+      width: 700px;
+      max-width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    #appHeader h1 {
+      font-size: 14px;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 10px var(--neon-cyan), 0 0 30px rgba(0,245,255,0.35);
+      white-space: nowrap;
+    }
+    .back-link {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 14px;
+      color: var(--neon-pink);
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .back-link:hover {
+      color: var(--neon-cyan);
+      text-shadow: 0 0 8px var(--neon-cyan);
+    }
+
+    /* === HUD === */
+    #hudBar {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+    .hud-item {
+      text-align: center;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--text-dim);
+      line-height: 2;
+      text-transform: uppercase;
+    }
+    .hud-item span {
+      display: block;
+      font-size: 13px;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 8px rgba(255,190,11,0.5);
+    }
+
+    /* === GAME CONTAINER === */
+    #gameContainer {
+      width: 700px;
+      max-width: 100%;
+      margin-top: 12px;
+    }
+
+    /* === PHASE DISPLAY === */
+    #phaseDisplay {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    #phaseDisplay h2 {
+      font-size: 11px;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 10px var(--neon-cyan);
+      margin-bottom: 8px;
+    }
+    #phaseDisplay p {
+      font-size: 15px;
+      color: var(--text-dim);
+    }
+
+    /* === TIMER BAR === */
+    #timerBarWrap {
+      width: 100%;
+      height: 6px;
+      background: var(--surface);
+      border-radius: 3px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      display: none;
+    }
+    #timerBar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+      border-radius: 3px;
+      transition: width 0.1s linear;
+      width: 100%;
+    }
+
+    /* === CODE AREA === */
+    #codeArea {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      min-height: 200px;
+      position: relative;
+    }
+
+    /* === CODE LINES === */
+    .code-line {
+      display: flex;
+      align-items: center;
+      background: var(--surface-light);
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      cursor: grab;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s, opacity 0.15s;
+      user-select: none;
+      -webkit-user-select: none;
+      position: relative;
+    }
+    .code-line:last-child {
+      margin-bottom: 0;
+    }
+    .code-line:hover {
+      border-color: var(--neon-cyan);
+    }
+    .code-line.dragging {
+      opacity: 0.4;
+      border-color: var(--neon-pink);
+      background: rgba(255, 107, 157, 0.1);
+    }
+    .code-line.drag-over {
+      border-color: var(--neon-cyan);
+      border-style: dashed;
+      background: rgba(0, 245, 255, 0.05);
+    }
+    .code-line.touch-dragging {
+      opacity: 0.85;
+      border-color: var(--neon-pink);
+      box-shadow: 0 0 20px rgba(255, 107, 157, 0.4);
+      z-index: 100;
+      transform: scale(1.03);
+    }
+    .code-line.correct {
+      border-color: var(--neon-green);
+      background: rgba(57, 255, 20, 0.08);
+    }
+    .code-line.incorrect {
+      border-color: var(--neon-red);
+      background: rgba(255, 68, 68, 0.1);
+      animation: shake 0.4s ease;
+    }
+    .code-line.memorize-mode {
+      cursor: default;
+      border-color: rgba(0, 245, 255, 0.15);
+    }
+    .grip {
+      font-size: 18px;
+      color: var(--text-dim);
+      margin-right: 12px;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .line-number {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-right: 12px;
+      min-width: 20px;
+      flex-shrink: 0;
+    }
+    .line-text {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 15px;
+      color: var(--text);
+      white-space: pre;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+
+    /* === DROP PLACEHOLDER === */
+    .drop-placeholder {
+      height: 4px;
+      background: var(--neon-cyan);
+      border-radius: 2px;
+      margin: 4px 0;
+      box-shadow: 0 0 10px var(--neon-cyan);
+      transition: opacity 0.15s;
+    }
+
+    /* === BUTTONS === */
+    #actionArea {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .game-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      padding: 12px 24px;
+      border: 2px solid var(--neon-cyan);
+      background: transparent;
+      color: var(--neon-cyan);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+    }
+    .game-btn:hover {
+      background: rgba(0, 245, 255, 0.1);
+      box-shadow: 0 0 16px rgba(0, 245, 255, 0.3);
+      transform: translateY(-1px);
+    }
+    .game-btn:active {
+      transform: translateY(1px);
+    }
+    .game-btn.primary {
+      border-color: var(--neon-green);
+      color: var(--neon-green);
+    }
+    .game-btn.primary:hover {
+      background: rgba(57, 255, 20, 0.1);
+      box-shadow: 0 0 16px rgba(57, 255, 20, 0.3);
+    }
+    .game-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .game-btn:disabled:hover {
+      background: transparent;
+      box-shadow: none;
+      transform: none;
+    }
+
+    /* === FEEDBACK === */
+    #feedback {
+      text-align: center;
+      margin-top: 16px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      min-height: 24px;
+      transition: opacity 0.3s;
+    }
+    #feedback.success {
+      color: var(--neon-green);
+      text-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
+    }
+    #feedback.error {
+      color: var(--neon-red);
+      text-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+    }
+
+    /* === CELEBRATION PARTICLES === */
+    .particle {
+      position: fixed;
+      pointer-events: none;
+      font-size: 20px;
+      z-index: 9998;
+      animation: particleFall 1.5s ease-out forwards;
+    }
+    @keyframes particleFall {
+      0% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+      100% { opacity: 0; transform: translateY(120px) rotate(360deg) scale(0); }
+    }
+
+    /* === GAME OVER SCREEN === */
+    #gameOver {
+      display: none;
+      text-align: center;
+      padding: 32px;
+    }
+    #gameOver h2 {
+      font-size: 18px;
+      color: var(--neon-green);
+      text-shadow: 0 0 15px rgba(57, 255, 20, 0.5);
+      margin-bottom: 24px;
+    }
+    .final-score {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 28px;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 20px rgba(255, 190, 11, 0.5);
+      margin-bottom: 8px;
+    }
+    .final-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+    .star-display {
+      font-size: 36px;
+      margin-bottom: 24px;
+      letter-spacing: 4px;
+    }
+    .final-detail {
+      font-size: 14px;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+    .final-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 28px;
+      flex-wrap: wrap;
+    }
+
+    /* === RESPONSIVE === */
+    @media (max-width: 500px) {
+      #appHeader h1 { font-size: 11px; }
+      .hud-item { font-size: 6px; }
+      .hud-item span { font-size: 11px; }
+      .line-text { font-size: 13px; }
+      .game-btn { font-size: 8px; padding: 10px 18px; }
+      .code-line { padding: 8px 10px; }
+      .grip { font-size: 16px; margin-right: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div id="appHeader">
+    <div>
+      <a href="../code-quest.html" class="back-link">&larr; Back to Code Quest</a>
+      <h1>Code Scramble</h1>
+    </div>
+    <div id="hudBar">
+      <div class="hud-item">Round<span id="hudRound">1/5</span></div>
+      <div class="hud-item">Score<span id="hudScore">0</span></div>
+      <div class="hud-item">Level<span id="hudLevel">--</span></div>
+    </div>
+  </div>
+
+  <!-- GAME CONTAINER -->
+  <div id="gameContainer">
+    <div id="phaseDisplay">
+      <h2 id="phaseTitle">Memorize!</h2>
+      <p id="phaseDesc">Study the correct order of the code...</p>
+    </div>
+
+    <div id="timerBarWrap">
+      <div id="timerBar"></div>
+    </div>
+
+    <div id="codeArea"></div>
+
+    <div id="actionArea">
+      <button class="game-btn primary" id="btnCheck" disabled>Check Order</button>
+    </div>
+
+    <div id="feedback"></div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div id="gameOver">
+    <h2>Game Complete!</h2>
+    <div class="final-score" id="finalScore">0</div>
+    <div class="final-label">Total Score</div>
+    <div class="star-display" id="starDisplay"></div>
+    <div class="final-detail" id="finalDetail"></div>
+    <div class="final-actions">
+      <button class="game-btn" id="btnPlayAgain">Play Again</button>
+      <a href="../code-quest.html" class="game-btn primary" style="text-decoration:none;">Back to Code Quest</a>
+    </div>
+  </div>
+
+<script>
+// ============================================================
+// PUZZLE DATA
+// ============================================================
+const SCRAMBLE_PUZZLES = {
+  string: [
+    {
+      correctOrder: [
+        'let firstName = "Code";',
+        'let lastName = "Monkey";',
+        'let fullName = firstName + " " + lastName;',
+        'console.log(fullName);'
+      ]
+    },
+    {
+      correctOrder: [
+        'let greeting = "Hello";',
+        'let name = "World";',
+        'let message = greeting + ", " + name + "!";',
+        'console.log(message);'
+      ]
+    },
+    {
+      correctOrder: [
+        'let animal = "cat";',
+        'let sound = "meow";',
+        'let sentence = "The " + animal + " says " + sound;',
+        'console.log(sentence);'
+      ]
+    }
+  ],
+  variable: [
+    {
+      correctOrder: [
+        'let score = 0;',
+        'let playerName = "Alex";',
+        'score = score + 10;',
+        'console.log(playerName + ": " + score);'
+      ]
+    },
+    {
+      correctOrder: [
+        'let apples = 5;',
+        'let oranges = 3;',
+        'let totalFruit = apples + oranges;',
+        'console.log("Total: " + totalFruit);'
+      ]
+    },
+    {
+      correctOrder: [
+        'let width = 10;',
+        'let height = 5;',
+        'let area = width * height;',
+        'console.log("Area = " + area);'
+      ]
+    }
+  ],
+  assignment: [
+    {
+      correctOrder: [
+        'let lives = 3;',
+        'let coins = 0;',
+        'coins = coins + 50;',
+        'lives = lives - 1;',
+        'console.log("Lives: " + lives);'
+      ]
+    },
+    {
+      correctOrder: [
+        'let x = 10;',
+        'let y = 20;',
+        'let temp = x;',
+        'x = y;',
+        'y = temp;',
+        'console.log(x, y);'
+      ]
+    },
+    {
+      correctOrder: [
+        'let count = 0;',
+        'count = count + 1;',
+        'count = count + 1;',
+        'count = count + 1;',
+        'console.log("Count is " + count);'
+      ]
+    }
+  ],
+  operator: [
+    {
+      correctOrder: [
+        'let a = 15;',
+        'let b = 4;',
+        'let sum = a + b;',
+        'let remainder = a % b;',
+        'console.log(sum, remainder);'
+      ]
+    },
+    {
+      correctOrder: [
+        'let price = 25;',
+        'let tax = price * 0.1;',
+        'let total = price + tax;',
+        'console.log("Total: $" + total);'
+      ]
+    },
+    {
+      correctOrder: [
+        'let seconds = 3661;',
+        'let hours = Math.floor(seconds / 3600);',
+        'let minutes = Math.floor((seconds % 3600) / 60);',
+        'console.log(hours + "h " + minutes + "m");'
+      ]
+    }
+  ],
+  comparison: [
+    {
+      correctOrder: [
+        'let age = 13;',
+        'let isTeenager = age >= 13 && age <= 19;',
+        'let canVote = age >= 18;',
+        'console.log("Teen: " + isTeenager);',
+        'console.log("Vote: " + canVote);'
+      ]
+    },
+    {
+      correctOrder: [
+        'let score = 85;',
+        'let passed = score >= 60;',
+        'let perfect = score === 100;',
+        'console.log("Passed: " + passed);'
+      ]
+    },
+    {
+      correctOrder: [
+        'let x = 10;',
+        'let y = 20;',
+        'let bigger = x > y;',
+        'let equal = x === y;',
+        'console.log(bigger, equal);'
+      ]
+    }
+  ],
+  conditional: [
+    {
+      correctOrder: [
+        'let temp = 95;',
+        'if (temp > 90) {',
+        '  console.log("Hot!");',
+        '} else {',
+        '  console.log("Nice!");',
+        '}'
+      ]
+    },
+    {
+      correctOrder: [
+        'let score = 85;',
+        'if (score >= 90) {',
+        '  console.log("A");',
+        '} else if (score >= 80) {',
+        '  console.log("B");',
+        '} else {',
+        '  console.log("C");',
+        '}'
+      ]
+    },
+    {
+      correctOrder: [
+        'let age = 16;',
+        'if (age >= 18) {',
+        '  console.log("Adult");',
+        '} else if (age >= 13) {',
+        '  console.log("Teen");',
+        '} else {',
+        '  console.log("Kid");',
+        '}'
+      ]
+    }
+  ]
+};
+
+// ============================================================
+// GAME STATE
+// ============================================================
+const TOTAL_ROUNDS = 5;
+const MEMORIZE_TIME = 3000;
+const MAX_SCORE_PER_ROUND = 100;
+
+let currentLevel = 'string';
+let currentRound = 0;
+let totalScore = 0;
+let attemptsThisRound = 0;
+let puzzleQueue = [];
+let currentPuzzle = null;
+let gamePhase = 'idle'; // idle, memorize, arrange, checking, celebrating, over
+
+// Touch drag state
+let touchDragEl = null;
+let touchClone = null;
+let touchStartY = 0;
+let touchOffsetY = 0;
+
+// ============================================================
+// DOM REFS
+// ============================================================
+const hudRound = document.getElementById('hudRound');
+const hudScore = document.getElementById('hudScore');
+const hudLevel = document.getElementById('hudLevel');
+const phaseTitle = document.getElementById('phaseTitle');
+const phaseDesc = document.getElementById('phaseDesc');
+const timerBarWrap = document.getElementById('timerBarWrap');
+const timerBar = document.getElementById('timerBar');
+const codeArea = document.getElementById('codeArea');
+const actionArea = document.getElementById('actionArea');
+const btnCheck = document.getElementById('btnCheck');
+const feedback = document.getElementById('feedback');
+const gameContainer = document.getElementById('gameContainer');
+const gameOverScreen = document.getElementById('gameOver');
+const finalScore = document.getElementById('finalScore');
+const starDisplay = document.getElementById('starDisplay');
+const finalDetail = document.getElementById('finalDetail');
+const btnPlayAgain = document.getElementById('btnPlayAgain');
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  const params = new URLSearchParams(window.location.search);
+  const level = params.get('level');
+  if (level && SCRAMBLE_PUZZLES[level]) {
+    currentLevel = level;
+  }
+  hudLevel.textContent = currentLevel.charAt(0).toUpperCase() + currentLevel.slice(1);
+
+  btnCheck.addEventListener('click', checkOrder);
+  btnPlayAgain.addEventListener('click', () => {
+    gameOverScreen.style.display = 'none';
+    gameContainer.style.display = 'block';
+    startGame();
+  });
+
+  startGame();
+}
+
+function startGame() {
+  currentRound = 0;
+  totalScore = 0;
+  hudScore.textContent = '0';
+  buildPuzzleQueue();
+  nextRound();
+}
+
+function buildPuzzleQueue() {
+  const puzzles = SCRAMBLE_PUZZLES[currentLevel];
+  // Shuffle and pick TOTAL_ROUNDS puzzles (repeating if needed)
+  const shuffled = [...puzzles].sort(() => Math.random() - 0.5);
+  puzzleQueue = [];
+  for (let i = 0; i < TOTAL_ROUNDS; i++) {
+    puzzleQueue.push(shuffled[i % shuffled.length]);
+  }
+}
+
+// ============================================================
+// ROUND FLOW
+// ============================================================
+function nextRound() {
+  currentRound++;
+  attemptsThisRound = 0;
+  feedback.textContent = '';
+  feedback.className = '';
+  btnCheck.disabled = true;
+
+  if (currentRound > TOTAL_ROUNDS) {
+    endGame();
+    return;
+  }
+
+  hudRound.textContent = currentRound + '/' + TOTAL_ROUNDS;
+  currentPuzzle = puzzleQueue[currentRound - 1];
+
+  startMemorizePhase();
+}
+
+function startMemorizePhase() {
+  gamePhase = 'memorize';
+  phaseTitle.textContent = 'Memorize!';
+  phaseDesc.textContent = 'Study the correct order of the code...';
+  timerBarWrap.style.display = 'block';
+  timerBar.style.width = '100%';
+
+  renderLines(currentPuzzle.correctOrder, true);
+
+  // Animate timer bar
+  const startTime = Date.now();
+  const interval = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const pct = Math.max(0, 1 - elapsed / MEMORIZE_TIME) * 100;
+    timerBar.style.width = pct + '%';
+    if (elapsed >= MEMORIZE_TIME) {
+      clearInterval(interval);
+      startArrangePhase();
+    }
+  }, 50);
+}
+
+function startArrangePhase() {
+  gamePhase = 'arrange';
+  phaseTitle.textContent = 'Scramble!';
+  phaseDesc.textContent = 'Drag the lines into the correct order';
+  timerBarWrap.style.display = 'none';
+  btnCheck.disabled = false;
+
+  const shuffled = shuffleArray([...currentPuzzle.correctOrder]);
+  renderLines(shuffled, false);
+}
+
+function renderLines(lines, isMemorize) {
+  codeArea.innerHTML = '';
+  lines.forEach((text, i) => {
+    const div = document.createElement('div');
+    div.className = 'code-line' + (isMemorize ? ' memorize-mode' : '');
+    div.dataset.text = text;
+
+    if (!isMemorize) {
+      div.draggable = true;
+      div.addEventListener('dragstart', onDragStart);
+      div.addEventListener('dragend', onDragEnd);
+      div.addEventListener('dragover', onDragOver);
+      div.addEventListener('dragleave', onDragLeave);
+      div.addEventListener('drop', onDrop);
+
+      // Touch support
+      div.addEventListener('touchstart', onTouchStart, { passive: false });
+      div.addEventListener('touchmove', onTouchMove, { passive: false });
+      div.addEventListener('touchend', onTouchEnd, { passive: false });
+    }
+
+    const grip = document.createElement('span');
+    grip.className = 'grip';
+    grip.textContent = isMemorize ? '' : '\u2830';
+    div.appendChild(grip);
+
+    const num = document.createElement('span');
+    num.className = 'line-number';
+    num.textContent = (i + 1);
+    div.appendChild(num);
+
+    const code = document.createElement('span');
+    code.className = 'line-text';
+    code.textContent = text;
+    div.appendChild(code);
+
+    codeArea.appendChild(div);
+  });
+}
+
+// ============================================================
+// HTML5 DRAG AND DROP
+// ============================================================
+let draggedEl = null;
+
+function onDragStart(e) {
+  if (gamePhase !== 'arrange') return;
+  draggedEl = e.currentTarget;
+  draggedEl.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', '');
+}
+
+function onDragEnd(e) {
+  if (draggedEl) {
+    draggedEl.classList.remove('dragging');
+  }
+  clearDragOverClasses();
+  draggedEl = null;
+}
+
+function onDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const target = e.currentTarget;
+  if (target !== draggedEl && target.classList.contains('code-line')) {
+    clearDragOverClasses();
+    target.classList.add('drag-over');
+  }
+}
+
+function onDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function onDrop(e) {
+  e.preventDefault();
+  const target = e.currentTarget;
+  target.classList.remove('drag-over');
+
+  if (!draggedEl || target === draggedEl) return;
+
+  // Determine insertion position
+  const allLines = [...codeArea.querySelectorAll('.code-line')];
+  const dragIdx = allLines.indexOf(draggedEl);
+  const dropIdx = allLines.indexOf(target);
+
+  if (dragIdx < dropIdx) {
+    codeArea.insertBefore(draggedEl, target.nextSibling);
+  } else {
+    codeArea.insertBefore(draggedEl, target);
+  }
+
+  updateLineNumbers();
+  clearFeedback();
+}
+
+function clearDragOverClasses() {
+  codeArea.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+}
+
+// ============================================================
+// TOUCH DRAG AND DROP (Chromebook / Mobile)
+// ============================================================
+function onTouchStart(e) {
+  if (gamePhase !== 'arrange') return;
+  const touch = e.touches[0];
+  touchDragEl = e.currentTarget;
+
+  const rect = touchDragEl.getBoundingClientRect();
+  touchOffsetY = touch.clientY - rect.top;
+  touchStartY = touch.clientY;
+
+  // Create a visual clone for dragging
+  touchClone = touchDragEl.cloneNode(true);
+  touchClone.style.position = 'fixed';
+  touchClone.style.left = rect.left + 'px';
+  touchClone.style.top = rect.top + 'px';
+  touchClone.style.width = rect.width + 'px';
+  touchClone.style.zIndex = '10000';
+  touchClone.style.pointerEvents = 'none';
+  touchClone.classList.add('touch-dragging');
+  document.body.appendChild(touchClone);
+
+  touchDragEl.classList.add('dragging');
+  e.preventDefault();
+}
+
+function onTouchMove(e) {
+  if (!touchDragEl || !touchClone) return;
+  const touch = e.touches[0];
+
+  // Move clone
+  const rect = touchDragEl.getBoundingClientRect();
+  touchClone.style.top = (touch.clientY - touchOffsetY) + 'px';
+  touchClone.style.left = rect.left + 'px';
+
+  // Find which element we're over
+  const allLines = [...codeArea.querySelectorAll('.code-line')];
+  clearDragOverClasses();
+
+  for (const line of allLines) {
+    if (line === touchDragEl) continue;
+    const lr = line.getBoundingClientRect();
+    if (touch.clientY >= lr.top && touch.clientY <= lr.bottom) {
+      line.classList.add('drag-over');
+      break;
+    }
+  }
+
+  e.preventDefault();
+}
+
+function onTouchEnd(e) {
+  if (!touchDragEl) return;
+
+  // Find drop target
+  const overEl = codeArea.querySelector('.code-line.drag-over');
+  if (overEl && overEl !== touchDragEl) {
+    const allLines = [...codeArea.querySelectorAll('.code-line')];
+    const dragIdx = allLines.indexOf(touchDragEl);
+    const dropIdx = allLines.indexOf(overEl);
+
+    if (dragIdx < dropIdx) {
+      codeArea.insertBefore(touchDragEl, overEl.nextSibling);
+    } else {
+      codeArea.insertBefore(touchDragEl, overEl);
+    }
+    updateLineNumbers();
+    clearFeedback();
+  }
+
+  // Cleanup
+  touchDragEl.classList.remove('dragging');
+  clearDragOverClasses();
+  if (touchClone && touchClone.parentNode) {
+    touchClone.parentNode.removeChild(touchClone);
+  }
+  touchDragEl = null;
+  touchClone = null;
+
+  e.preventDefault();
+}
+
+// ============================================================
+// LINE NUMBER UPDATE
+// ============================================================
+function updateLineNumbers() {
+  const lines = codeArea.querySelectorAll('.code-line');
+  lines.forEach((line, i) => {
+    const num = line.querySelector('.line-number');
+    if (num) num.textContent = (i + 1);
+  });
+}
+
+// ============================================================
+// CHECK ORDER
+// ============================================================
+function checkOrder() {
+  if (gamePhase !== 'arrange') return;
+  gamePhase = 'checking';
+  attemptsThisRound++;
+
+  const lines = [...codeArea.querySelectorAll('.code-line')];
+  const playerOrder = lines.map(el => el.dataset.text);
+  const correct = currentPuzzle.correctOrder;
+
+  let allCorrect = true;
+
+  lines.forEach((line, i) => {
+    line.classList.remove('correct', 'incorrect');
+    if (playerOrder[i] === correct[i]) {
+      line.classList.add('correct');
+    } else {
+      line.classList.add('incorrect');
+      allCorrect = false;
+    }
+  });
+
+  if (allCorrect) {
+    // Calculate score: 100 on first try, -20 per extra attempt (min 20)
+    const roundScore = Math.max(20, MAX_SCORE_PER_ROUND - (attemptsThisRound - 1) * 20);
+    totalScore += roundScore;
+    hudScore.textContent = totalScore;
+
+    feedback.textContent = 'Correct! +' + roundScore + ' points!';
+    feedback.className = 'success';
+    btnCheck.disabled = true;
+
+    celebrate();
+
+    gamePhase = 'celebrating';
+    setTimeout(() => {
+      nextRound();
+    }, 1800);
+  } else {
+    const wrongCount = lines.filter(l => l.classList.contains('incorrect')).length;
+    feedback.textContent = wrongCount + ' line' + (wrongCount > 1 ? 's' : '') + ' out of place. Try again!';
+    feedback.className = 'error';
+    gamePhase = 'arrange';
+  }
+}
+
+function clearFeedback() {
+  // Clear incorrect/correct highlighting when user rearranges
+  codeArea.querySelectorAll('.code-line').forEach(line => {
+    line.classList.remove('correct', 'incorrect');
+  });
+  feedback.textContent = '';
+  feedback.className = '';
+}
+
+// ============================================================
+// CELEBRATION
+// ============================================================
+function celebrate() {
+  const emojis = ['*', '+', '.', 'o', '#'];
+  const colors = ['var(--neon-cyan)', 'var(--neon-pink)', 'var(--neon-yellow)', 'var(--neon-green)'];
+
+  for (let i = 0; i < 20; i++) {
+    setTimeout(() => {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      p.style.left = (Math.random() * window.innerWidth) + 'px';
+      p.style.top = (Math.random() * window.innerHeight * 0.5) + 'px';
+      p.style.color = colors[Math.floor(Math.random() * colors.length)];
+      p.style.fontSize = (14 + Math.random() * 16) + 'px';
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), 1500);
+    }, i * 60);
+  }
+}
+
+// ============================================================
+// GAME OVER
+// ============================================================
+function endGame() {
+  gamePhase = 'over';
+  gameContainer.style.display = 'none';
+  gameOverScreen.style.display = 'block';
+
+  const maxPossible = TOTAL_ROUNDS * MAX_SCORE_PER_ROUND;
+  const pct = totalScore / maxPossible;
+
+  finalScore.textContent = totalScore;
+
+  let stars = 1;
+  if (pct >= 0.9) stars = 3;
+  else if (pct >= 0.6) stars = 2;
+
+  let starStr = '';
+  for (let i = 0; i < 3; i++) {
+    starStr += i < stars ? '\u2605' : '\u2606';
+  }
+  starDisplay.textContent = starStr;
+
+  let msg = '';
+  if (stars === 3) msg = 'Amazing! You nailed it!';
+  else if (stars === 2) msg = 'Great job! Keep practicing!';
+  else msg = 'Good effort! Try again to improve!';
+  finalDetail.textContent = msg;
+
+  celebrate();
+}
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function shuffleArray(arr) {
+  // Fisher-Yates shuffle, but ensure it's not already in order
+  let shuffled;
+  let attempts = 0;
+  do {
+    shuffled = [...arr];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    attempts++;
+  } while (arraysEqual(shuffled, arr) && attempts < 20);
+  return shuffled;
+}
+
+function arraysEqual(a, b) {
+  if (a.length !== b.length) return false;
+  return a.every((val, i) => val === b[i]);
+}
+
+// ============================================================
+// START
+// ============================================================
+init();
+</script>
+
+</body>
+</html>

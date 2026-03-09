@@ -647,6 +647,88 @@
       color: var(--neon-red);
     }
 
+    /* === MULTIPLE CHOICE === */
+    .mc-container {
+      margin: 16px 0;
+    }
+    .mc-question {
+      background: var(--surface-light);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .mc-question-text {
+      font-size: 1rem;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+    .mc-question-text code {
+      background: var(--surface-code);
+      color: var(--neon-yellow);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.95rem;
+    }
+    .mc-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .mc-option {
+      flex: 1 1 calc(50% - 4px);
+      min-width: 100px;
+      padding: 10px 14px;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+    .mc-option:hover {
+      border-color: var(--neon-cyan);
+      background: rgba(0,245,255,0.05);
+    }
+    .mc-option.selected {
+      border-color: var(--neon-cyan);
+      background: rgba(0,245,255,0.15);
+      color: var(--neon-cyan);
+    }
+    .mc-option.correct {
+      border-color: var(--neon-green);
+      background: rgba(57,255,20,0.15);
+      color: var(--neon-green);
+    }
+    .mc-option.incorrect {
+      border-color: var(--neon-red);
+      background: rgba(255,68,68,0.1);
+      color: var(--neon-red);
+      pointer-events: none;
+      opacity: 0.6;
+      text-decoration: line-through;
+    }
+    .mc-option.disabled {
+      pointer-events: none;
+      opacity: 0.7;
+    }
+    .mc-explanation {
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: rgba(57,255,20,0.1);
+      border-left: 3px solid var(--neon-green);
+      border-radius: 0 4px 4px 0;
+      font-size: 0.85rem;
+      color: var(--neon-green);
+      display: none;
+    }
+    .mc-explanation.visible {
+      display: block;
+    }
+
     /* === LEVEL COMPLETE VIEW === */
     .celebration {
       text-align: center;
@@ -929,60 +1011,59 @@ function renderMono(containerId, spriteName, scale) {
 const LESSONS = [
   {
     id: 'string',
-    title: 'Strings',
+    title: 'Strings & Numbers',
     icon: '\uD83D\uDCDD',
     explanation: {
-      title: 'What is a String?',
-      body: 'A <strong>string</strong> is a piece of text in your code. You wrap text in quotes to tell the computer "this is text, not code."',
-      realWorld: 'Think of a string like a name tag \u2014 it holds text like your name, a message, or even an emoji!',
-      monoSays: 'Strings are everywhere! Your name, a message, even this sentence could be a string.'
+      title: 'Strings and Numbers',
+      body: 'A <strong>string</strong> is a piece of text in your code. You wrap text in quotes to tell the computer "this is text, not code." A <strong>number</strong> is just a number with no quotes. The computer treats them very differently!',
+      realWorld: 'Strings are like labels \u2014 text like your name or a message. Numbers are for math \u2014 your age, a score, or a price.',
+      monoSays: 'Big difference: "5" is a string (text), but 5 is a number. Quotes change everything!'
     },
     languages: {
       javascript: {
         example: {
-          code: 'let greeting = "Hello, World!";\nconsole.log(greeting);',
-          output: 'Hello, World!',
+          code: 'console.log("Hello!");\nconsole.log(42);\nconsole.log("My age is 10");',
+          output: 'Hello!\n42\nMy age is 10',
           annotations: [
-            { line: 1, text: 'Create a string by wrapping text in double quotes' },
-            { line: 2, text: 'console.log() prints the string to the screen' }
+            { line: 1, text: '"Hello!" is a string \u2014 text in quotes' },
+            { line: 2, text: '42 is a number \u2014 no quotes needed' },
+            { line: 3, text: 'You can mix text and numbers inside a string' }
           ]
         },
         challenges: [
           {
             id: 'string-1',
-            prompt: 'Create a string variable called <code>myName</code> that holds your name.',
-            starterCode: '// Type your code below\n',
-            hint: 'Use: let myName = "YourName";',
-            validate: { type: 'variable', varName: 'myName', varType: 'string' },
+            prompt: 'Type a string with your name. Just the string by itself \u2014 no variable needed yet!',
+            starterCode: '// Type a string with your name\n',
+            hint: 'Just type: "Your Name" (with quotes)',
+            validate: { type: 'custom', fn: 'validateBareString' },
             xpReward: 10,
-            monoSuccess: 'Nice! You just made your first string!',
-            monoFail: 'Almost! Make sure you wrap your name in quotes.'
+            monoSuccess: 'Nice! You just wrote your first string!',
+            monoFail: 'Remember to wrap your name in quotes like "Alex"'
           },
           {
-            id: 'string-2',
-            prompt: 'Create a variable <code>food</code> set to your favorite food, then use <code>console.log(food)</code> to print it.',
-            starterCode: '// Create your food variable\n\n// Print it out\n',
-            hint: 'First line: let food = "pizza";\nSecond line: console.log(food);',
-            validate: {
-              type: 'multi',
-              checks: [
-                { type: 'variable', varName: 'food', varType: 'string' },
-                { type: 'outputNotEmpty' }
-              ]
-            },
+            id: 'string-mc',
+            prompt: 'Time for a quiz! Answer both questions.',
+            starterCode: '',
+            hint: 'Think about what + does with numbers vs strings...',
+            validate: { type: 'multipleChoice' },
             xpReward: 15,
-            monoSuccess: 'Yum! You printed your food to the screen!',
-            monoFail: 'Did you remember to use console.log() to print it?'
-          },
-          {
-            id: 'string-3',
-            prompt: 'Create <code>firstName</code> and <code>lastName</code> strings. Then create <code>fullName</code> that combines them with a space between. Print fullName.',
-            starterCode: '// Create firstName and lastName\n\n// Combine them into fullName\n\n// Print fullName\n',
-            hint: 'You can combine strings with +\nExample: "hello" + " " + "world"',
-            validate: { type: 'custom', fn: 'validateStringConcat' },
-            xpReward: 20,
-            monoSuccess: 'String concatenation unlocked! You\'re combining text like a pro!',
-            monoFail: 'Make sure fullName uses firstName + " " + lastName'
+            monoSuccess: 'You got it! Numbers add mathematically, but strings join together!',
+            monoFail: 'Think about what happens when you add numbers vs adding strings...',
+            multipleChoice: [
+              {
+                question: 'What does <code>40 + 2</code> equal?',
+                options: ['42', '"42"', '"402"', '402'],
+                correctIndex: 0,
+                explanation: '40 + 2 = 42 (numbers add mathematically)'
+              },
+              {
+                question: 'What does <code>"40" + "2"</code> equal?',
+                options: ['42', '"42"', '"402"', '402'],
+                correctIndex: 2,
+                explanation: '"40" + "2" = "402" (strings join together)'
+              }
+            ]
           }
         ]
       }
@@ -1023,6 +1104,22 @@ const LESSONS = [
           },
           {
             id: 'variable-2',
+            prompt: 'Create a variable <code>food</code> set to your favorite food, then use <code>console.log(food)</code> to print it.',
+            starterCode: '// Create your food variable\n\n// Print it out\n',
+            hint: 'First line: let food = "pizza";\nSecond line: console.log(food);',
+            validate: {
+              type: 'multi',
+              checks: [
+                { type: 'variable', varName: 'food', varType: 'string' },
+                { type: 'outputNotEmpty' }
+              ]
+            },
+            xpReward: 15,
+            monoSuccess: 'Yum! You printed your food to the screen!',
+            monoFail: 'Did you remember to use console.log() to print it?'
+          },
+          {
+            id: 'variable-3',
             prompt: 'Create three variables: <code>game</code> (a string), <code>lives</code> (a number), and <code>isGameOver</code> (set to <code>false</code>).',
             starterCode: '// Create your three variables\n',
             hint: 'let game = "Mario";\nlet lives = 3;\nlet isGameOver = false;',
@@ -1274,6 +1371,18 @@ const LESSONS = [
 // CUSTOM VALIDATORS
 // ============================================================
 const CUSTOM_VALIDATORS = {
+  validateBareString(result, code) {
+    // Check if the code contains a string literal with content
+    var stringMatch = code.match(/["']([^"']+)["']/);
+    if (!stringMatch) {
+      return { pass: false, message: 'Type a string wrapped in quotes, like "Your Name"' };
+    }
+    if (stringMatch[1].trim().length === 0) {
+      return { pass: false, message: 'Your string is empty! Put your name inside the quotes.' };
+    }
+    return { pass: true };
+  },
+
   validateStringConcat(result) {
     if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
     if (typeof result.vars.firstName !== 'string')
@@ -1400,7 +1509,7 @@ function validateChallenge(code, challengeConfig) {
       }
       return { validation: { pass: true }, result: result };
     case 'custom':
-      return { validation: CUSTOM_VALIDATORS[v.fn](result), result: result };
+      return { validation: CUSTOM_VALIDATORS[v.fn](result, code), result: result };
     default:
       return { validation: { pass: false, message: 'Unknown validator.' }, result: result };
   }
@@ -1648,7 +1757,7 @@ function renderLevelMap() {
     // Mini-game replay button for completed levels
     if (isCompleted && lesson.miniGameAfter) {
       var gameName = MINI_GAME_NAMES[lesson.miniGameAfter] || lesson.miniGameAfter;
-      html += '<a class="mini-game-btn" href="mini-games/' + lesson.miniGameAfter + '.html?level=' + lesson.id + '" target="_blank" onclick="event.stopPropagation()">' + gameName + '</a>';
+      html += '<a class="mini-game-btn" href="mini-games/' + lesson.miniGameAfter + '.html?level=' + lesson.id + '" onclick="event.stopPropagation()">' + gameName + '</a>';
     }
 
     html += '</div>';
@@ -1731,6 +1840,9 @@ function goToChallenge() {
   showCurrentChallenge();
 }
 
+// State for multiple choice
+var mcAnswers = {};
+
 function showCurrentChallenge() {
   var lesson = LESSONS[appState.currentLevel];
   var langData = lesson.languages[CURRENT_LANGUAGE];
@@ -1750,15 +1862,77 @@ function showCurrentChallenge() {
   document.getElementById('nextChallengeBtn').classList.add('hidden');
   document.getElementById('challengeMonoRow').style.display = 'none';
 
-  initChallengeEditor(challenge.starterCode);
+  // Check if this is a multiple choice challenge
+  var editorContainer = document.getElementById('challengeEditor');
+  var runBtn = document.querySelector('.quest-btn-run');
+  var hintBtn = document.getElementById('hintBtn');
+
+  if (challenge.validate.type === 'multipleChoice' && challenge.multipleChoice) {
+    // Render multiple choice UI
+    mcAnswers = {};
+    var html = '<div class="mc-container">';
+    challenge.multipleChoice.forEach(function(q, qIndex) {
+      html += '<div class="mc-question" data-question="' + qIndex + '">';
+      html += '<div class="mc-question-text">' + q.question + '</div>';
+      html += '<div class="mc-options">';
+      q.options.forEach(function(opt, optIndex) {
+        html += '<div class="mc-option" data-question="' + qIndex + '" data-option="' + optIndex + '" onclick="selectMCOption(' + qIndex + ',' + optIndex + ')">' + opt + '</div>';
+      });
+      html += '</div>';
+      html += '<div class="mc-explanation" id="mcExplanation' + qIndex + '">' + q.explanation + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+    editorContainer.innerHTML = html;
+    runBtn.textContent = 'Check Answers';
+    hintBtn.style.display = 'inline-block';
+  } else {
+    // Normal code editor
+    initChallengeEditor(challenge.starterCode);
+    runBtn.textContent = 'Run Code';
+    hintBtn.style.display = 'inline-block';
+  }
+
   updateStepIndicator(appState.currentLevel, 'challenge', ci);
   showView('challenge');
+}
+
+function selectMCOption(questionIndex, optionIndex) {
+  // Clear previous selection for this question
+  var questionEl = document.querySelector('.mc-question[data-question="' + questionIndex + '"]');
+  if (!questionEl) return;
+
+  // Check if question is already completed (all options disabled)
+  var options = questionEl.querySelectorAll('.mc-option');
+  if (options[0] && options[0].classList.contains('disabled')) return;
+
+  // Check if this specific option was already marked incorrect
+  var clickedOption = questionEl.querySelector('.mc-option[data-option="' + optionIndex + '"]');
+  if (clickedOption && clickedOption.classList.contains('incorrect')) return;
+
+  // Clear previous selection (but keep incorrect markers)
+  options.forEach(function(opt) {
+    opt.classList.remove('selected');
+  });
+
+  // Select the clicked option
+  if (clickedOption) {
+    clickedOption.classList.add('selected');
+    mcAnswers[questionIndex] = optionIndex;
+  }
 }
 
 function runChallenge() {
   var lesson = LESSONS[appState.currentLevel];
   var langData = lesson.languages[CURRENT_LANGUAGE];
   var challenge = langData.challenges[appState.currentChallenge];
+
+  // Handle multiple choice challenges
+  if (challenge.validate.type === 'multipleChoice' && challenge.multipleChoice) {
+    runMultipleChoiceChallenge(challenge, langData);
+    return;
+  }
+
   var code = getChallengeCode();
 
   // Execute and validate
@@ -1806,6 +1980,93 @@ function runChallenge() {
   } else {
     rm.className = 'result-message failure';
     rm.textContent = '\u274C ' + (validation.message || 'Not quite right. Try again!');
+    monoRow.style.display = 'flex';
+    renderMono('monoChallenge', 'idle', 3);
+    document.getElementById('monoChallengeSpeech').textContent = challenge.monoFail;
+  }
+}
+
+function runMultipleChoiceChallenge(challenge, langData) {
+  var questions = challenge.multipleChoice;
+  var allCorrect = true;
+  var unanswered = false;
+
+  // Check each question
+  questions.forEach(function(q, qIndex) {
+    var questionEl = document.querySelector('.mc-question[data-question="' + qIndex + '"]');
+    if (!questionEl) return;
+
+    var selectedOption = mcAnswers[qIndex];
+
+    // Check if answered
+    if (selectedOption === undefined) {
+      unanswered = true;
+      return;
+    }
+
+    var options = questionEl.querySelectorAll('.mc-option');
+    var isCorrect = selectedOption === q.correctIndex;
+
+    if (!isCorrect) {
+      allCorrect = false;
+      // Mark wrong answer but let them try again
+      options.forEach(function(opt, optIndex) {
+        if (optIndex === selectedOption) {
+          opt.classList.add('incorrect');
+          opt.classList.remove('selected');
+        }
+      });
+      // Clear answer so they must select again
+      delete mcAnswers[qIndex];
+    } else {
+      // Correct! Lock this question
+      options.forEach(function(opt, optIndex) {
+        opt.classList.add('disabled');
+        if (optIndex === q.correctIndex) {
+          opt.classList.add('correct');
+          opt.classList.remove('selected');
+        }
+      });
+      // Show explanation for correct answers
+      var explanationEl = document.getElementById('mcExplanation' + qIndex);
+      if (explanationEl) {
+        explanationEl.classList.add('visible');
+      }
+    }
+  });
+
+  var rm = document.getElementById('resultMessage');
+  var monoRow = document.getElementById('challengeMonoRow');
+
+  if (unanswered) {
+    rm.className = 'result-message failure';
+    rm.textContent = '\u274C Please answer all questions!';
+    return;
+  }
+
+  if (allCorrect) {
+    rm.className = 'result-message success';
+    rm.textContent = '\u2705 All correct!';
+    monoRow.style.display = 'flex';
+    renderMono('monoChallenge', 'wave', 3);
+    document.getElementById('monoChallengeSpeech').textContent = challenge.monoSuccess;
+    document.querySelector('#monoChallenge').classList.add('mono-anim-jump');
+
+    // Award XP (only first time)
+    if (!appState.completedChallenges[challenge.id]) {
+      addXP(challenge.xpReward);
+      appState.completedChallenges[challenge.id] = true;
+      saveState();
+    }
+
+    // Show next button
+    document.getElementById('nextChallengeBtn').classList.remove('hidden');
+    var challenges = langData.challenges;
+    var isLast = appState.currentChallenge >= challenges.length - 1;
+    document.getElementById('nextChallengeBtn').textContent = isLast ? 'Complete Level!' : 'Next Challenge';
+  } else {
+    rm.className = 'result-message failure';
+    rm.textContent = '\u274C Not quite! Try again.';
     monoRow.style.display = 'flex';
     renderMono('monoChallenge', 'idle', 3);
     document.getElementById('monoChallengeSpeech').textContent = challenge.monoFail;
@@ -1871,7 +2132,7 @@ function completeLevel() {
 function openMiniGame() {
   var lesson = LESSONS[appState.currentLevel];
   if (lesson.miniGameAfter) {
-    window.open('mini-games/' + lesson.miniGameAfter + '.html?level=' + lesson.id, '_blank');
+    document.location = 'mini-games/' + lesson.miniGameAfter + '.html?level=' + lesson.id;
   }
 }
 

@@ -490,12 +490,20 @@
     // ===== SNIPPET DATA =====
     const TYPE_SNIPPETS = {
       string: [
-        'let name = "Mono";',
+        '"Hello!"',
+        '"Code Quest"',
+        '"Hi there!"',
+        '"neon green"',
+        '"foo" + "bar"',
+        '"Ready" + " " + "Go!"'
+      ],
+      output: [
+        'console.log("Hi");',
+        'console.log(42);',
         'console.log("Hello!");',
-        'let msg = "Code" + " Quest";',
-        'let greeting = "Hi there!";',
-        'let color = "neon";\nconsole.log(color);',
-        'let a = "foo";\nlet b = "bar";\nconsole.log(a + b);'
+        'console.log(100);',
+        'console.log(10 + 5);',
+        'console.log("Go!");\nconsole.log(3 + 2);'
       ],
       variable: [
         'let score = 0;',
@@ -542,7 +550,7 @@
     // ===== GAME STATE =====
     const params = new URLSearchParams(window.location.search);
     const level = params.get('level') || 'string';
-    const validLevels = ['string', 'variable', 'assignment', 'operator', 'comparison', 'conditional'];
+    const validLevels = ['string', 'output', 'variable', 'assignment', 'operator', 'comparison', 'conditional'];
     const activeLevel = validLevels.includes(level) ? level : 'string';
 
     // Display level name

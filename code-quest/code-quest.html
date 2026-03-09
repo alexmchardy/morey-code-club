@@ -1068,6 +1068,63 @@ const LESSONS = [
         ]
       }
     },
+    miniGameAfter: 'variable-match'
+  },
+  {
+    id: 'output',
+    title: 'Output',
+    icon: '\uD83D\uDCE2',
+    explanation: {
+      title: 'Showing Things on Screen',
+      body: 'To make your code <strong>show something on the screen</strong>, you use <strong>console.log()</strong>. Put whatever you want to display inside the parentheses. It can be a string, a number, or even math!',
+      realWorld: 'Think of console.log() like a megaphone \u2014 it takes whatever you give it and announces it to the world. Without it, your code runs silently!',
+      monoSays: 'console.log() is your best friend for seeing what your code is doing. Use it to check your work!'
+    },
+    languages: {
+      javascript: {
+        example: {
+          code: 'console.log("Hello, world!");\nconsole.log(42);\nconsole.log(10 + 5);',
+          output: 'Hello, world!\n42\n15',
+          annotations: [
+            { line: 1, text: 'Prints the string "Hello, world!" to the screen' },
+            { line: 2, text: 'Prints the number 42' },
+            { line: 3, text: 'Does the math first (10 + 5 = 15), then prints 15' }
+          ]
+        },
+        challenges: [
+          {
+            id: 'output-1',
+            prompt: 'Use <code>console.log()</code> to print the word "Hi" to the screen.',
+            starterCode: '// Print Hi to the screen\n',
+            hint: 'Type: console.log("Hi");',
+            validate: { type: 'output', expectedOutput: 'Hi' },
+            xpReward: 10,
+            monoSuccess: 'You did it! You made your code talk!',
+            monoFail: 'Make sure you have console.log("Hi"); with the quotes around Hi.'
+          },
+          {
+            id: 'output-2',
+            prompt: 'Use <code>console.log()</code> to print the number 100.',
+            starterCode: '// Print the number 100\n',
+            hint: 'Type: console.log(100); \u2014 no quotes needed for numbers!',
+            validate: { type: 'output', expectedOutput: '100' },
+            xpReward: 10,
+            monoSuccess: 'Perfect! Numbers don\'t need quotes.',
+            monoFail: 'Use console.log(100); \u2014 remember, numbers don\'t have quotes.'
+          },
+          {
+            id: 'output-3',
+            prompt: 'Print two things: first print "Ready?" and then print 3 + 2 (the answer, not the text).',
+            starterCode: '// Print "Ready?" on one line\n\n// Print 3 + 2 on the next line\n',
+            hint: 'Use two console.log() calls:\nconsole.log("Ready?");\nconsole.log(3 + 2);',
+            validate: { type: 'output', expectedOutput: 'Ready?\n5' },
+            xpReward: 15,
+            monoSuccess: 'Two prints in a row! The math happened inside console.log().',
+            monoFail: 'Print "Ready?" first, then print 3 + 2 (which equals 5).'
+          }
+        ]
+      }
+    },
     miniGameAfter: 'speed-type'
   },
   {

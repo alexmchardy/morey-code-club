@@ -432,14 +432,14 @@
   // ---- Card pair data ----
   const MATCH_PAIRS = {
     string: [
-      { code: 'let x = "hi"', value: 'x is "hi"' },
-      { code: '"hello".length', value: '5' },
-      { code: '"a" + "b"', value: '"ab"' },
-      { code: '"star" + "s"', value: '"stars"' },
-      { code: '"Code Quest"', value: 'a string' },
+      { code: '"hello"', value: '"hello"' },
+      { code: '42', value: '42 (number)' },
+      { code: '"42"', value: '42 (string)' },
+      { code: '"10" + "5"', value: '105 (string)' },
       { code: '"hi" + "!"', value: '"hi!"' },
-      { code: '"abc"[0]', value: '"a"' },
-      { code: '"yes".toUpperCase()', value: '"YES"' },
+      { code: '10 + 5', value: '15' },
+      { code: '"a" + "b"', value: '"ab"' },
+      { code: '3 + 7', value: '10' },
     ],
     variable: [
       { code: 'let score = 0', value: 'score is 0' },

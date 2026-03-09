@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bug Squash - Code Quest</title>
+  <title>Bug Squash - Code Club Quest</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Fredoka:wght@400;500;600;700&display=swap');
 
@@ -400,7 +400,7 @@
 </head>
 <body>
 
-  <a href="../code-quest.html" class="back-link">&lt; Back to Code Quest</a>
+  <a href="../code-quest.html" class="back-link">&lt; Back to Code Club Quest</a>
 
   <!-- GAME SCREEN -->
   <div id="gameScreen">
@@ -455,7 +455,7 @@
     <div class="game-over-msg" id="gameOverMsg"></div>
     <div class="end-btns">
       <button class="end-btn primary" onclick="restartGame()">Play Again</button>
-      <a href="../code-quest.html" class="end-btn secondary">Back to Code Quest</a>
+      <a href="../code-quest.html" class="end-btn secondary">Back to Code Club Quest</a>
     </div>
   </div>
 
@@ -502,6 +502,26 @@ const BUG_PUZZLES = {
       ],
       bugLine: 1,
       explanation: 'The variable is called "color" but line 2 uses "colour" \u2014 wrong name!'
+    },
+    {
+      lines: [
+        'let animal = "cat";',
+        'let sound = "meow";',
+        'let message = animal + " says " + sound;',
+        'console.log(mesage);'
+      ],
+      bugLine: 3,
+      explanation: '"mesage" should be "message" \u2014 missing an "s"!'
+    },
+    {
+      lines: [
+        'let word = "hello";',
+        'let loud = word.toUppercase();',
+        'console.log(loud);',
+        'let size = loud.length;'
+      ],
+      bugLine: 1,
+      explanation: '"toUppercase" should be "toUpperCase" \u2014 the C must be capital!'
     }
   ],
   variable: [
@@ -544,6 +564,26 @@ const BUG_PUZZLES = {
       ],
       bugLine: 3,
       explanation: '"cosole" should be "console" \u2014 missing the "n"!'
+    },
+    {
+      lines: [
+        'let playerName = "Hero";',
+        'let level = 5;',
+        'let message = playername + " is level " + level;',
+        'console.log(message);'
+      ],
+      bugLine: 2,
+      explanation: '"playername" should be "playerName" \u2014 JavaScript is case-sensitive!'
+    },
+    {
+      lines: [
+        'let coins = 50;',
+        'let gems = 10;',
+        'let treasure = coins + gems;',
+        'console.log("Total: " + tresure);'
+      ],
+      bugLine: 3,
+      explanation: '"tresure" should be "treasure" \u2014 missing an "a"!'
     }
   ],
   assignment: [
@@ -586,6 +626,26 @@ const BUG_PUZZLES = {
       ],
       bugLine: 2,
       explanation: '"===" is for comparison, not assignment! Use "=" to assign a value.'
+    },
+    {
+      lines: [
+        'let points = 0;',
+        'points + 25;',
+        'console.log(points);',
+        'let double = points * 2;'
+      ],
+      bugLine: 1,
+      explanation: 'This calculates but doesn\'t save! It should be "points = points + 25"!'
+    },
+    {
+      lines: [
+        'let health = 100;',
+        'let damage = 30;',
+        'health == health - damage;',
+        'console.log(health);'
+      ],
+      bugLine: 2,
+      explanation: '"==" compares values! Use "=" to assign: "health = health - damage".'
     }
   ],
   operator: [
@@ -628,6 +688,26 @@ const BUG_PUZZLES = {
       ],
       bugLine: 2,
       explanation: 'To split cookies evenly, divide! Use "/" instead of "*".'
+    },
+    {
+      lines: [
+        'let items = 7;',
+        'let price = 3;',
+        'let total = items / price;',
+        'console.log("Total cost: " + total);'
+      ],
+      bugLine: 2,
+      explanation: 'To get total cost, multiply items by price! Use "*" instead of "/".'
+    },
+    {
+      lines: [
+        'let start = 50;',
+        'let add = 25;',
+        'let result = start - add;',
+        'console.log("After adding: " + result);'
+      ],
+      bugLine: 2,
+      explanation: 'The message says "adding" but we\'re subtracting! Use "+" instead of "-".'
     }
   ],
   comparison: [
@@ -670,6 +750,26 @@ const BUG_PUZZLES = {
       ],
       bugLine: 2,
       explanation: '"=" assigns a value! Use "===" to check if two values are equal.'
+    },
+    {
+      lines: [
+        'let coins = 50;',
+        'let needed = 100;',
+        'let canBuy = coins => needed;',
+        'console.log("Can buy: " + canBuy);'
+      ],
+      bugLine: 2,
+      explanation: '"=>" is an arrow function! Use ">=" for greater than or equal.'
+    },
+    {
+      lines: [
+        'let myScore = 85;',
+        'let highScore = 90;',
+        'let isHigher = myScore =! highScore;',
+        'console.log(isHigher);'
+      ],
+      bugLine: 2,
+      explanation: '"=!" is not valid! Use "!==" to check if values are not equal.'
     }
   ],
   conditional: [
@@ -712,12 +812,32 @@ const BUG_PUZZLES = {
       ],
       bugLine: 2,
       explanation: '"consolelog" should be "console.log" \u2014 it needs a dot in the middle!'
+    },
+    {
+      lines: [
+        'let money = 20;',
+        'let price = 15;',
+        'if (money >= price)',
+        '  console.log("You can buy it!");'
+      ],
+      bugLine: 2,
+      explanation: 'Missing curly brace! It should be "if (money >= price) {" with a "{".'
+    },
+    {
+      lines: [
+        'let sunny = true;',
+        'if (sunny === true) {',
+        '  console.log("Wear sunglasses!");',
+        'else {'
+      ],
+      bugLine: 3,
+      explanation: 'Missing closing brace! It should be "} else {" with a "}" before else.'
     }
   ]
 };
 
 // ===== GAME STATE =====
-const TOTAL_ROUNDS = 10;
+const TOTAL_ROUNDS = 6;
 const STARTING_LIVES = 3;
 
 let currentRound = 0;

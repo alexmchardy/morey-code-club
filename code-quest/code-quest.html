@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Code Quest</title>
+  <title>Code Club Quest</title>
   <!-- CodeMirror (optional - falls back to styled textarea if blocked) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
@@ -81,6 +81,16 @@
       color: var(--neon-cyan);
       text-shadow: 0 0 10px var(--neon-cyan), 0 0 30px rgba(0,245,255,0.35);
       white-space: nowrap;
+      cursor: pointer;
+    }
+    #appHeader h1 .edition-subtitle {
+      display: block;
+      font-size: 0.55rem;
+      color: var(--neon-pink);
+      text-shadow: 0 0 8px var(--neon-pink), 0 0 20px rgba(255,0,128,0.35);
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      margin-top: 2px;
     }
     #hudBar {
       display: flex;
@@ -172,6 +182,7 @@
       color: var(--text);
       max-width: 340px;
       box-shadow: 0 0 12px rgba(57,255,20,0.15);
+      white-space: pre-wrap;
     }
     .mono-row {
       display: flex;
@@ -729,6 +740,48 @@
       display: block;
     }
 
+    /* === HINT WORDS (clickable keywords in prompts) === */
+    .hint-word {
+      border-bottom: 2px dashed var(--neon-purple);
+      cursor: pointer;
+      position: relative;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .hint-word:hover {
+      color: var(--neon-purple);
+      border-color: var(--neon-cyan);
+    }
+    .hint-popup {
+      position: fixed;
+      background: var(--surface);
+      border: 2px solid var(--neon-purple);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-family: 'Fredoka', sans-serif;
+      font-size: 0.9rem;
+      color: var(--text);
+      max-width: 280px;
+      z-index: 1000;
+      box-shadow: 0 4px 20px rgba(167, 139, 250, 0.3);
+      animation: hintPopIn 0.2s ease-out;
+    }
+    .hint-popup::before {
+      content: '💡';
+      margin-right: 6px;
+    }
+    .hint-popup code {
+      background: var(--surface-code);
+      color: var(--neon-yellow);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.95rem;
+    }
+    @keyframes hintPopIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     /* === LEVEL COMPLETE VIEW === */
     .celebration {
       text-align: center;
@@ -789,9 +842,137 @@
     /* === HIDDEN === */
     .hidden { display: none !important; }
 
+    /* === MINI-GAME LESSON SELECTOR MODAL === */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 3, 16, 0.9);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.visible {
+      display: flex;
+    }
+    .modal-content {
+      background: var(--surface);
+      border: 2px solid var(--neon-cyan);
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 420px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 0 40px rgba(0, 245, 255, 0.2);
+      animation: modalIn 0.25s ease-out;
+    }
+    @keyframes modalIn {
+      from {
+        transform: scale(0.9);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+    .modal-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .modal-header h3 {
+      font-size: 0.85rem;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 10px var(--neon-cyan);
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+    .modal-header p {
+      font-size: 0.95rem;
+      color: var(--text-dim);
+    }
+    .modal-game-name {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.7rem;
+      color: var(--neon-pink);
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    .lesson-choices {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .lesson-choice {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--surface-light);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .lesson-choice:hover {
+      border-color: var(--neon-cyan);
+      background: rgba(0, 245, 255, 0.05);
+      transform: translateX(4px);
+    }
+    .lesson-choice:active {
+      transform: translateX(2px);
+    }
+    .lesson-choice-icon {
+      font-size: 1.5rem;
+    }
+    .lesson-choice-info {
+      flex: 1;
+    }
+    .lesson-choice-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.55rem;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .lesson-choice-desc {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    .lesson-choice-arrow {
+      color: var(--text-dim);
+      font-size: 1rem;
+      transition: transform 0.2s;
+    }
+    .lesson-choice:hover .lesson-choice-arrow {
+      color: var(--neon-cyan);
+      transform: translateX(4px);
+    }
+    .modal-close {
+      display: block;
+      width: 100%;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.6rem;
+      padding: 12px;
+      background: transparent;
+      border: 1px solid var(--text-dim);
+      color: var(--text-dim);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .modal-close:hover {
+      border-color: var(--neon-pink);
+      color: var(--neon-pink);
+    }
+
     /* === RESPONSIVE === */
     @media (max-width: 500px) {
       #appHeader h1 { font-size: 0.75rem; }
+      #appHeader h1 .edition-subtitle { font-size: 0.45rem; }
       .hud-item { font-size: 0.45rem; }
       .hud-item span { font-size: 0.7rem; }
       .level-node { width: 60px; height: 60px; }
@@ -806,7 +987,7 @@
 
   <!-- HEADER -->
   <header id="appHeader">
-    <h1>Code Quest</h1>
+    <h1 onclick="showView('map')">Code Club Quest <span class="edition-subtitle">Javascript edition</span></h1>
     <div id="hudBar">
       <div class="hud-item"><div>XP</div><span id="xpDisplay">0</span></div>
       <div class="hud-item"><div>Level</div><span id="levelDisplay">1</span></div>
@@ -821,7 +1002,7 @@
   <!-- VIEW: Welcome -->
   <div class="view view-welcome" id="viewWelcome">
     <div class="mono-container" id="monoWelcome"></div>
-    <h2>Welcome to Code Quest!</h2>
+    <h2>Welcome to Code Club Quest!</h2>
     <p>Learn to code step by step with Mono the Code Monkey!</p>
     <p style="margin-top:8px; color:var(--text-dim); font-size:14px;">Complete levels, solve challenges, and play mini-games.</p>
     <button class="quest-btn" onclick="startQuest()">Start Quest</button>
@@ -915,6 +1096,21 @@
       <p style="color:var(--text-dim); font-size:14px; margin: 16px 0;">You've learned strings, variables, assignment, operators, comparisons, and conditionals. You're ready to build real things!</p>
       <button class="quest-btn" onclick="showView('map')">View Map</button>
       <button class="quest-btn quest-btn-secondary" onclick="resetProgress()">Play Again</button>
+    </div>
+  </div>
+
+  <!-- Mini-Game Lesson Selector Modal -->
+  <div class="modal-overlay" id="lessonSelectorModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Choose Lesson Content</h3>
+        <p>Pick which lesson's content you want to practice!</p>
+      </div>
+      <div class="modal-game-name" id="modalGameName">⌨️ Speed Type</div>
+      <div class="lesson-choices" id="lessonChoices">
+        <!-- Populated by JavaScript -->
+      </div>
+      <button class="modal-close" onclick="closeLessonSelector()">Cancel</button>
     </div>
   </div>
 
@@ -1068,7 +1264,8 @@ const LESSONS = [
         ]
       }
     },
-    miniGameAfter: 'variable-match'
+    miniGameAfter: 'variable-match',
+    miniGameName: "🃏 Str Match"
   },
   {
     id: 'output',
@@ -1133,7 +1330,7 @@ const LESSONS = [
     icon: '\uD83D\uDCE6',
     explanation: {
       title: 'What is a Variable?',
-      body: 'A <strong>variable</strong> is like a labeled box that stores a value. You give it a name, then put something inside. Variables can hold strings, numbers, or true/false values.',
+      body: 'A <strong>variable</strong> is like a labeled box that stores a value. You create a variable using the keyword <code>let</code>, give it a name, then use <code>=</code> to assign a value. The value can be a <strong>string</strong> (text in quotes), a <strong>number</strong>, or a <strong>boolean</strong> (true or false).',
       realWorld: 'Imagine a labeled jar. The label is the variable name. What\'s inside is the value. You can swap out what\'s inside anytime!',
       monoSays: 'Variables are how your code remembers things! Without them, your program would forget everything instantly.'
     },
@@ -1297,13 +1494,65 @@ const LESSONS = [
           },
           {
             id: 'operator-2',
-            prompt: 'You have 17 cookies and 5 friends. Create <code>cookiesEach</code> (how many whole cookies each friend gets) and <code>leftover</code> (how many are left over). Print both.',
-            starterCode: '// Figure out cookies per friend and leftover\nlet cookies = 17;\nlet friends = 5;\n\n',
-            hint: 'Use Math.floor(17 / 5) for whole cookies.\nUse 17 % 5 for remainder.',
-            validate: { type: 'custom', fn: 'validateCookieMath' },
-            xpReward: 25,
-            monoSuccess: '3 cookies each with 2 left over! The % operator is super useful!',
-            monoFail: 'cookiesEach should be 3 (use Math.floor for whole number) and leftover should be 2 (use % for remainder).'
+            prompt: 'Create <code>total</code> set to 100 and <code>discount</code> set to 20. Create <code>finalPrice</code> that subtracts discount from total. Print the final price.',
+            starterCode: '// Set up the prices\n\n// Calculate final price\n\n// Print it\n',
+            hint: 'let finalPrice = total - discount;',
+            validate: {
+              type: 'multi',
+              checks: [
+                { type: 'value', varName: 'finalPrice', expectedValue: 80 },
+                { type: 'output', expectedOutput: '80' }
+              ]
+            },
+            xpReward: 15,
+            monoSuccess: '100 minus 20 is 80! Subtraction is super useful for calculating discounts!',
+            monoFail: 'Use - to subtract discount from total.'
+          },
+          {
+            id: 'operator-3',
+            prompt: 'You have 17 candies to share equally among 5 bags. Create <code>leftover</code> using % to find how many candies are left over. Print leftover.',
+            starterCode: 'let candies = 17;\nlet bags = 5;\n\n// Calculate leftover\n\n// Print it\n',
+            hint: 'let leftover = candies % bags;',
+            validate: {
+              type: 'multi',
+              checks: [
+                { type: 'value', varName: 'leftover', expectedValue: 2 },
+                { type: 'output', expectedOutput: '2' }
+              ]
+            },
+            xpReward: 15,
+            monoSuccess: '17 % 5 = 2! There are 2 candies left over after putting 3 in each bag.',
+            monoFail: 'Use % to get the remainder. leftover = candies % bags;'
+          },
+          {
+            id: 'operator-mc',
+            prompt: 'Quiz time! What do these operators mean?',
+            starterCode: '',
+            hint: 'Think about what each symbol does in math...',
+            validate: { type: 'multipleChoice' },
+            xpReward: 15,
+            monoSuccess: 'You know your operators! These will be super useful in your code.',
+            monoFail: 'Think carefully about what each operator does...',
+            multipleChoice: [
+              {
+                question: 'What does the <code>*</code> operator do?',
+                options: ['Add', 'Subtract', 'Multiply', 'Divide'],
+                correctIndex: 2,
+                explanation: '* means multiply (asterisk)'
+              },
+              {
+                question: 'What does the <code>%</code> operator do?',
+                options: ['Calculate percentage', 'Give the remainder after division', 'Divide', 'Multiply'],
+                correctIndex: 1,
+                explanation: '% gives the remainder (called modulo)'
+              },
+              {
+                question: 'What is the result of <code>10 % 3</code>?',
+                options: ['3', '1', '0', '10'],
+                correctIndex: 1,
+                explanation: '10 ÷ 3 = 3 remainder 1, so 10 % 3 = 1'
+              }
+            ]
           }
         ]
       }
@@ -1366,7 +1615,7 @@ const LESSONS = [
   },
   {
     id: 'conditional',
-    title: 'Conditionals',
+    title: 'Decisions',
     icon: '\uD83D\uDEA6',
     explanation: {
       title: 'Making Decisions with if/else',
@@ -1381,8 +1630,8 @@ const LESSONS = [
           output: "It's hot outside!",
           annotations: [
             { line: 1, text: 'Set temperature to 95' },
-            { line: 3, text: 'Check: is temperature > 90? (95 > 90 is true!)' },
-            { line: 4, text: 'Since the condition is true, this line runs' },
+            { line: 3, text: 'Check: is temperature > 90? <strong>The check must be inside parentheses ( )</strong>' },
+            { line: 4, text: 'Since the condition is true, this line runs. The curly braces { } tell the computer what to do if the condition is true' },
             { line: 5, text: 'The else block is skipped because the if was true' }
           ]
         },
@@ -1391,17 +1640,17 @@ const LESSONS = [
             id: 'conditional-1',
             prompt: 'Create <code>score</code> set to 85. Write an if/else: print "You passed!" if score >= 70, or "Try again" otherwise.',
             starterCode: 'let score = 85;\n\n// Write your if/else here\n',
-            hint: 'if (score >= 70) {\n  console.log("You passed!");\n} else {\n  console.log("Try again");\n}',
+            hint: 'if (score >= 70) {\n  console.log("You passed!");\n} else {\n  console.log("Try again");\n}\n<strong>Remember to put the condition in parentheses ( ) and the code in curly braces { }.',
             validate: { type: 'output', expectedOutput: 'You passed!' },
             xpReward: 20,
             monoSuccess: '85 >= 70 is true, so "You passed!" prints! You wrote your first if/else!',
-            monoFail: 'Check your condition: score >= 70. Make sure the strings match exactly.'
+            monoFail: 'Check your condition: score >= 70. Make sure the strings match exactly. Don\'t forget parenthesis ( ) and curly braces { }'
           },
           {
             id: 'conditional-2',
             prompt: 'Create <code>hour</code> set to 14. If hour < 12, print "Good morning!" \u2014 otherwise print "Good afternoon!"',
             starterCode: 'let hour = 14;\n\n// Write your if/else\n',
-            hint: 'if (hour < 12) {\n  console.log("Good morning!");\n} else {\n  console.log("Good afternoon!");\n}',
+            hint: 'if (hour < 12) {\n  //...\n} else {\n  //...\n}',
             validate: { type: 'output', expectedOutput: 'Good afternoon!' },
             xpReward: 20,
             monoSuccess: '14 is not less than 12, so the else block runs. Good afternoon!',
@@ -1411,10 +1660,10 @@ const LESSONS = [
             id: 'conditional-3',
             prompt: 'Create <code>lives</code> set to 0. If lives === 0, print "Game Over" \u2014 otherwise print "Keep playing!"',
             starterCode: 'let lives = 0;\n\n// Check if game is over\n',
-            hint: 'if (lives === 0) {\n  console.log("Game Over");\n} else {\n  console.log("Keep playing!");\n}',
+            hint: 'if (lives === 0) {\n  //...\n} else {\n  //...\n}',
             validate: { type: 'output', expectedOutput: 'Game Over' },
             xpReward: 25,
-            monoSuccess: 'You completed all the lessons! You are now a Code Quest champion!',
+            monoSuccess: 'You completed all the lessons! You are now a Code Club Quest champion!',
             monoFail: 'Use === to check if lives equals 0. Remember: === for comparison, = for assignment.'
           }
         ]
@@ -1423,6 +1672,63 @@ const LESSONS = [
     miniGameAfter: 'bug-squash'
   }
 ];
+
+// ============================================================
+// HINT WORD SYSTEM
+// ============================================================
+var activeHintPopup = null;
+
+var HINT_WORDS = {
+  'create': 'Use <code>let</code> to create a variable. Example: <code>let name = "value";</code>',
+  'print': 'Use <code>console.log()</code> to print. Example: <code>console.log("Hello");</code>'
+};
+
+function processHintWords(html) {
+  // Replace "create" and "print" (case insensitive, whole word) with clickable spans
+  return html.replace(/\b(create|print)\b/gi, function(match) {
+    var keyword = match.toLowerCase();
+    return '<span class="hint-word" data-hint="' + keyword + '" onclick="showHintPopup(event, \'' + keyword + '\')">' + match + '</span>';
+  });
+}
+
+function showHintPopup(event, keyword) {
+  event.stopPropagation();
+  closeHintPopup();
+
+  var hintText = HINT_WORDS[keyword];
+  if (!hintText) return;
+
+  var popup = document.createElement('div');
+  popup.className = 'hint-popup';
+  popup.innerHTML = hintText;
+  document.body.appendChild(popup);
+
+  // Position near the clicked word
+  var rect = event.target.getBoundingClientRect();
+  var popupWidth = 280;
+  var left = rect.left + (rect.width / 2) - (popupWidth / 2);
+
+  // Keep within viewport
+  if (left < 10) left = 10;
+  if (left + popupWidth > window.innerWidth - 10) left = window.innerWidth - popupWidth - 10;
+
+  popup.style.left = left + 'px';
+  popup.style.top = (rect.bottom + 8) + 'px';
+
+  activeHintPopup = popup;
+
+  // Close on click outside
+  setTimeout(function() {
+    document.addEventListener('click', closeHintPopup, { once: true });
+  }, 10);
+}
+
+function closeHintPopup() {
+  if (activeHintPopup) {
+    activeHintPopup.remove();
+    activeHintPopup = null;
+  }
+}
 
 // ============================================================
 // CUSTOM VALIDATORS
@@ -1453,17 +1759,6 @@ const CUSTOM_VALIDATORS = {
       return { pass: false, message: 'fullName should be firstName + " " + lastName (with a space between).' };
     if (result.output.length === 0)
       return { pass: false, message: 'Don\'t forget to print fullName with console.log()!' };
-    return { pass: true };
-  },
-
-  validateCookieMath(result) {
-    if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
-    if (result.vars.cookiesEach !== 3)
-      return { pass: false, message: 'cookiesEach should be 3 (17 divided by 5, rounded down). Try Math.floor(17 / 5).' };
-    if (result.vars.leftover !== 2)
-      return { pass: false, message: 'leftover should be 2 (17 % 5 = 2). The % operator gives you the remainder.' };
-    if (result.output.length === 0)
-      return { pass: false, message: 'Don\'t forget to print the results with console.log()!' };
     return { pass: true };
   }
 };
@@ -1786,6 +2081,64 @@ var MINI_GAME_NAMES = {
   'output-guess': '🤔 Output Guess'
 };
 
+// ============================================================
+// MINI-GAME LESSON SELECTOR
+// ============================================================
+var pendingMiniGame = null; // Stores which mini-game to open
+
+function showLessonSelector(miniGameId) {
+  pendingMiniGame = miniGameId;
+  var gameName = MINI_GAME_NAMES[miniGameId] || miniGameId;
+  document.getElementById('modalGameName').textContent = gameName;
+
+  // Build list of completed lessons
+  var choicesHtml = '';
+  LESSONS.forEach(function(lesson) {
+    if (appState.completedLevels.indexOf(lesson.id) !== -1) {
+      choicesHtml += '<div class="lesson-choice" onclick="selectLessonForMiniGame(\'' + lesson.id + '\')">';
+      choicesHtml += '<div class="lesson-choice-icon">' + lesson.icon + '</div>';
+      choicesHtml += '<div class="lesson-choice-info">';
+      choicesHtml += '<div class="lesson-choice-title">' + lesson.title + '</div>';
+      choicesHtml += '<div class="lesson-choice-desc">Practice ' + lesson.title.toLowerCase() + ' content</div>';
+      choicesHtml += '</div>';
+      choicesHtml += '<div class="lesson-choice-arrow">→</div>';
+      choicesHtml += '</div>';
+    }
+  });
+
+  if (choicesHtml === '') {
+    choicesHtml = '<p style="text-align:center; color:var(--text-dim);">Complete a lesson first to unlock mini-game content!</p>';
+  }
+
+  document.getElementById('lessonChoices').innerHTML = choicesHtml;
+  document.getElementById('lessonSelectorModal').classList.add('visible');
+}
+
+function closeLessonSelector() {
+  document.getElementById('lessonSelectorModal').classList.remove('visible');
+  pendingMiniGame = null;
+}
+
+function selectLessonForMiniGame(lessonId) {
+  if (!pendingMiniGame) return;
+  document.location = 'mini-games/' + pendingMiniGame + '.html?level=' + lessonId;
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(e) {
+  var modal = document.getElementById('lessonSelectorModal');
+  if (e.target === modal) {
+    closeLessonSelector();
+  }
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeLessonSelector();
+  }
+});
+
 function renderLevelMap() {
   var container = document.getElementById('levelPath');
   var html = '';
@@ -1813,8 +2166,8 @@ function renderLevelMap() {
 
     // Mini-game replay button for completed levels
     if (isCompleted && lesson.miniGameAfter) {
-      var gameName = MINI_GAME_NAMES[lesson.miniGameAfter] || lesson.miniGameAfter;
-      html += '<a class="mini-game-btn" href="mini-games/' + lesson.miniGameAfter + '.html?level=' + lesson.id + '" onclick="event.stopPropagation()">' + gameName + '</a>';
+      var gameName = lesson.miniGameName || MINI_GAME_NAMES[lesson.miniGameAfter] || lesson.miniGameAfter;
+      html += '<button class="mini-game-btn" onclick="event.stopPropagation(); showLessonSelector(\'' + lesson.miniGameAfter + '\')">' + gameName + '</button>';
     }
 
     html += '</div>';
@@ -1908,7 +2261,7 @@ function showCurrentChallenge() {
   var challenge = challenges[ci];
 
   document.getElementById('challengeLabel').textContent = 'Challenge ' + (ci + 1) + ' of ' + challenges.length;
-  document.getElementById('challengePrompt').innerHTML = challenge.prompt;
+  document.getElementById('challengePrompt').innerHTML = processHintWords(challenge.prompt);
 
   // Reset UI
   document.getElementById('challengeOutputPanel').style.display = 'none';
@@ -2136,7 +2489,7 @@ function showHint() {
   var monoRow = document.getElementById('challengeMonoRow');
   monoRow.style.display = 'flex';
   renderMono('monoChallenge', 'idle', 3);
-  document.getElementById('monoChallengeSpeech').textContent = '\uD83D\uDCA1 ' + challenge.hint;
+  document.getElementById('monoChallengeSpeech').innerHTML = challenge.hint;
 }
 
 function nextChallenge() {
@@ -2189,6 +2542,7 @@ function completeLevel() {
 function openMiniGame() {
   var lesson = LESSONS[appState.currentLevel];
   if (lesson.miniGameAfter) {
+    // Go directly to the mini-game with the just-completed lesson's content
     document.location = 'mini-games/' + lesson.miniGameAfter + '.html?level=' + lesson.id;
   }
 }

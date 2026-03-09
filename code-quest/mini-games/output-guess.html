@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Output Guess - Code Quest</title>
+  <title>Output Guess - Code Club Quest</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Fredoka:wght@400;500;600;700&display=swap');
 
@@ -415,7 +415,7 @@
 <body>
 
 <div class="game-container">
-  <a class="back-link" href="../code-quest.html">Code Quest</a>
+  <a class="back-link" href="../code-quest.html">Code Club Quest</a>
 
   <!-- HUD -->
   <div class="hud">
@@ -462,7 +462,7 @@
     <div class="final-message" id="finalMessage"></div>
     <div class="end-buttons">
       <button class="end-btn primary" id="playAgainBtn">Play Again</button>
-      <a class="end-btn secondary" href="../code-quest.html">Back to Code Quest</a>
+      <a class="end-btn secondary" href="../code-quest.html">Back to Code Club Quest</a>
     </div>
   </div>
 </div>
@@ -502,8 +502,8 @@ const OUTPUT_QUIZZES = {
       correct: 0
     },
     {
-      code: 'let a = "abc";\nconsole.log(a.length);',
-      options: ['3', 'abc', 'length', 'undefined'],
+      code: 'let a = "abc";\nlet b = "123";\nconsole.log(a + b);',
+      options: ['abc123', '126', 'a + b', 'abc 123'],
       correct: 0
     },
   ],
@@ -514,8 +514,8 @@ const OUTPUT_QUIZZES = {
       correct: 0
     },
     {
-      code: 'let x = 10;\nconsole.log(typeof x);',
-      options: ['number', '10', 'x', 'integer'],
+      code: 'let x = 10;\nlet y = x;\nconsole.log(y + 5);',
+      options: ['15', '10', 'x + 5', '105'],
       correct: 0
     },
     {
@@ -524,13 +524,13 @@ const OUTPUT_QUIZZES = {
       correct: 0
     },
     {
-      code: 'let a = "hello";\nconsole.log(typeof a);',
-      options: ['string', 'hello', '"string"', 'text'],
+      code: 'let a = "hello";\nlet b = a + "!";\nconsole.log(b);',
+      options: ['hello!', 'a + "!"', 'hello !', 'hello'],
       correct: 0
     },
     {
-      code: 'let x;\nconsole.log(x);',
-      options: ['undefined', 'null', '0', 'Error'],
+      code: 'let x = 7;\nx = x + 3;\nconsole.log(x);',
+      options: ['10', '7', '3', '73'],
       correct: 0
     },
   ],
@@ -556,8 +556,8 @@ const OUTPUT_QUIZZES = {
       correct: 0
     },
     {
-      code: 'console.log(2 ** 3);',
-      options: ['8', '6', '9', '23'],
+      code: 'console.log(12 / 4);',
+      options: ['3', '48', '8', '12'],
       correct: 0
     },
   ],

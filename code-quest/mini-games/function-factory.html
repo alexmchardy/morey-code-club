@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Function Factory - Code Club Quest</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Fredoka:wght@400;500;600;700&display=swap');
+
+    :root {
+      --bg: #030310;
+      --surface: #0d0d2b;
+      --surface-light: #151538;
+      --neon-cyan: #00f5ff;
+      --neon-pink: #ff6b9d;
+      --neon-yellow: #ffbe0b;
+      --neon-green: #39ff14;
+      --neon-red: #ff4444;
+      --text: #cbcbe8;
+      --text-dim: #7a7aba;
+      --border: rgba(0, 245, 255, 0.2);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { font-size: 16px; }
+    @media (min-width: 1024px) { html { font-size: 20px; } }
+
+    body {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1rem;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px;
+      overflow-x: hidden;
+    }
+
+    /* Scanline overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        transparent, transparent 3px,
+        rgba(0,0,0,0.035) 3px, rgba(0,0,0,0.035) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: 'Press Start 2P', monospace;
+      font-weight: 400;
+    }
+
+    /* Back link */
+    .back-link {
+      align-self: flex-start;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      text-decoration: none;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      transition: all 0.15s;
+      margin-bottom: 12px;
+    }
+    .back-link:hover {
+      color: var(--neon-cyan);
+      border-color: var(--neon-cyan);
+    }
+
+    /* Header */
+    .game-header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .game-header h1 {
+      font-size: 1.1rem;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 10px var(--neon-cyan), 0 0 30px rgba(0,245,255,0.35);
+      margin-bottom: 6px;
+    }
+    .game-header .level-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.6rem;
+      color: var(--neon-pink);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* HUD bar */
+    .hud {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .hud-item {
+      text-align: center;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.55rem;
+      color: var(--text-dim);
+      line-height: 2;
+      text-transform: uppercase;
+    }
+    .hud-item span {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 8px rgba(255,190,11,0.5);
+    }
+    .hud-item span.timer-warn {
+      color: var(--neon-red);
+      text-shadow: 0 0 8px rgba(255,68,68,0.5);
+    }
+
+    /* Screens */
+    .screen { display: none; width: 100%; max-width: 700px; }
+    .screen.active { display: flex; flex-direction: column; align-items: center; }
+
+    /* Start screen */
+    .start-panel {
+      background: var(--surface);
+      border: 2px solid var(--neon-cyan);
+      border-radius: 12px;
+      padding: 32px 28px;
+      text-align: center;
+      box-shadow: 0 0 30px rgba(0,245,255,0.15);
+      max-width: 460px;
+      width: 90%;
+    }
+    .start-panel .emoji-title {
+      font-size: 2.2rem;
+      margin-bottom: 12px;
+    }
+    .start-panel h2 {
+      font-size: 0.9rem;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 10px var(--neon-cyan);
+      margin-bottom: 16px;
+    }
+    .start-panel p {
+      font-size: 0.85rem;
+      color: var(--text);
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    /* Factory machine */
+    .factory {
+      position: relative;
+      width: 100%;
+      max-width: 520px;
+      margin-bottom: 24px;
+    }
+
+    .machine {
+      background: var(--surface);
+      border: 3px solid var(--neon-cyan);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+      box-shadow:
+        0 0 20px rgba(0,245,255,0.15),
+        inset 0 0 30px rgba(0,245,255,0.05);
+    }
+    .machine::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--neon-green);
+      box-shadow: 0 0 8px var(--neon-green);
+      animation: blink 1.5s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .machine-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.5rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .machine-code {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 6px rgba(0,245,255,0.3);
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      white-space: pre;
+      line-height: 1.6;
+      overflow-x: auto;
+    }
+
+    /* Gears decoration */
+    .gear-left, .gear-right {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border: 3px solid var(--neon-pink);
+      border-radius: 50%;
+      opacity: 0.5;
+    }
+    .gear-left { bottom: -14px; left: 30px; animation: spin 3s linear infinite; }
+    .gear-right { bottom: -14px; right: 30px; animation: spin 3s linear infinite reverse; }
+    .gear-left::before, .gear-right::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--neon-pink);
+      opacity: 0.5;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Conveyor belt */
+    .conveyor {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 24px 0 12px;
+      gap: 12px;
+    }
+
+    .conveyor-belt {
+      height: 40px;
+      flex: 1;
+      max-width: 160px;
+      background: repeating-linear-gradient(
+        90deg,
+        var(--surface-light) 0px,
+        var(--surface-light) 12px,
+        var(--surface) 12px,
+        var(--surface) 24px
+      );
+      background-size: 24px 40px;
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      animation: conveyorMove 0.8s linear infinite;
+      position: relative;
+    }
+    @keyframes conveyorMove {
+      to { background-position: 24px 0; }
+    }
+
+    .input-label, .output-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.45rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .input-value {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 8px rgba(255,190,11,0.5);
+      background: var(--surface);
+      border: 2px solid var(--neon-yellow);
+      border-radius: 6px;
+      padding: 6px 14px;
+      white-space: nowrap;
+      position: relative;
+      z-index: 2;
+    }
+
+    .input-value.slide-in {
+      animation: slideIn 0.6s ease-out;
+    }
+    @keyframes slideIn {
+      from { transform: translateX(-60px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .output-slot {
+      min-width: 80px;
+      height: 36px;
+      border: 2px dashed var(--border);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--neon-green);
+      text-shadow: 0 0 8px rgba(57,255,20,0.5);
+      padding: 0 12px;
+    }
+    .output-slot.correct {
+      border-color: var(--neon-green);
+      background: rgba(57,255,20,0.08);
+      animation: slideOut 0.5s ease-out;
+    }
+    @keyframes slideOut {
+      from { transform: translateX(-20px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Options */
+    .options-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.5rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .option-btn {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.85rem;
+      padding: 14px 10px;
+      border: 2px solid var(--neon-pink);
+      background: var(--surface);
+      color: var(--neon-pink);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+      word-break: break-word;
+    }
+    .option-btn:hover:not(.disabled) {
+      background: rgba(255,107,157,0.1);
+      box-shadow: 0 0 12px rgba(255,107,157,0.3);
+      transform: translateY(-1px);
+    }
+    .option-btn.correct-choice {
+      border-color: var(--neon-green);
+      color: var(--neon-green);
+      background: rgba(57,255,20,0.1);
+      box-shadow: 0 0 14px rgba(57,255,20,0.3);
+    }
+    .option-btn.wrong-choice {
+      border-color: var(--neon-red);
+      color: var(--neon-red);
+      background: rgba(255,68,68,0.1);
+      animation: shake 0.4s ease;
+    }
+    .option-btn.disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-5px); }
+      40% { transform: translateX(5px); }
+      60% { transform: translateX(-3px); }
+      80% { transform: translateX(3px); }
+    }
+
+    /* Machine flash red on wrong answer */
+    .machine.flash-red {
+      animation: machineFlash 0.5s ease;
+    }
+    @keyframes machineFlash {
+      0%, 100% { border-color: var(--neon-cyan); }
+      25%, 75% { border-color: var(--neon-red); box-shadow: 0 0 20px rgba(255,68,68,0.3); }
+    }
+
+    /* Round transition */
+    .round-transition {
+      display: none;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.8rem;
+      color: var(--neon-green);
+      text-shadow: 0 0 10px var(--neon-green);
+      text-align: center;
+      padding: 40px 0;
+    }
+    .round-transition.visible {
+      display: block;
+      animation: fadeInOut 1s ease;
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: scale(0.8); }
+      30% { opacity: 1; transform: scale(1); }
+      80% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* Game over overlay */
+    .gameover-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 3, 16, 0.9);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+    .gameover-overlay.visible {
+      display: flex;
+    }
+
+    .gameover-panel {
+      background: var(--surface);
+      border: 2px solid var(--neon-green);
+      border-radius: 12px;
+      padding: 32px 40px;
+      text-align: center;
+      box-shadow: 0 0 30px rgba(57, 255, 20, 0.2);
+      max-width: 400px;
+      width: 90%;
+    }
+    .gameover-panel h2 {
+      font-size: 0.9rem;
+      color: var(--neon-green);
+      text-shadow: 0 0 10px var(--neon-green);
+      margin-bottom: 20px;
+    }
+
+    .score-row {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 20px;
+    }
+    .score-item {
+      text-align: center;
+    }
+    .score-item .label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.5rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .score-item .value {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 1.1rem;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 8px rgba(255, 190, 11, 0.5);
+    }
+
+    .star-row {
+      margin-bottom: 20px;
+      font-size: 1.9rem;
+      letter-spacing: 6px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.65rem;
+      padding: 10px 18px;
+      border: 2px solid var(--neon-cyan);
+      background: transparent;
+      color: var(--neon-cyan);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-block;
+      line-height: 1.4;
+    }
+    .btn:hover {
+      background: rgba(0, 245, 255, 0.1);
+      box-shadow: 0 0 12px rgba(0, 245, 255, 0.3);
+    }
+    .btn.primary {
+      border-color: var(--neon-green);
+      color: var(--neon-green);
+    }
+    .btn.primary:hover {
+      background: rgba(57, 255, 20, 0.1);
+      box-shadow: 0 0 12px rgba(57, 255, 20, 0.3);
+    }
+
+    /* Responsive */
+    @media (max-width: 620px) {
+      .machine-code {
+        font-size: 0.7rem;
+        padding: 10px 12px;
+      }
+      .options-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .option-btn {
+        font-size: 0.75rem;
+        padding: 10px 8px;
+      }
+      .game-header h1 {
+        font-size: 0.8rem;
+      }
+      .conveyor-belt {
+        max-width: 100px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <a id="backLink" href="../code-quest.html" class="back-link">&larr; Code Club Quest</a>
+
+  <div class="game-header">
+    <h1>Function Factory</h1>
+    <div class="level-label" id="levelLabel">Loading...</div>
+  </div>
+
+  <div class="hud" id="hud" style="display:none;">
+    <div class="hud-item">
+      Round
+      <span id="roundDisplay">1 / 5</span>
+    </div>
+    <div class="hud-item">
+      Score
+      <span id="scoreDisplay">0</span>
+    </div>
+    <div class="hud-item">
+      Timer
+      <span id="timerDisplay">12</span>
+    </div>
+  </div>
+
+  <!-- Start Screen -->
+  <div class="screen active" id="startScreen">
+    <div class="start-panel">
+      <div class="emoji-title">&#127981;</div>
+      <h2>Function Factory</h2>
+      <p>Welcome to the Function Factory! A function machine is on the assembly line. Watch as input values slide in on the conveyor belt, then pick the correct return value from four options.</p>
+      <p style="font-size:0.75rem; color:var(--text-dim);">5 rounds &bull; 12 seconds each &bull; 100 pts per correct answer</p>
+      <button class="btn primary" id="startBtn" style="margin-top:8px;">Start</button>
+    </div>
+  </div>
+
+  <!-- Game Screen -->
+  <div class="screen" id="gameScreen">
+    <div class="factory">
+      <div class="machine" id="machine">
+        <div class="machine-label">Function Machine</div>
+        <div class="machine-code" id="machineCode"></div>
+        <div class="gear-left"></div>
+        <div class="gear-right"></div>
+      </div>
+
+      <div class="conveyor">
+        <div>
+          <div class="input-label">Input</div>
+          <div class="input-value" id="inputValue"></div>
+        </div>
+        <div class="conveyor-belt"></div>
+        <div>
+          <div class="output-label">Output</div>
+          <div class="output-slot" id="outputSlot">?</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="options-label">Pick the return value:</div>
+    <div class="options-grid" id="optionsGrid"></div>
+
+    <div class="round-transition" id="roundTransition"></div>
+  </div>
+
+  <!-- Game Over Overlay -->
+  <div class="gameover-overlay" id="gameoverOverlay">
+    <div class="gameover-panel">
+      <h2>Factory Shift Complete!</h2>
+      <div class="star-row" id="stars"></div>
+      <div class="score-row">
+        <div class="score-item">
+          <div class="label">Score</div>
+          <div class="value" id="finalScore">0</div>
+        </div>
+        <div class="score-item">
+          <div class="label">Correct</div>
+          <div class="value" id="finalCorrect">0 / 5</div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" id="playAgainBtn">Play Again</button>
+        <a id="backToQuest" href="../code-quest.html" class="btn">&larr; Back to Quest</a>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // ---- Round data ----
+  const ROUNDS_BY_LEVEL = {
+    function: [
+      {
+        code: 'function double(n) {\n  return n * 2;\n}',
+        input: '7', correct: '14',
+        distractors: ['7', '9', '72']
+      },
+      {
+        code: 'function addFive(n) {\n  return n + 5;\n}',
+        input: '8', correct: '13',
+        distractors: ['3', '85', '40']
+      },
+      {
+        code: 'function greet(name) {\n  return "Hi " + name;\n}',
+        input: '"Alex"', correct: '"Hi Alex"',
+        distractors: ['"Hello Alex"', '"Hi name"', '"greet Alex"']
+      },
+      {
+        code: 'function isPositive(n) {\n  return n > 0;\n}',
+        input: '-3', correct: 'false',
+        distractors: ['true', '-3', '0']
+      },
+      {
+        code: 'function mystery(a, b) {\n  let result = a * b;\n  return result + 1;\n}',
+        input: '(3, 4)', correct: '13',
+        distractors: ['12', '7', '34']
+      }
+    ],
+    operator: [
+      {
+        code: 'function square(n) {\n  return n * n;\n}',
+        input: '5', correct: '25',
+        distractors: ['10', '55', '5']
+      },
+      {
+        code: 'function half(n) {\n  return n / 2;\n}',
+        input: '16', correct: '8',
+        distractors: ['32', '14', '162']
+      },
+      {
+        code: 'function remainder(n) {\n  return n % 3;\n}',
+        input: '10', correct: '1',
+        distractors: ['3', '0', '10']
+      },
+      {
+        code: 'function calc(a, b) {\n  return a + b * 2;\n}',
+        input: '(3, 5)', correct: '13',
+        distractors: ['16', '11', '35']
+      },
+      {
+        code: 'function tripleMinusOne(n) {\n  return n * 3 - 1;\n}',
+        input: '4', correct: '11',
+        distractors: ['12', '13', '43']
+      }
+    ],
+    comparison: [
+      {
+        code: 'function isEven(n) {\n  return n % 2 === 0;\n}',
+        input: '7', correct: 'false',
+        distractors: ['true', '1', '7']
+      },
+      {
+        code: 'function isLong(word) {\n  return word.length > 5;\n}',
+        input: '"cat"', correct: 'false',
+        distractors: ['true', '3', '"cat"']
+      },
+      {
+        code: 'function canRide(height) {\n  return height >= 120;\n}',
+        input: '120', correct: 'true',
+        distractors: ['false', '120', '0']
+      },
+      {
+        code: 'function sameNum(a, b) {\n  return a === b;\n}',
+        input: '(3, 3)', correct: 'true',
+        distractors: ['false', '3', '6']
+      },
+      {
+        code: 'function isNeg(n) {\n  return n < 0;\n}',
+        input: '5', correct: 'false',
+        distractors: ['true', '5', '-5']
+      }
+    ]
+  };
+
+  // ---- State ----
+  let currentLevel = 'function';
+  let rounds = [];
+  let currentRound = 0;
+  let score = 0;
+  let correctCount = 0;
+  let roundTimer = null;
+  let timeLeft = 12;
+  let roundActive = false;
+
+  // ---- Init ----
+  function init() {
+    const params = new URLSearchParams(window.location.search);
+
+    // Preserve ?v= param in back links
+    const vParam = params.get('v');
+    if (vParam) {
+      const backUrl = '../code-quest.html?v=' + encodeURIComponent(vParam);
+      document.getElementById('backLink').href = backUrl;
+      document.getElementById('backToQuest').href = backUrl;
+    }
+
+    const level = params.get('level');
+    if (level && ROUNDS_BY_LEVEL[level]) {
+      currentLevel = level;
+    }
+
+    const labelMap = {
+      'function': 'Function Level',
+      'operator': 'Operator Level',
+      'comparison': 'Comparison Level'
+    };
+    document.getElementById('levelLabel').textContent = labelMap[currentLevel] || 'Function Level';
+  }
+
+  function startGame() {
+    // Reset
+    currentRound = 0;
+    score = 0;
+    correctCount = 0;
+
+    rounds = [...ROUNDS_BY_LEVEL[currentLevel]];
+
+    document.getElementById('scoreDisplay').textContent = '0';
+    document.getElementById('startScreen').classList.remove('active');
+    document.getElementById('gameScreen').classList.add('active');
+    document.getElementById('hud').style.display = 'flex';
+    document.getElementById('gameoverOverlay').classList.remove('visible');
+
+    loadRound();
+  }
+
+  function loadRound() {
+    const round = rounds[currentRound];
+    roundActive = true;
+    timeLeft = 12;
+
+    document.getElementById('roundDisplay').textContent = (currentRound + 1) + ' / 5';
+    document.getElementById('timerDisplay').textContent = '12';
+    document.getElementById('timerDisplay').classList.remove('timer-warn');
+
+    // Set machine code
+    document.getElementById('machineCode').textContent = round.code;
+
+    // Set input with animation
+    const inputEl = document.getElementById('inputValue');
+    inputEl.textContent = round.input;
+    inputEl.classList.remove('slide-in');
+    void inputEl.offsetWidth; // Force reflow
+    inputEl.classList.add('slide-in');
+
+    // Reset output slot
+    const outputSlot = document.getElementById('outputSlot');
+    outputSlot.textContent = '?';
+    outputSlot.classList.remove('correct');
+
+    // Reset machine
+    document.getElementById('machine').classList.remove('flash-red');
+
+    // Build options (shuffle)
+    const allOptions = [round.correct, ...round.distractors];
+    shuffle(allOptions);
+
+    const grid = document.getElementById('optionsGrid');
+    grid.innerHTML = '';
+    allOptions.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = opt;
+      btn.addEventListener('click', () => handleOption(btn, opt, round.correct));
+      grid.appendChild(btn);
+    });
+
+    // Hide transition message
+    document.getElementById('roundTransition').classList.remove('visible');
+
+    // Start timer
+    startRoundTimer();
+  }
+
+  function startRoundTimer() {
+    if (roundTimer) clearInterval(roundTimer);
+    roundTimer = setInterval(() => {
+      timeLeft--;
+      const timerEl = document.getElementById('timerDisplay');
+      timerEl.textContent = timeLeft;
+      if (timeLeft <= 4) {
+        timerEl.classList.add('timer-warn');
+      }
+      if (timeLeft <= 0) {
+        clearInterval(roundTimer);
+        roundActive = false;
+        // Time's up — disable options
+        disableOptions();
+        highlightCorrect(rounds[currentRound].correct);
+        setTimeout(nextRound, 1200);
+      }
+    }, 1000);
+  }
+
+  function handleOption(btn, chosen, correct) {
+    if (!roundActive) return;
+    if (btn.classList.contains('disabled')) return;
+
+    if (chosen === correct) {
+      // Correct!
+      roundActive = false;
+      clearInterval(roundTimer);
+      btn.classList.add('correct-choice');
+      score += 100;
+      correctCount++;
+      document.getElementById('scoreDisplay').textContent = score;
+
+      // Show in output slot
+      const outputSlot = document.getElementById('outputSlot');
+      outputSlot.textContent = correct;
+      outputSlot.classList.add('correct');
+
+      disableOptions();
+      setTimeout(nextRound, 1200);
+    } else {
+      // Wrong
+      btn.classList.add('wrong-choice', 'disabled');
+      score = Math.max(0, score - 20);
+      document.getElementById('scoreDisplay').textContent = score;
+
+      // Flash machine red
+      const machine = document.getElementById('machine');
+      machine.classList.remove('flash-red');
+      void machine.offsetWidth;
+      machine.classList.add('flash-red');
+    }
+  }
+
+  function disableOptions() {
+    document.querySelectorAll('.option-btn').forEach(btn => {
+      btn.classList.add('disabled');
+    });
+  }
+
+  function highlightCorrect(correct) {
+    document.querySelectorAll('.option-btn').forEach(btn => {
+      if (btn.textContent === correct) {
+        btn.classList.add('correct-choice');
+      }
+    });
+  }
+
+  function nextRound() {
+    currentRound++;
+    if (currentRound >= 5) {
+      showGameOver();
+      return;
+    }
+
+    // Brief transition
+    const trans = document.getElementById('roundTransition');
+    trans.textContent = 'Round ' + (currentRound + 1);
+    trans.classList.remove('visible');
+    void trans.offsetWidth;
+    trans.classList.add('visible');
+
+    setTimeout(loadRound, 800);
+  }
+
+  function showGameOver() {
+    clearInterval(roundTimer);
+    document.getElementById('finalScore').textContent = score;
+    document.getElementById('finalCorrect').textContent = correctCount + ' / 5';
+
+    // Stars based on score (max 500)
+    let starCount;
+    if (score >= 400) {
+      starCount = 3;
+    } else if (score >= 250) {
+      starCount = 2;
+    } else {
+      starCount = 1;
+    }
+
+    const starEl = document.getElementById('stars');
+    starEl.textContent = '';
+    for (let i = 0; i < 3; i++) {
+      const span = document.createElement('span');
+      span.textContent = i < starCount ? '\u2B50' : '\u2606';
+      span.style.opacity = i < starCount ? '1' : '0.3';
+      starEl.appendChild(span);
+    }
+
+    document.getElementById('gameoverOverlay').classList.add('visible');
+  }
+
+  // ---- Utilities ----
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  // ---- Event listeners ----
+  document.getElementById('startBtn').addEventListener('click', startGame);
+  document.getElementById('playAgainBtn').addEventListener('click', () => {
+    document.getElementById('gameScreen').classList.remove('active');
+    document.getElementById('startScreen').classList.add('active');
+    document.getElementById('hud').style.display = 'none';
+    document.getElementById('gameoverOverlay').classList.remove('visible');
+    startGame();
+  });
+
+  // ---- Start ----
+  init();
+</script>
+
+</body>
+</html>

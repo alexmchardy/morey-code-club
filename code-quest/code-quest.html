@@ -180,7 +180,7 @@
       font-family: 'Fredoka', sans-serif;
       font-size: 0.9rem;
       color: var(--text);
-      max-width: 340px;
+      max-width: 360px;
       box-shadow: 0 0 12px rgba(57,255,20,0.15);
       white-space: pre-wrap;
     }
@@ -617,6 +617,11 @@
       box-shadow: 0 0 12px rgba(0,245,255,0.15);
     }
     .challenge-editor .CodeMirror { height: 180px; font-size: 0.9rem; }
+    .autocomplete-ghost {
+      color: #6272a4;
+      pointer-events: none;
+      font-style: italic;
+    }
     .editor-fallback {
       width: 100%;
       height: 180px;
@@ -987,7 +992,7 @@
 
   <!-- HEADER -->
   <header id="appHeader">
-    <h1 onclick="showView('map')">Code Club Quest <span class="edition-subtitle">Javascript edition</span></h1>
+    <h1 id="appTitle" onclick="showView('map')">Code Club Quest <span class="edition-subtitle">Javascript edition</span></h1>
     <div id="hudBar">
       <div class="hud-item"><div>XP</div><span id="xpDisplay">0</span></div>
       <div class="hud-item"><div>Level</div><span id="levelDisplay">1</span></div>
@@ -1002,19 +1007,25 @@
   <!-- VIEW: Welcome -->
   <div class="view view-welcome" id="viewWelcome">
     <div class="mono-container" id="monoWelcome"></div>
-    <h2>Welcome to Code Club Quest!</h2>
-    <p>Learn to code step by step with Mono the Code Monkey!</p>
+    <h2 id="welcomeTitle">Welcome to Code Club Quest!</h2>
+    <p id="welcomeSubtitle">Learn to code step by step with Mono the Code Monkey!</p>
     <p style="margin-top:8px; color:var(--text-dim); font-size:14px;">Complete levels, solve challenges, and play mini-games.</p>
-    <button class="quest-btn" onclick="startQuest()">Start Quest</button>
+    <button class="quest-btn" id="welcomeBtn" onclick="startQuest()">Start Quest</button>
   </div>
 
   <!-- VIEW: Level Map -->
   <div class="view view-map" id="viewMap">
-    <h2>Quest Map</h2>
+    <h2 id="mapTitle">Quest Map</h2>
     <div class="level-path" id="levelPath"></div>
     <div style="text-align:center; margin-top: 8px;">
       <div class="mono-container" id="monoMap"></div>
       <div class="mono-speech-inline" id="monoMapSpeech" style="margin: 12px auto; max-width: 300px;"></div>
+    </div>
+    <div id="questIIMapLink" style="text-align:center; margin-top: 16px; display:none;">
+      <a href="code-quest.html?v=2" style="color:var(--text-dim); font-size:0.8rem; text-decoration:none; transition: color 0.15s;">Ready for more? Try Quest II →</a>
+    </div>
+    <div id="questIMapLink" style="text-align:center; margin-top: 16px; display:none;">
+      <a href="code-quest.html?v=1" style="color:var(--text-dim); font-size:0.8rem; text-decoration:none; transition: color 0.15s;">← Back to Quest I</a>
     </div>
   </div>
 
@@ -1091,9 +1102,10 @@
     <div class="celebration">
       <div class="mono-container" id="monoFinish"></div>
       <h2>Quest Complete!</h2>
-      <p style="font-size:18px; margin: 12px 0;">You finished all 6 levels!</p>
+      <p id="questCompleteLevelCount" style="font-size:18px; margin: 12px 0;">You finished all the levels!</p>
       <div class="xp-earned" id="totalXp">Total: 0 XP</div>
-      <p style="color:var(--text-dim); font-size:14px; margin: 16px 0;">You've learned strings, variables, assignment, operators, comparisons, and conditionals. You're ready to build real things!</p>
+      <p id="questCompleteMessage" style="color:var(--text-dim); font-size:14px; margin: 16px 0;"></p>
+      <a id="questIILink" href="code-quest.html?v=2" class="quest-btn" style="display:none; text-decoration:none;">Continue the Quest!</a>
       <button class="quest-btn" onclick="showView('map')">View Map</button>
       <button class="quest-btn quest-btn-secondary" onclick="resetProgress()">Play Again</button>
     </div>
@@ -1118,6 +1130,7 @@
 // ============================================================
 // CONFIGURATION
 // ============================================================
+const QUEST_VERSION = new URLSearchParams(window.location.search).get('v') === '2' ? 2 : 1;
 const CURRENT_LANGUAGE = 'javascript';
 
 const LANGUAGE_CONFIG = {
@@ -1204,20 +1217,19 @@ function renderMono(containerId, spriteName, scale) {
 // ============================================================
 // LESSON DATA
 // ============================================================
-const LESSONS = [
+const LESSONS_V1 = [
   {
     id: 'string',
     title: 'Strings & Numbers',
     icon: '\uD83D\uDCDD',
-    explanation: {
+    sections: [{
+      explanation: {
       title: 'Strings and Numbers',
       body: 'A <strong>string</strong> is a piece of text in your code. You wrap text in quotes to tell the computer "this is text, not code." A <strong>number</strong> is just a number with no quotes. The computer treats them very differently!',
       realWorld: 'Strings are like labels \u2014 text like your name or a message. Numbers are for math \u2014 your age, a score, or a price.',
       monoSays: 'Big difference: "5" is a string (text), but 5 is a number. Quotes change everything!'
     },
-    languages: {
-      javascript: {
-        example: {
+      example: {
           code: 'console.log("Hello!");\nconsole.log(42);\nconsole.log("My age is 10");',
           output: 'Hello!\n42\nMy age is 10',
           annotations: [
@@ -1262,8 +1274,7 @@ const LESSONS = [
             ]
           }
         ]
-      }
-    },
+    }],
     miniGameAfter: 'variable-match',
     miniGameName: "🃏 Str Match"
   },
@@ -1271,15 +1282,14 @@ const LESSONS = [
     id: 'output',
     title: 'Output',
     icon: '\uD83D\uDCE2',
-    explanation: {
+    sections: [{
+      explanation: {
       title: 'Showing Things on Screen',
       body: 'To make your code <strong>show something on the screen</strong>, you use <strong>console.log()</strong>. Put whatever you want to display inside the parentheses. It can be a string, a number, or even math!',
       realWorld: 'Think of console.log() like a megaphone \u2014 it takes whatever you give it and announces it to the world. Without it, your code runs silently!',
       monoSays: 'console.log() is your best friend for seeing what your code is doing. Use it to check your work!'
     },
-    languages: {
-      javascript: {
-        example: {
+      example: {
           code: 'console.log("Hello, world!");\nconsole.log(42);\nconsole.log(10 + 5);',
           output: 'Hello, world!\n42\n15',
           annotations: [
@@ -1320,23 +1330,21 @@ const LESSONS = [
             monoFail: 'Print "Ready?" first, then print 3 + 2 (which equals 5).'
           }
         ]
-      }
-    },
+    }],
     miniGameAfter: 'speed-type'
   },
   {
     id: 'variable',
     title: 'Variables',
     icon: '\uD83D\uDCE6',
-    explanation: {
+    sections: [{
+      explanation: {
       title: 'What is a Variable?',
       body: 'A <strong>variable</strong> is like a labeled box that stores a value. You create a variable using the keyword <code>let</code>, give it a name, then use <code>=</code> to assign a value. The value can be a <strong>string</strong> (text in quotes), a <strong>number</strong>, or a <strong>boolean</strong> (true or false).',
       realWorld: 'Imagine a labeled jar. The label is the variable name. What\'s inside is the value. You can swap out what\'s inside anytime!',
       monoSays: 'Variables are how your code remembers things! Without them, your program would forget everything instantly.'
     },
-    languages: {
-      javascript: {
-        example: {
+      example: {
           code: 'let score = 0;\nlet playerName = "Alex";\nlet isPlaying = true;\n\nconsole.log(playerName);\nconsole.log(score);',
           output: 'Alex\n0',
           annotations: [
@@ -1390,23 +1398,21 @@ const LESSONS = [
             monoFail: 'Check that game has quotes, lives is a number (no quotes), and isGameOver is false (no quotes).'
           }
         ]
-      }
-    },
+    }],
     miniGameAfter: 'variable-match'
   },
   {
     id: 'assignment',
     title: 'Assignment',
     icon: '\u2B05\uFE0F',
-    explanation: {
+    sections: [{
+      explanation: {
       title: 'Assignment: Changing Values',
       body: 'The <strong>=</strong> sign in code doesn\'t mean "equals" like in math. It means <strong>"put this value into that variable."</strong> You can change a variable\'s value anytime by assigning a new one.',
       realWorld: 'Think of your score in a game. It starts at 0, then goes up every time you earn points. The score variable gets updated over and over.',
       monoSays: 'The = sign is the assignment operator. It\'s like an arrow pointing left \u2014 the value on the right goes INTO the variable on the left.'
     },
-    languages: {
-      javascript: {
-        example: {
+      example: {
           code: 'let score = 0;\nconsole.log(score);\n\nscore = 10;\nconsole.log(score);\n\nscore = score + 5;\nconsole.log(score);',
           output: '0\n10\n15',
           annotations: [
@@ -1449,23 +1455,21 @@ const LESSONS = [
             monoFail: 'Start at 100, subtract 25, then subtract 10 more. The answer should be 65.'
           }
         ]
-      }
-    },
+    }],
     miniGameAfter: 'bug-squash'
   },
   {
     id: 'operator',
     title: 'Operators',
     icon: '\u2795',
-    explanation: {
+    sections: [{
+      explanation: {
       title: 'Math Operators',
       body: 'Operators let you do math and combine values. The basic operators are <strong>+</strong> (add), <strong>-</strong> (subtract), <strong>*</strong> (multiply), <strong>/</strong> (divide), and <strong>%</strong> (remainder).',
       realWorld: 'Operators are just like the math you already know, except the computer does the calculating. The % (modulo) operator is new \u2014 it gives the remainder after division.',
       monoSays: 'Fun fact: + works on strings too! "Hello" + " " + "World" gives you "Hello World".'
     },
-    languages: {
-      javascript: {
-        example: {
+      example: {
           code: 'let a = 10;\nlet b = 3;\n\nconsole.log(a + b);\nconsole.log(a - b);\nconsole.log(a * b);\nconsole.log(a % b);',
           output: '13\n7\n30\n1',
           annotations: [
@@ -1555,23 +1559,21 @@ const LESSONS = [
             ]
           }
         ]
-      }
-    },
+    }],
     miniGameAfter: 'code-scramble'
   },
   {
     id: 'comparison',
     title: 'Comparisons',
     icon: '\u2696\uFE0F',
-    explanation: {
+    sections: [{
+      explanation: {
       title: 'Comparing Values',
       body: 'Comparison operators ask a yes-or-no question about two values. The answer is always <strong>true</strong> or <strong>false</strong>. Use <strong>===</strong> (equal?), <strong>!==</strong> (not equal?), <strong>&lt;</strong>, <strong>&gt;</strong>, <strong>&lt;=</strong>, and <strong>&gt;=</strong>.',
       realWorld: 'Comparisons are like asking questions: "Is my score higher than the high score?" The computer answers true or false.',
       monoSays: 'Important! Use === (three equals) to compare, not = (one equals). One = means assign, three === means compare!'
     },
-    languages: {
-      javascript: {
-        example: {
+      example: {
           code: 'let score = 85;\nlet passingScore = 70;\n\nconsole.log(score > passingScore);\nconsole.log(score === 100);\nconsole.log(score >= passingScore);',
           output: 'true\nfalse\ntrue',
           annotations: [
@@ -1609,23 +1611,21 @@ const LESSONS = [
             monoFail: 'The output should be true on the first line and false on the second.'
           }
         ]
-      }
-    },
+    }],
     miniGameAfter: 'output-guess'
   },
   {
     id: 'conditional',
     title: 'Decisions',
     icon: '\uD83D\uDEA6',
-    explanation: {
+    sections: [{
+      explanation: {
       title: 'Making Decisions with if/else',
       body: 'An <strong>if</strong> statement lets your code make decisions. If a condition is true, one block of code runs. If it\'s false, the <strong>else</strong> block runs instead.',
       realWorld: 'Think of a traffic light. IF the light is green, you go. ELSE (if it\'s not green), you stop. Your code makes decisions like this constantly.',
       monoSays: 'Conditionals are the brain of your program! Without them, code would just do the same thing every time, no matter what.'
     },
-    languages: {
-      javascript: {
-        example: {
+      example: {
           code: 'let temperature = 95;\n\nif (temperature > 90) {\n  console.log("It\'s hot outside!");\n} else {\n  console.log("Not too hot.");\n}',
           output: "It's hot outside!",
           annotations: [
@@ -1667,11 +1667,355 @@ const LESSONS = [
             monoFail: 'Use === to check if lives equals 0. Remember: === for comparison, = for assignment.'
           }
         ]
-      }
-    },
+    }],
     miniGameAfter: 'bug-squash'
   }
 ];
+
+// ============================================================
+// LESSONS V2 (Quest II: Arrays, Loops, Functions)
+// ============================================================
+const LESSONS_V2 = [
+  // ── Lesson 8: Arrays ──
+  {
+    id: 'array',
+    title: 'Arrays',
+    icon: '\uD83D\uDC6F',
+    sections: [
+      {
+        explanation: {
+          title: 'Lists of Things: Arrays',
+          body: 'An <strong>array</strong> is a list that holds multiple values in one variable. You create an array using <strong>square brackets [ ]</strong> with items separated by commas. Each item has a position called an <strong>index</strong>, starting at <strong>0</strong> (not 1!).',
+          realWorld: 'Think of an array like a row of lockers. Each locker has a number starting at 0. You can open any locker by its number to see what\'s inside.',
+          monoSays: 'Arrays start counting at 0, not 1! The first item is at index [0]. It\'s weird at first, but you\'ll get used to it!'
+        },
+        example: {
+          code: 'let fruits = ["apple", "banana", "cherry"];\n\nconsole.log(fruits[0]);\nconsole.log(fruits[1]);\nconsole.log(fruits[2]);',
+          output: 'apple\nbanana\ncherry',
+          annotations: [
+            { line: 1, text: 'Create an array with 3 strings. The square brackets [ ] make it an array.' },
+            { line: 3, text: '<code>fruits[0]</code> gets the <strong>first</strong> item — "apple". Remember, arrays start at 0!' },
+            { line: 4, text: '<code>fruits[1]</code> gets the <strong>second</strong> item — "banana"' },
+            { line: 5, text: '<code>fruits[2]</code> gets the <strong>third</strong> item — "cherry"' }
+          ]
+        },
+        challenges: [
+          {
+            id: 'array-1',
+            prompt: 'Create an array called <code>colors</code> with three colors (strings). Then print the <strong>first</strong> color using its index.',
+            starterCode: '// Create your colors array\n\n// Print the first color\n',
+            hint: 'let colors = ["red", "blue", "green"];\nconsole.log(colors[0]);',
+            validate: { type: 'custom', fn: 'validateArrayChallenge1' },
+            xpReward: 10,
+            monoSuccess: 'You made your first array and accessed it by index!',
+            monoFail: 'Make sure colors is an array with 3 strings, and print colors[0].'
+          },
+          {
+            id: 'array-2',
+            prompt: 'Create an array <code>scores</code> with the numbers 90, 85, and 100. Print the <strong>last</strong> score using its index.',
+            starterCode: '// Create scores array\n\n// Print the last score\n',
+            hint: 'The last item of 3 is at index [2]! console.log(scores[2]);',
+            validate: { type: 'custom', fn: 'validateArrayChallenge2' },
+            xpReward: 15,
+            monoSuccess: 'scores[2] is 100 — the third item at index 2!',
+            monoFail: 'Remember: numbers don\'t have quotes! Use [90, 85, 100] not ["90", "85", "100"]. The last index is [2].'
+          }
+        ]
+      },
+      {
+        explanation: {
+          title: 'Growing Your Arrays',
+          body: 'You can check how many items are in an array with <strong>.length</strong>. You can add new items to the end of an array with <strong>.push()</strong>. The array grows automatically!',
+          realWorld: 'Think of .push() like adding a new book to the end of a shelf. The shelf gets longer, and .length tells you how many books are on it.',
+          monoSays: 'Arrays aren\'t stuck at one size. Use .push() to grow them whenever you need to!'
+        },
+        example: {
+          code: 'let pets = ["dog", "cat"];\nconsole.log(pets.length);\n\npets.push("fish");\npets.push("bird");\nconsole.log(pets.length);\nconsole.log(pets[3]);',
+          output: '2\n4\nbird',
+          annotations: [
+            { line: 1, text: 'Start with 2 pets' },
+            { line: 2, text: '<code>.length</code> tells you how many items are in the array (2)' },
+            { line: 4, text: '<code>.push("fish")</code> adds "fish" to the end — now 3 items' },
+            { line: 5, text: '<code>.push("bird")</code> adds "bird" — now 4 items' },
+            { line: 6, text: 'Length is now 4 after pushing twice' },
+            { line: 7, text: '<code>pets[3]</code> is "bird" — the 4th item at index 3' }
+          ]
+        },
+        challenges: [
+          {
+            id: 'array-3',
+            prompt: 'Create an array <code>friends</code> with two names. Use <code>.push()</code> to add a third friend. Then print the array\'s <code>.length</code>.',
+            starterCode: '// Create friends with 2 names\n\n// Add a third friend\n\n// Print the length\n',
+            hint: 'friends.push("Jordan");\nconsole.log(friends.length);',
+            validate: { type: 'custom', fn: 'validateArrayChallenge3' },
+            xpReward: 15,
+            monoSuccess: 'You grew your array with .push()! Length is 3.',
+            monoFail: 'Start with 2 names, use .push() to add one more, then print friends.length.'
+          },
+          {
+            id: 'array-mc',
+            prompt: 'Quiz time! Test your array knowledge.',
+            starterCode: '',
+            hint: 'Think about what index means and what .push() does...',
+            validate: { type: 'multipleChoice' },
+            xpReward: 15,
+            monoSuccess: 'You know your arrays inside and out!',
+            monoFail: 'Think carefully about indexes and .push()...',
+            multipleChoice: [
+              {
+                question: 'Given <code>let pets = ["dog", "cat", "fish"]</code>, what is <code>pets[1]</code>?',
+                options: ['"dog"', '"cat"', '"fish"', 'undefined'],
+                correctIndex: 1,
+                explanation: 'pets[1] is "cat" — remember, indexes start at 0!'
+              },
+              {
+                question: 'Given <code>let nums = [10, 20, 30]</code>, what is <code>nums.length</code>?',
+                options: ['2', '3', '30', '0'],
+                correctIndex: 1,
+                explanation: '.length counts the items — there are 3 items'
+              },
+              {
+                question: 'What does <code>.push("x")</code> do?',
+                options: ['Removes "x" from the array', 'Adds "x" to the beginning', 'Adds "x" to the end', 'Replaces the first item with "x"'],
+                correctIndex: 2,
+                explanation: '.push() always adds to the END of the array'
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    miniGameAfter: 'array-builder'
+  },
+  // ── Lesson 9: Loops ──
+  {
+    id: 'loop',
+    title: 'Loops',
+    icon: '\uD83D\uDD01',
+    sections: [
+      {
+        explanation: {
+          title: 'Looping Through a List',
+          body: 'A <strong>loop</strong> runs a block of code multiple times. The <strong>for...of</strong> loop goes through each item in an array, one at a time. You write <code>for (let item of array)</code> and the code inside the curly braces runs once for each item.',
+          realWorld: 'Think of a loop like dealing cards — you repeat the same action for each player. Instead of writing "deal to player 1, deal to player 2..." you just say "deal to each player."',
+          monoSays: 'Without loops, printing 100 things would take 100 lines of code. With a loop? Just 3 lines!'
+        },
+        example: {
+          code: 'let snacks = ["chips", "cookies", "fruit"];\n\nfor (let snack of snacks) {\n  console.log(snack);\n}',
+          output: 'chips\ncookies\nfruit',
+          annotations: [
+            { line: 1, text: 'An array of snacks to loop through' },
+            { line: 3, text: '<strong>for...of</strong> — "for each snack in snacks, do this..." The variable <code>snack</code> holds each item, one at a time' },
+            { line: 4, text: 'This line runs 3 times — once for "chips", once for "cookies", once for "fruit"' }
+          ]
+        },
+        challenges: [
+          {
+            id: 'loop-1',
+            prompt: 'Given the array <code>animals</code>, use a <strong>for...of</strong> loop to print each animal.',
+            starterCode: 'let animals = ["cat", "dog", "fish"];\n\n// Loop through and print each animal\n',
+            hint: 'for (let animal of animals) {\n  console.log(animal);\n}',
+            validate: { type: 'output', expectedOutput: 'cat\ndog\nfish' },
+            xpReward: 10,
+            monoSuccess: 'Your loop printed all 3 animals! One line of code, three outputs.',
+            monoFail: 'Use for (let animal of animals) { console.log(animal); }'
+          },
+          {
+            id: 'loop-2',
+            prompt: 'Given <code>prices = [10, 20, 30]</code> and <code>total = 0</code>, use a for...of loop to add up all the prices into <code>total</code>. Print the total after the loop.',
+            starterCode: 'let prices = [10, 20, 30];\nlet total = 0;\n\n// Loop through prices and add each to total\n\n// Print the total\n',
+            hint: 'for (let price of prices) {\n  total = total + price;\n}\nconsole.log(total);',
+            validate: {
+              type: 'multi',
+              checks: [
+                { type: 'value', varName: 'total', expectedValue: 60 },
+                { type: 'output', expectedOutput: '60' }
+              ]
+            },
+            xpReward: 15,
+            monoSuccess: '10 + 20 + 30 = 60! You used a loop to add up numbers!',
+            monoFail: 'Inside the loop: total = total + price. After the loop: console.log(total);'
+          }
+        ]
+      },
+      {
+        explanation: {
+          title: 'Keep Going Until...',
+          body: 'A <strong>while</strong> loop keeps running as long as its condition is true. You check the condition before each loop. <strong>Important:</strong> you must change something inside the loop so the condition eventually becomes false — otherwise the loop runs forever!',
+          realWorld: 'A while loop is like asking "Should we keep looping?" over and over. It keeps going until the answer is finally NO!',
+          monoSays: 'It\'s called a "while" loop because it keeps going <strong>while</strong> the condition is true.'
+        },
+        example: {
+          code: 'let countdown = 5;\n\nwhile (countdown > 0) {\n  console.log(countdown);\n  countdown = countdown - 1;\n}\n\nconsole.log("Blast off!");',
+          output: '5\n4\n3\n2\n1\nBlast off!',
+          annotations: [
+            { line: 1, text: 'Start countdown at 5' },
+            { line: 3, text: '<strong>while</strong> — keep looping as long as countdown is greater than 0' },
+            { line: 4, text: 'Print the current countdown value' },
+            { line: 5, text: '<strong>Subtract 1 each time</strong> — this is crucial! Without it, the loop would never stop' },
+            { line: 8, text: 'This runs after the loop finishes (when countdown reaches 0)' }
+          ]
+        },
+        challenges: [
+          {
+            id: 'loop-3',
+            prompt: 'Create a variable <code>countdown</code> set to 3. Use a <strong>while</strong> loop to print the countdown, subtracting 1 each time. After the loop, print "Go!"',
+            starterCode: 'let countdown = 3;\n\n// While countdown is greater than 0, print it and subtract 1\n\n// Print "Go!" after the loop\n',
+            hint: 'while (countdown > 0) {\n  console.log(countdown);\n  countdown = countdown - 1;\n}\nconsole.log("Go!");',
+            validate: { type: 'output', expectedOutput: '3\n2\n1\nGo!' },
+            xpReward: 20,
+            monoSuccess: '3... 2... 1... Go! Your while loop counted down perfectly!',
+            monoFail: 'Make sure you subtract 1 inside the loop, and print "Go!" AFTER the loop ends.'
+          },
+          {
+            id: 'loop-mc',
+            prompt: 'Quiz time! Test your loop knowledge.',
+            starterCode: '',
+            hint: 'Think about what happens each time the loop runs...',
+            validate: { type: 'multipleChoice' },
+            xpReward: 15,
+            monoSuccess: 'You understand how loops work!',
+            monoFail: 'Think about what happens each time the loop repeats...',
+            multipleChoice: [
+              {
+                question: 'How many times does this loop run? <code>let x = 10; while (x > 7) { x = x - 1; }</code>',
+                options: ['1 time', '2 times', '3 times', '10 times'],
+                correctIndex: 2,
+                explanation: 'x goes 10→9→8→7, the loop body runs 3 times (when x is 10, 9, 8)'
+              },
+              {
+                question: 'What does <code>for (let item of array)</code> do?',
+                options: ['Creates a new array', 'Runs code once for each item in the array', 'Deletes items from the array', 'Sorts the array'],
+                correctIndex: 1,
+                explanation: 'for...of runs the loop body once for each item'
+              },
+              {
+                question: 'What happens if you forget to change the variable in a while loop?',
+                options: ['Nothing happens', 'The loop runs once', 'The loop runs forever', 'You get an error'],
+                correctIndex: 2,
+                explanation: 'If the condition never becomes false, the loop runs forever!'
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    miniGameAfter: 'loop-tracer'
+  },
+  // ── Lesson 10: Functions ──
+  {
+    id: 'function',
+    title: 'Functions',
+    icon: '\u2699\uFE0F',
+    sections: [
+      {
+        explanation: {
+          title: 'Reusable Code: Functions',
+          body: 'A <strong>function</strong> is a named block of code that you can run whenever you want. You <strong>define</strong> it with the <code>function</code> keyword, then <strong>call</strong> it by writing its name with <strong>parentheses ()</strong>. The parentheses are what make it run!',
+          realWorld: 'Think of a function like a recipe card. You write it once and file it away. Whenever you want to make that dish, you pull out the card and follow it. You can use it as many times as you want!',
+          monoSays: 'Functions are like superpowers — write the code once, then use it a million times just by calling its name!'
+        },
+        example: {
+          code: 'function sayGoodMorning() {\n  console.log("Good morning!");\n  console.log("Time to code!");\n}\n\nsayGoodMorning();\nsayGoodMorning();',
+          output: 'Good morning!\nTime to code!\nGood morning!\nTime to code!',
+          annotations: [
+            { line: 1, text: '<code>function sayGoodMorning()</code> — defines a function with this name. The code inside doesn\'t run yet!' },
+            { line: '2-3', text: 'These lines are stored inside the function, waiting to be called' },
+            { line: 6, text: '<code>sayGoodMorning()</code> <strong>calls</strong> the function — NOW the code inside runs' },
+            { line: 7, text: 'Calling it again runs the same code a second time. Two calls, four lines of output!' }
+          ]
+        },
+        challenges: [
+          {
+            id: 'function-1',
+            prompt: 'Create a function called <code>sayHello</code> that prints "Hello, world!" inside it. Then <strong>call</strong> your function.',
+            starterCode: '// Define the function\n\n\n// Call the function\n',
+            hint: 'function sayHello() {\n  console.log("Hello, world!");\n}\nsayHello();',
+            validate: { type: 'custom', fn: 'validateFunction1' },
+            xpReward: 10,
+            monoSuccess: 'You defined AND called your first function!',
+            monoFail: 'Define the function with function sayHello() { ... } then call it with sayHello();'
+          }
+        ]
+      },
+      {
+        explanation: {
+          title: 'Inputs and Outputs',
+          body: 'Functions can take <strong>parameters</strong> — values you pass in when you call them. They can also <strong>return</strong> a value back to you. Think of parameters as the input and <code>return</code> as the output. <code>return</code> is different from <code>console.log()</code> — return sends the value back silently, while console.log() prints to the screen.',
+          realWorld: 'A function with parameters is like a vending machine — you put in a selection (the parameter), and it gives you back a drink (the return value).',
+          monoSays: 'Parameters go IN, return values come OUT. A function is like a machine — put something in, get something out!'
+        },
+        example: {
+          code: 'function double(num) {\n  return num * 2;\n}\n\nconsole.log(double(5));\nconsole.log(double(12));\n\nlet result = double(7);\nconsole.log(result);',
+          output: '10\n24\n14',
+          annotations: [
+            { line: 1, text: '<code>double(num)</code> — "num" is a <strong>parameter</strong>. It\'s a placeholder for whatever value you pass in.' },
+            { line: 2, text: '<code>return</code> sends the answer back to where the function was called. It does NOT print!' },
+            { line: 5, text: '<code>double(5)</code> — calls the function with 5. num becomes 5, returns 10. console.log prints it.' },
+            { line: 6, text: 'Same function, different input — num becomes 12, returns 24' },
+            { line: 8, text: 'You can store the return value in a variable too' }
+          ]
+        },
+        challenges: [
+          {
+            id: 'function-2',
+            prompt: 'Create a function called <code>double</code> that takes a number as a parameter and <strong>returns</strong> that number multiplied by 2. Then print the result of calling <code>double(5)</code>.',
+            starterCode: '// Define the double function\n\n\n// Print double(5)\n',
+            hint: 'function double(num) {\n  return num * 2;\n}\nconsole.log(double(5));',
+            validate: { type: 'custom', fn: 'validateFunction2' },
+            xpReward: 15,
+            monoSuccess: 'double(5) returns 10! Your function takes input and gives output.',
+            monoFail: 'Use return (not console.log) inside the function. Then print with console.log(double(5));'
+          },
+          {
+            id: 'function-3',
+            prompt: 'Create a function called <code>isEven</code> that takes a number and returns <code>true</code> if it\'s even, or <code>false</code> if it\'s odd. (Hint: use <code>% 2</code>). Print the result of <code>isEven(4)</code> and <code>isEven(7)</code>.',
+            starterCode: '// Define isEven\n\n\n// Test it\n',
+            hint: 'function isEven(num) {\n  if (num % 2 === 0) {\n    return true;\n  } else {\n    return false;\n  }\n}',
+            validate: { type: 'custom', fn: 'validateFunction3' },
+            xpReward: 20,
+            monoSuccess: 'isEven(4) is true, isEven(7) is false! You combined functions with if/else!',
+            monoFail: 'Use % 2 to check if the remainder is 0 (even) or not (odd). Return true or false.'
+          },
+          {
+            id: 'function-mc',
+            prompt: 'Final quiz! Test your function knowledge.',
+            starterCode: '',
+            hint: 'Think about what return does vs what happens without parentheses...',
+            validate: { type: 'multipleChoice' },
+            xpReward: 20,
+            monoSuccess: 'You understand functions! You\'re ready to build amazing things!',
+            monoFail: 'Think about what return does and why parentheses matter...',
+            multipleChoice: [
+              {
+                question: 'What does <code>return</code> do inside a function?',
+                options: ['Prints a value to the screen', 'Sends a value back to where the function was called', 'Stops the program', 'Creates a new variable'],
+                correctIndex: 1,
+                explanation: 'return sends the value back — it does NOT print!'
+              },
+              {
+                question: 'Given <code>function add(a, b) { return a + b; }</code>, what is <code>add(3, 4)</code>?',
+                options: ['34', '7', '"a + b"', 'undefined'],
+                correctIndex: 1,
+                explanation: 'add(3, 4) returns 3 + 4 = 7'
+              },
+              {
+                question: 'What happens if you write <code>greet</code> without <code>()</code>?',
+                options: ['The function runs normally', 'Nothing — the function does not run', 'You get an error', 'It runs twice'],
+                correctIndex: 1,
+                explanation: 'Without (), you\'re just referencing the function, not calling it!'
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    miniGameAfter: 'function-factory'
+  }
+];
+
+// Route to the correct lesson set
+const LESSONS = QUEST_VERSION === 2 ? LESSONS_V2 : LESSONS_V1;
 
 // ============================================================
 // HINT WORD SYSTEM
@@ -1746,6 +2090,106 @@ const CUSTOM_VALIDATORS = {
     return { pass: true };
   },
 
+  validateArrayChallenge1(result, code) {
+    if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
+    if (!result.vars.colors || !Array.isArray(result.vars.colors))
+      return { pass: false, message: 'Create a variable called colors that is an array (use square brackets [ ]).' };
+    if (result.vars.colors.length < 3)
+      return { pass: false, message: 'Your colors array needs at least 3 items.' };
+    var allStrings = result.vars.colors.every(function(c) { return typeof c === 'string'; });
+    if (!allStrings)
+      return { pass: false, message: 'All items in colors should be strings (in quotes).' };
+    if (result.output.length === 0)
+      return { pass: false, message: 'Don\'t forget to print the first color with console.log(colors[0])!' };
+    if (result.output[0] !== result.vars.colors[0])
+      return { pass: false, message: 'Print the first color: console.log(colors[0]). Your output should be "' + result.vars.colors[0] + '".' };
+    return { pass: true };
+  },
+
+  validateArrayChallenge2(result, code) {
+    if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
+    if (!result.vars.scores || !Array.isArray(result.vars.scores))
+      return { pass: false, message: 'Create a variable called scores that is an array (use square brackets [ ]).' };
+    var allNumbers = result.vars.scores.every(function(s) { return typeof s === 'number'; });
+    if (!allNumbers)
+      return { pass: false, message: 'The items in scores should be numbers, not strings. Don\'t wrap numbers in quotes! Use [90, 85, 100] not ["90", "85", "100"].' };
+    if (result.vars.scores[0] !== 90 || result.vars.scores[1] !== 85 || result.vars.scores[2] !== 100)
+      return { pass: false, message: 'scores should contain the numbers 90, 85, and 100 in that order.' };
+    if (result.output.length === 0 || result.output[0] !== '100')
+      return { pass: false, message: 'Print the last score with console.log(scores[2]). The output should be 100.' };
+    return { pass: true };
+  },
+
+  validateArrayChallenge3(result, code) {
+    if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
+    if (!result.vars.friends || !Array.isArray(result.vars.friends))
+      return { pass: false, message: 'Create a variable called friends that is an array.' };
+    if (code.indexOf('.push(') === -1)
+      return { pass: false, message: 'Use .push() to add a third friend!' };
+    if (result.vars.friends.length !== 3)
+      return { pass: false, message: 'Start with 2 friends and push 1 more — the array should have 3 items.' };
+    if (result.output.join('').trim() !== '3')
+      return { pass: false, message: 'Print the length of the array: console.log(friends.length). It should be 3.' };
+    return { pass: true };
+  },
+
+  validateFunction1(result, code) {
+    if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
+    if (!/function\s+sayHello\s*\(/.test(code))
+      return { pass: false, message: 'Define a function called sayHello using: function sayHello() { ... }' };
+    if (!/sayHello\s*\(\s*\)/.test(code.replace(/function\s+sayHello/, '')))
+      return { pass: false, message: 'Don\'t forget to call your function! Add sayHello(); after defining it.' };
+    if (result.output.length === 0 || result.output[0] !== 'Hello, world!')
+      return { pass: false, message: 'Your function should print exactly "Hello, world!" (with the comma and exclamation mark).' };
+    return { pass: true };
+  },
+
+  validateFunction2(result, code) {
+    if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
+    if (!/function\s+double\s*\(/.test(code))
+      return { pass: false, message: 'Define a function called double: function double(num) { ... }' };
+    if (!/return\b/.test(code))
+      return { pass: false, message: 'Use return inside your function (not console.log). return num * 2;' };
+    // Re-execute to verify the function returns the right value
+    try {
+      var testCode = code + '\nreturn double(5);';
+      var fn = new Function('console', 'Math', '"use strict";\n' + testCode);
+      var testResult = fn({ log: function() {} }, Math);
+      if (testResult !== 10)
+        return { pass: false, message: 'double(5) should return 10, but yours returns ' + testResult + '.' };
+    } catch (e) {
+      return { pass: false, message: 'Error testing your function: ' + e.message };
+    }
+    if (result.output.length === 0 || result.output[0] !== '10')
+      return { pass: false, message: 'Print the result: console.log(double(5)); should show 10.' };
+    return { pass: true };
+  },
+
+  validateFunction3(result, code) {
+    if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
+    if (!/function\s+isEven\s*\(/.test(code))
+      return { pass: false, message: 'Define a function called isEven: function isEven(num) { ... }' };
+    // Re-execute to verify return values
+    try {
+      var testCode4 = code + '\nreturn isEven(4);';
+      var fn4 = new Function('console', 'Math', '"use strict";\n' + testCode4);
+      var r4 = fn4({ log: function() {} }, Math);
+      if (r4 !== true)
+        return { pass: false, message: 'isEven(4) should return true, but yours returns ' + r4 + '.' };
+      var testCode7 = code + '\nreturn isEven(7);';
+      var fn7 = new Function('console', 'Math', '"use strict";\n' + testCode7);
+      var r7 = fn7({ log: function() {} }, Math);
+      if (r7 !== false)
+        return { pass: false, message: 'isEven(7) should return false, but yours returns ' + r7 + '.' };
+    } catch (e) {
+      return { pass: false, message: 'Error testing your function: ' + e.message };
+    }
+    var expectedOutput = 'true\nfalse';
+    if (result.output.join('\n').trim() !== expectedOutput)
+      return { pass: false, message: 'Print isEven(4) and isEven(7). Output should be:\ntrue\nfalse' };
+    return { pass: true };
+  },
+
   validateStringConcat(result) {
     if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
     if (typeof result.vars.firstName !== 'string')
@@ -1787,16 +2231,23 @@ const VALIDATORS = {
         }
       };
       try {
-        const varNames = extractDeclaredVarNames(code);
-        let returnBlock = 'return {';
-        varNames.forEach(function(name, i) {
-          if (i > 0) returnBlock += ',';
-          returnBlock += '"' + name + '": (typeof ' + name + ' !== "undefined" ? ' + name + ' : undefined)';
+        // Infinite loop protection: inject counter into while loops
+        // Replace while(cond) with while(__lc++<10000&&(cond))
+        var safeCode = 'var __lc=0;\n' + code.replace(/while\s*\(([^)]*)\)/g, 'while(__lc++<10000&&($1))');
+        const varNames = extractDeclaredVarNames(safeCode);
+        let returnBlock = 'return {"__lc":__lc';
+        varNames.forEach(function(name) {
+          if (name === '__lc') return;
+          returnBlock += ',"' + name + '": (typeof ' + name + ' !== "undefined" ? ' + name + ' : undefined)';
         });
         returnBlock += '};';
-        const wrapped = '"use strict";\n' + code + '\n' + returnBlock;
+        const wrapped = '"use strict";\n' + safeCode + '\n' + returnBlock;
         const fn = new Function('console', 'Math', wrapped);
         const result = fn(sandboxConsole, Math);
+        if (result && result.__lc >= 10000) {
+          return { success: false, vars: {}, output: capturedOutput, error: 'Your loop ran too many times! Make sure the condition eventually becomes false.' };
+        }
+        delete result.__lc;
         return { success: true, vars: result || {}, output: capturedOutput, error: null };
       } catch (e) {
         return { success: false, vars: {}, output: capturedOutput, error: e.message };
@@ -1870,10 +2321,11 @@ function validateChallenge(code, challengeConfig) {
 // ============================================================
 // STATE MANAGEMENT
 // ============================================================
-const STATE_KEY = 'codequest_progress';
+const STATE_KEY = QUEST_VERSION === 2 ? 'codequest_v2_progress' : 'codequest_progress';
 const defaultState = {
   currentLevel: 0,
   currentStep: 'welcome',
+  currentSection: 0,
   currentChallenge: 0,
   completedLevels: [],
   completedChallenges: {},
@@ -1881,6 +2333,36 @@ const defaultState = {
   hintsUsed: {},
   levelProgress: {}   // { levelIndex: furthestStepIndex } — tracks how far the student got in each level
 };
+
+// Helper: build flat step list from sections
+function buildStepList(lesson) {
+  var steps = [];
+  var qNum = 0;
+  lesson.sections.forEach(function(section, si) {
+    steps.push({ type: 'explanation', sectionIndex: si, label: 'Learn' });
+    steps.push({ type: 'example', sectionIndex: si, label: 'Ex' });
+    section.challenges.forEach(function(c, ci) {
+      qNum++;
+      steps.push({ type: 'challenge', sectionIndex: si, challengeIndex: ci, label: 'Q' + qNum });
+    });
+  });
+  return steps;
+}
+
+// Helper: find flat step index for current state
+function getCurrentStepIndex(lesson) {
+  var steps = buildStepList(lesson);
+  var si = appState.currentSection || 0;
+  for (var i = 0; i < steps.length; i++) {
+    var s = steps[i];
+    if (s.sectionIndex === si && s.type === appState.currentStep) {
+      if (s.type !== 'challenge' || s.challengeIndex === appState.currentChallenge) {
+        return i;
+      }
+    }
+  }
+  return 0;
+}
 
 let appState;
 
@@ -1919,6 +2401,65 @@ let challengeEditorInstance = null;
 let exampleEditorInstance = null;
 let useCodeMirror = typeof CodeMirror !== 'undefined';
 
+function setupAutocomplete(cm) {
+  var ghostWidget = null;
+
+  function clearGhost() {
+    if (ghostWidget) {
+      ghostWidget.clear();
+      ghostWidget = null;
+    }
+  }
+
+  function showGhost(line, ch, text) {
+    clearGhost();
+    var span = document.createElement('span');
+    span.className = 'autocomplete-ghost';
+    span.textContent = text;
+    ghostWidget = cm.setBookmark({ line: line, ch: ch }, { widget: span, insertLeft: true });
+  }
+
+  function checkAutocomplete() {
+    clearGhost();
+    var cursor = cm.getCursor();
+    var line = cm.getLine(cursor.line);
+    var textBefore = line.slice(0, cursor.ch);
+
+    // Check if line ends with "con" at start of line or after whitespace
+    var match = textBefore.match(/(^|\s)(con)$/);
+    if (match) {
+      // Show ghost text for the completion
+      showGhost(cursor.line, cursor.ch, 'sole.log()');
+    }
+  }
+
+  cm.on('change', checkAutocomplete);
+  cm.on('cursorActivity', checkAutocomplete);
+
+  // Handle Tab key for autocomplete
+  var origTab = cm.getOption('extraKeys')['Tab'];
+  cm.setOption('extraKeys', Object.assign({}, cm.getOption('extraKeys'), {
+    'Tab': function(cm) {
+      if (ghostWidget) {
+        var cursor = cm.getCursor();
+        cm.replaceRange('sole.log()', cursor);
+        // Position cursor between parentheses: "sole.log(" = 9 chars
+        cm.setCursor({ line: cursor.line, ch: cursor.ch + 9 });
+        clearGhost();
+        return;
+      }
+      // Default tab behavior (indent)
+      if (origTab) {
+        origTab(cm);
+      } else {
+        cm.replaceSelection('  ');
+      }
+    },
+    'Ctrl-Enter': runChallenge,
+    'Cmd-Enter': runChallenge
+  }));
+}
+
 function initChallengeEditor(starterCode) {
   const container = document.getElementById('challengeEditor');
   container.innerHTML = '';
@@ -1934,6 +2475,7 @@ function initChallengeEditor(starterCode) {
       lineWrapping: true,
       extraKeys: { 'Ctrl-Enter': runChallenge, 'Cmd-Enter': runChallenge }
     });
+    setupAutocomplete(challengeEditorInstance);
     setTimeout(function() { challengeEditorInstance.focus(); }, 50);
   } else {
     var textarea = document.createElement('textarea');
@@ -2003,25 +2545,10 @@ function showView(viewName) {
 // ============================================================
 // STEP INDICATOR
 // ============================================================
-function stepIndexFor(step, challengeIndex) {
-  if (step === 'explanation') return 0;
-  if (step === 'example') return 1;
-  return 2 + (challengeIndex || 0);
-}
-
-function updateStepIndicator(lessonIndex, currentStep, challengeIndex) {
+function updateStepIndicator(lessonIndex) {
   var lesson = LESSONS[lessonIndex];
-  var langData = lesson.languages[CURRENT_LANGUAGE];
-  var challengeCount = langData.challenges.length;
-  var steps = [
-    { label: 'Learn', id: 'explanation' },
-    { label: 'Example', id: 'example' }
-  ];
-  for (var i = 0; i < challengeCount; i++) {
-    steps.push({ label: 'Q' + (i + 1), id: 'challenge-' + i });
-  }
-
-  var currentIdx = stepIndexFor(currentStep, challengeIndex);
+  var steps = buildStepList(lesson);
+  var currentIdx = getCurrentStepIndex(lesson);
 
   // Track the furthest step reached in this level
   var prevFurthest = appState.levelProgress[lessonIndex] || 0;
@@ -2052,20 +2579,22 @@ function updateStepIndicator(lessonIndex, currentStep, challengeIndex) {
 }
 
 function navigateToStep(lessonIndex, stepIndex) {
+  var lesson = LESSONS[lessonIndex];
+  var steps = buildStepList(lesson);
+  if (stepIndex < 0 || stepIndex >= steps.length) return;
+  var step = steps[stepIndex];
   appState.currentLevel = lessonIndex;
-  if (stepIndex === 0) {
-    appState.currentStep = 'explanation';
-    saveState();
+  appState.currentSection = step.sectionIndex;
+  appState.currentStep = step.type;
+  if (step.type === 'challenge') {
+    appState.currentChallenge = step.challengeIndex;
+  }
+  saveState();
+  if (step.type === 'explanation') {
     showExplanation(lessonIndex);
-  } else if (stepIndex === 1) {
-    appState.currentStep = 'example';
-    saveState();
+  } else if (step.type === 'example') {
     goToExample();
   } else {
-    var challengeIdx = stepIndex - 2;
-    appState.currentChallenge = challengeIdx;
-    appState.currentStep = 'challenge';
-    saveState();
     showCurrentChallenge();
   }
 }
@@ -2078,7 +2607,10 @@ var MINI_GAME_NAMES = {
   'variable-match': '🃏 Var Match',
   'bug-squash': '🐛 Bug Squash',
   'code-scramble': '🔀 Scramble',
-  'output-guess': '🤔 Output Guess'
+  'output-guess': '🤔 Output Guess',
+  'array-builder': '🧱 Array Builder',
+  'loop-tracer': '🔍 Loop Tracer',
+  'function-factory': '🏭 Function Factory'
 };
 
 // ============================================================
@@ -2121,7 +2653,8 @@ function closeLessonSelector() {
 
 function selectLessonForMiniGame(lessonId) {
   if (!pendingMiniGame) return;
-  document.location = 'mini-games/' + pendingMiniGame + '.html?level=' + lessonId;
+  var vParam = QUEST_VERSION === 2 ? '&v=2' : '';
+  document.location = 'mini-games/' + pendingMiniGame + '.html?level=' + lessonId + vParam;
 }
 
 // Close modal when clicking outside
@@ -2193,6 +2726,7 @@ function selectLevel(index) {
     return; // locked
   }
   appState.currentLevel = index;
+  appState.currentSection = 0;
   appState.currentChallenge = 0;
   appState.currentStep = 'explanation';
   saveState();
@@ -2204,14 +2738,17 @@ function selectLevel(index) {
 // ============================================================
 function showExplanation(lessonIndex) {
   var lesson = LESSONS[lessonIndex];
+  var si = appState.currentSection || 0;
+  var expl = lesson.sections[si].explanation;
   document.getElementById('explanationIcon').textContent = lesson.icon;
-  document.getElementById('explanationTitle').textContent = lesson.explanation.title;
-  document.getElementById('explanationBody').innerHTML = lesson.explanation.body;
-  document.getElementById('realWorldText').textContent = lesson.explanation.realWorld;
-  document.getElementById('monoExplainSpeech').textContent = lesson.explanation.monoSays;
+  document.getElementById('explanationTitle').textContent = expl.title;
+  document.getElementById('explanationBody').innerHTML = expl.body;
+  document.getElementById('realWorldText').innerHTML = expl.realWorld;
+  document.getElementById('monoExplainSpeech').innerHTML = expl.monoSays;
   renderMono('monoExplain', 'idle', 4);
   document.getElementById('levelDisplay').textContent = lessonIndex + 1;
-  updateStepIndicator(lessonIndex, 'explanation', 0);
+  appState.currentStep = 'explanation';
+  updateStepIndicator(lessonIndex);
   showView('explanation');
 }
 
@@ -2220,8 +2757,8 @@ function showExplanation(lessonIndex) {
 // ============================================================
 function goToExample() {
   var lesson = LESSONS[appState.currentLevel];
-  var langData = lesson.languages[CURRENT_LANGUAGE];
-  var example = langData.example;
+  var si = appState.currentSection || 0;
+  var example = lesson.sections[si].example;
 
   initExampleEditor(example.code);
 
@@ -2236,7 +2773,9 @@ function goToExample() {
   document.getElementById('annotationsList').innerHTML = annotHtml;
   document.getElementById('exampleOutputText').textContent = example.output;
 
-  updateStepIndicator(appState.currentLevel, 'example', 0);
+  appState.currentStep = 'example';
+  saveState();
+  updateStepIndicator(appState.currentLevel);
   showView('example');
 }
 
@@ -2255,12 +2794,18 @@ var mcAnswers = {};
 
 function showCurrentChallenge() {
   var lesson = LESSONS[appState.currentLevel];
-  var langData = lesson.languages[CURRENT_LANGUAGE];
-  var challenges = langData.challenges;
+  var si = appState.currentSection || 0;
+  var challenges = lesson.sections[si].challenges;
   var ci = appState.currentChallenge;
   var challenge = challenges[ci];
 
-  document.getElementById('challengeLabel').textContent = 'Challenge ' + (ci + 1) + ' of ' + challenges.length;
+  // Global challenge numbering across all sections
+  var globalNum = 0;
+  for (var s = 0; s < si; s++) globalNum += lesson.sections[s].challenges.length;
+  globalNum += ci + 1;
+  var totalChallenges = 0;
+  lesson.sections.forEach(function(sec) { totalChallenges += sec.challenges.length; });
+  document.getElementById('challengeLabel').textContent = 'Challenge ' + globalNum + ' of ' + totalChallenges;
   document.getElementById('challengePrompt').innerHTML = processHintWords(challenge.prompt);
 
   // Reset UI
@@ -2303,7 +2848,7 @@ function showCurrentChallenge() {
     hintBtn.style.display = 'inline-block';
   }
 
-  updateStepIndicator(appState.currentLevel, 'challenge', ci);
+  updateStepIndicator(appState.currentLevel);
   showView('challenge');
 }
 
@@ -2334,12 +2879,13 @@ function selectMCOption(questionIndex, optionIndex) {
 
 function runChallenge() {
   var lesson = LESSONS[appState.currentLevel];
-  var langData = lesson.languages[CURRENT_LANGUAGE];
-  var challenge = langData.challenges[appState.currentChallenge];
+  var si = appState.currentSection || 0;
+  var sectionChallenges = lesson.sections[si].challenges;
+  var challenge = sectionChallenges[appState.currentChallenge];
 
   // Handle multiple choice challenges
   if (challenge.validate.type === 'multipleChoice' && challenge.multipleChoice) {
-    runMultipleChoiceChallenge(challenge, langData);
+    runMultipleChoiceChallenge(challenge, sectionChallenges);
     return;
   }
 
@@ -2384,9 +2930,10 @@ function runChallenge() {
 
     // Show next button
     document.getElementById('nextChallengeBtn').classList.remove('hidden');
-    var challenges = langData.challenges;
-    var isLast = appState.currentChallenge >= challenges.length - 1;
-    document.getElementById('nextChallengeBtn').textContent = isLast ? 'Complete Level!' : 'Next Challenge';
+    var curSi = appState.currentSection || 0;
+    var isLastInSection = appState.currentChallenge >= sectionChallenges.length - 1;
+    var isLast = isLastInSection && curSi >= lesson.sections.length - 1;
+    document.getElementById('nextChallengeBtn').textContent = isLast ? 'Complete Level!' : 'Next';
   } else {
     rm.className = 'result-message failure';
     rm.textContent = '\u274C ' + (validation.message || 'Not quite right. Try again!');
@@ -2396,7 +2943,7 @@ function runChallenge() {
   }
 }
 
-function runMultipleChoiceChallenge(challenge, langData) {
+function runMultipleChoiceChallenge(challenge, sectionChallenges) {
   var questions = challenge.multipleChoice;
   var allCorrect = true;
   var unanswered = false;
@@ -2471,9 +3018,10 @@ function runMultipleChoiceChallenge(challenge, langData) {
 
     // Show next button
     document.getElementById('nextChallengeBtn').classList.remove('hidden');
-    var challenges = langData.challenges;
-    var isLast = appState.currentChallenge >= challenges.length - 1;
-    document.getElementById('nextChallengeBtn').textContent = isLast ? 'Complete Level!' : 'Next Challenge';
+    var curSi = appState.currentSection || 0;
+    var isLastInSection = appState.currentChallenge >= sectionChallenges.length - 1;
+    var isLast = isLastInSection && curSi >= LESSONS[appState.currentLevel].sections.length - 1;
+    document.getElementById('nextChallengeBtn').textContent = isLast ? 'Complete Level!' : 'Next';
   } else {
     rm.className = 'result-message failure';
     rm.textContent = '\u274C Not quite! Try again.';
@@ -2485,7 +3033,8 @@ function runMultipleChoiceChallenge(challenge, langData) {
 
 function showHint() {
   var lesson = LESSONS[appState.currentLevel];
-  var challenge = lesson.languages[CURRENT_LANGUAGE].challenges[appState.currentChallenge];
+  var si = appState.currentSection || 0;
+  var challenge = lesson.sections[si].challenges[appState.currentChallenge];
   var monoRow = document.getElementById('challengeMonoRow');
   monoRow.style.display = 'flex';
   renderMono('monoChallenge', 'idle', 3);
@@ -2494,15 +3043,24 @@ function showHint() {
 
 function nextChallenge() {
   var lesson = LESSONS[appState.currentLevel];
-  var challenges = lesson.languages[CURRENT_LANGUAGE].challenges;
+  var si = appState.currentSection || 0;
+  var section = lesson.sections[si];
 
-  if (appState.currentChallenge < challenges.length - 1) {
+  if (appState.currentChallenge < section.challenges.length - 1) {
+    // More challenges in this section
     appState.currentChallenge++;
     appState.currentStep = 'challenge';
     saveState();
     showCurrentChallenge();
+  } else if (si < lesson.sections.length - 1) {
+    // Move to next section's explanation
+    appState.currentSection = si + 1;
+    appState.currentChallenge = 0;
+    appState.currentStep = 'explanation';
+    saveState();
+    showExplanation(appState.currentLevel);
   } else {
-    // Level complete!
+    // Last challenge of last section — level complete!
     completeLevel();
   }
 }
@@ -2518,10 +3076,11 @@ function completeLevel() {
   appState.currentStep = 'map';
   saveState();
 
-  // Calculate XP earned this level
-  var challenges = lesson.languages[CURRENT_LANGUAGE].challenges;
+  // Calculate XP earned this level (across all sections)
   var levelXp = 0;
-  challenges.forEach(function(c) { levelXp += c.xpReward; });
+  lesson.sections.forEach(function(section) {
+    section.challenges.forEach(function(c) { levelXp += c.xpReward; });
+  });
 
   document.getElementById('xpEarned').textContent = '+' + levelXp + ' XP';
   renderMono('monoCelebrate', 'wave', 6);
@@ -2543,7 +3102,8 @@ function openMiniGame() {
   var lesson = LESSONS[appState.currentLevel];
   if (lesson.miniGameAfter) {
     // Go directly to the mini-game with the just-completed lesson's content
-    document.location = 'mini-games/' + lesson.miniGameAfter + '.html?level=' + lesson.id;
+    var vParam = QUEST_VERSION === 2 ? '&v=2' : '';
+    document.location = 'mini-games/' + lesson.miniGameAfter + '.html?level=' + lesson.id + vParam;
   }
 }
 
@@ -2551,6 +3111,14 @@ function continueQuest() {
   // Check if all levels done
   if (appState.completedLevels.length >= LESSONS.length) {
     document.getElementById('totalXp').textContent = 'Total: ' + appState.xp + ' XP';
+    if (QUEST_VERSION === 1) {
+      document.getElementById('questCompleteLevelCount').textContent = 'You finished all 7 levels!';
+      document.getElementById('questCompleteMessage').textContent = 'You\'ve learned strings, variables, assignment, operators, comparisons, and conditionals. You\'re ready to build real things!';
+      document.getElementById('questIILink').style.display = 'inline-block';
+    } else {
+      document.getElementById('questCompleteLevelCount').textContent = 'You finished all 3 levels!';
+      document.getElementById('questCompleteMessage').textContent = 'You\'ve learned arrays, loops, and functions. You\'re ready to build amazing things!';
+    }
     renderMono('monoFinish', 'wave', 6);
     document.querySelector('#monoFinish').classList.add('mono-anim-celebrate');
     showView('questComplete');
@@ -2564,6 +3132,7 @@ function continueQuest() {
     }
   }
   appState.currentStep = 'map';
+  appState.currentSection = 0;
   appState.currentChallenge = 0;
   saveState();
   renderLevelMap();
@@ -2611,14 +3180,32 @@ function init() {
   if (!appState.levelProgress) appState.levelProgress = {};
 
   // Backfill levelProgress for already-completed levels
+  if (!appState.currentSection) appState.currentSection = 0;
   LESSONS.forEach(function(lesson, i) {
     if (appState.completedLevels.indexOf(lesson.id) !== -1) {
-      var totalSteps = 2 + lesson.languages[CURRENT_LANGUAGE].challenges.length - 1;
+      var totalSteps = buildStepList(lesson).length - 1;
       appState.levelProgress[i] = totalSteps;
     }
   });
 
   document.getElementById('xpDisplay').textContent = appState.xp;
+
+  // Version-conditional UI text
+  if (QUEST_VERSION === 2) {
+    document.getElementById('welcomeTitle').textContent = 'Welcome to Code Club Quest II!';
+    document.getElementById('welcomeSubtitle').textContent = 'You know the basics \u2014 now level up with arrays, loops, and functions!';
+    document.getElementById('welcomeBtn').textContent = 'Continue the Quest';
+    document.getElementById('mapTitle').textContent = 'Quest II Map';
+    document.querySelector('#appHeader h1').innerHTML = 'Code Club Quest <span class="edition-subtitle">Javascript Edition Part II</span>';
+  }
+  // Quest I: show subtle Quest II link on map
+  if (QUEST_VERSION === 1) {
+    document.getElementById('questIIMapLink').style.display = 'block';
+  }
+  // Quest II: show link back to Quest I
+  if (QUEST_VERSION === 2) {
+    document.getElementById('questIMapLink').style.display = 'block';
+  }
 
   // Render welcome Mono
   renderMono('monoWelcome', 'wave', 6);

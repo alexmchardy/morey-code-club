@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loop Tracer - Code Club Quest</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Fredoka:wght@400;500;600;700&display=swap');
+
+    :root {
+      --bg: #030310;
+      --surface: #0d0d2b;
+      --surface-light: #151538;
+      --surface-lighter: #303051;
+      --neon-cyan: #00f5ff;
+      --neon-pink: #ff6b9d;
+      --neon-yellow: #ffbe0b;
+      --neon-green: #39ff14;
+      --neon-red: #ff4444;
+      --text: #cbcbe8;
+      --text-dim: #7a7aba;
+      --border: rgba(0, 245, 255, 0.2);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { font-size: 16px; }
+    @media (min-width: 1024px) { html { font-size: 20px; } }
+
+    body {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1rem;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px;
+      overflow-x: hidden;
+    }
+
+    /* Scanline overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        transparent, transparent 3px,
+        rgba(0,0,0,0.035) 3px, rgba(0,0,0,0.035) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: 'Press Start 2P', monospace;
+      font-weight: 400;
+    }
+
+    /* === LAYOUT === */
+    .game-container {
+      width: 100%;
+      max-width: 1200px;
+    }
+
+    /* === BACK LINK === */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      text-decoration: none;
+      margin-bottom: 16px;
+      transition: color 0.2s;
+    }
+    .back-link:hover {
+      color: var(--neon-cyan);
+    }
+    .back-link::before {
+      content: '\2190';
+    }
+
+    /* === GAME HEADER === */
+    .game-header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .game-header h1 {
+      font-size: 1.1rem;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 10px var(--neon-cyan), 0 0 30px rgba(0,245,255,0.35);
+      margin-bottom: 6px;
+    }
+
+    /* === LEVEL BADGE === */
+    .level-badge {
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .level-badge span {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.55rem;
+      color: var(--neon-pink);
+      text-shadow: 0 0 8px rgba(255,107,157,0.4);
+      background: rgba(255,107,157,0.1);
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,107,157,0.25);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* === HUD === */
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .hud-item {
+      text-align: center;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.55rem;
+      color: var(--text-dim);
+      line-height: 2;
+      text-transform: uppercase;
+    }
+    .hud-item span {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 8px rgba(255,190,11,0.5);
+    }
+    .hud-item.round-num span {
+      color: var(--neon-cyan);
+      text-shadow: 0 0 8px rgba(0,245,255,0.5);
+    }
+
+    /* === CODE + STEP ROW === */
+    .code-step-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+      align-items: stretch;
+    }
+
+    /* === CODE PANEL === */
+    .code-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .timer-bar-track {
+      height: 5px;
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+    }
+    .timer-bar {
+      height: 100%;
+      width: 100%;
+      background: var(--neon-cyan);
+      box-shadow: 0 0 8px var(--neon-cyan);
+      transition: width 0.1s linear, background 0.3s, box-shadow 0.3s;
+      border-radius: 0 3px 3px 0;
+    }
+    .timer-bar.warning {
+      background: var(--neon-yellow);
+      box-shadow: 0 0 8px var(--neon-yellow);
+    }
+    .timer-bar.danger {
+      background: var(--neon-red);
+      box-shadow: 0 0 8px var(--neon-red);
+    }
+
+    .code-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px 8px;
+    }
+    .code-panel-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.55rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .timer-text {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.65rem;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 6px rgba(0,245,255,0.4);
+      transition: color 0.3s;
+    }
+    .timer-text.warning { color: var(--neon-yellow); }
+    .timer-text.danger { color: var(--neon-red); }
+
+    .code-block {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 1rem;
+      line-height: 1.0;
+      color: #e0e0e0;
+      padding: 12px 20px 18px;
+      white-space: pre;
+      overflow-x: auto;
+      min-height: 80px;
+    }
+    .code-block .line {
+      display: block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: background 0.3s, color 0.3s;
+    }
+    .code-block .line.highlight {
+      background: rgba(0, 245, 255, 0.15);
+      color: var(--neon-cyan);
+    }
+
+    /* === PROMPT TEXT === */
+    .prompt-text {
+      text-align: center;
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    /* === OUTPUT SLOTS === */
+    .output-area {
+      margin-bottom: 20px;
+    }
+    .output-slots {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 16px;
+      min-height: 54px;
+    }
+    .output-slot {
+      width: 90px;
+      height: 50px;
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 1rem;
+      color: var(--text-dim);
+      position: relative;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .output-slot .slot-label {
+      position: absolute;
+      top: -10px;
+      left: 8px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.4rem;
+      color: var(--text-dim);
+      background: var(--bg);
+      padding: 0 4px;
+    }
+    .output-slot.filled {
+      border-style: solid;
+      border-color: var(--neon-cyan);
+      background: rgba(0, 245, 255, 0.08);
+      color: var(--neon-cyan);
+      cursor: pointer;
+    }
+    .output-slot.filled:hover {
+      background: rgba(0, 245, 255, 0.15);
+    }
+    .output-slot.correct {
+      border-color: var(--neon-green);
+      background: rgba(57, 255, 20, 0.12);
+      color: var(--neon-green);
+    }
+    .output-slot.wrong {
+      border-color: var(--neon-red);
+      background: rgba(255, 68, 68, 0.12);
+      color: var(--neon-red);
+    }
+
+    /* === VALUE TILES === */
+    .value-tiles {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    .value-tile {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, transform 0.1s, box-shadow 0.2s;
+    }
+    .value-tile:hover:not(.used) {
+      border-color: var(--neon-pink);
+      background: var(--surface-light);
+      transform: translateY(-2px);
+      box-shadow: 0 0 16px rgba(255,107,157,0.15);
+    }
+    .value-tile.used {
+      opacity: 0.3;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    /* === SUBMIT BUTTON === */
+    .submit-row {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    /* === STEP-THROUGH PANEL === */
+    .step-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      width: 280px;
+      flex-shrink: 0;
+      opacity: 0.3;
+      transition: opacity 0.3s;
+    }
+    .step-panel.visible {
+      opacity: 1;
+    }
+    .step-panel-header {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.55rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    .step-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .step-play-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid var(--neon-cyan);
+      background: transparent;
+      color: var(--neon-cyan);
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, box-shadow 0.2s, opacity 0.2s;
+      padding-left: 2px;
+    }
+    .step-play-btn:hover:not(:disabled) {
+      background: rgba(0, 245, 255, 0.15);
+      box-shadow: 0 0 12px rgba(0, 245, 255, 0.3);
+    }
+    .step-play-btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+    .step-play-btn.playing {
+      border-color: var(--neon-pink);
+      color: var(--neon-pink);
+    }
+    .speed-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+    .speed-control label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.4rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+    .speed-control input[type="range"] {
+      flex: 1;
+      height: 6px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--surface-lighter);
+      border-radius: 3px;
+      outline: none;
+    }
+    .speed-control input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: var(--neon-cyan);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 6px var(--neon-cyan);
+    }
+    .speed-control input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      background: var(--neon-cyan);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 6px var(--neon-cyan);
+    }
+    .step-vars {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.95rem;
+      color: var(--neon-yellow);
+      margin-bottom: 10px;
+      min-height: 24px;
+    }
+    .step-output {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.95rem;
+      color: var(--neon-green);
+    }
+    .step-output .step-out-line {
+      opacity: 0;
+      transition: opacity 0.3s;
+      margin-bottom: 2px;
+    }
+    .step-output .step-out-line.visible {
+      opacity: 1;
+    }
+
+    /* === BUTTONS (shared) === */
+    .btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.65rem;
+      padding: 12px 22px;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 2px solid;
+      transition: transform 0.15s, box-shadow 0.2s;
+      text-decoration: none;
+      display: inline-block;
+      background: transparent;
+      color: var(--neon-cyan);
+      border-color: var(--neon-cyan);
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 16px rgba(0,245,255,0.3);
+    }
+    .btn.primary {
+      border-color: var(--neon-green);
+      color: var(--neon-green);
+    }
+    .btn.primary:hover {
+      box-shadow: 0 0 16px rgba(57,255,20,0.3);
+    }
+    .btn.pink {
+      border-color: var(--neon-pink);
+      color: var(--neon-pink);
+    }
+    .btn.pink:hover {
+      box-shadow: 0 0 16px rgba(255,107,157,0.3);
+    }
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    /* === ROUND RESULT FLASH === */
+    .round-result {
+      text-align: center;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.8rem;
+      margin-bottom: 14px;
+      min-height: 24px;
+    }
+    .round-result.correct {
+      color: var(--neon-green);
+      text-shadow: 0 0 10px rgba(57,255,20,0.5);
+    }
+    .round-result.wrong {
+      color: var(--neon-red);
+      text-shadow: 0 0 10px rgba(255,68,68,0.5);
+    }
+
+    /* === START SCREEN === */
+    .start-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding-top: 20px;
+      text-align: center;
+    }
+    .start-screen .emoji-title {
+      font-size: 2.5rem;
+      margin-bottom: -10px;
+    }
+    .start-screen h2 {
+      font-size: 1.1rem;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 10px var(--neon-cyan), 0 0 30px rgba(0,245,255,0.35);
+    }
+    .start-screen .instructions {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.05rem;
+      color: var(--text);
+      max-width: 500px;
+      line-height: 1.6;
+    }
+
+    /* === END SCREEN === */
+    .end-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding-top: 10px;
+    }
+    .end-screen.visible {
+      display: flex;
+    }
+    .final-score-box {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 30px 40px;
+      text-align: center;
+    }
+    .final-score-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .final-score-value {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 2.5rem;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 16px rgba(255,190,11,0.6);
+      margin-bottom: 6px;
+    }
+    .final-score-sub {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.1rem;
+      color: var(--text-dim);
+    }
+    .final-message {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.7rem;
+      color: var(--neon-green);
+      text-shadow: 0 0 8px rgba(57,255,20,0.4);
+      text-align: center;
+      line-height: 1.8;
+    }
+    .end-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* === GAME AREA (hidden states) === */
+    .game-area { display: block; }
+    .game-area.hidden { display: none; }
+    .start-screen.hidden { display: none; }
+
+    /* === CELEBRATION PARTICLES === */
+    .celebration {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1000;
+    }
+    .particle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      animation: particleFall 1s ease-out forwards;
+    }
+    @keyframes particleFall {
+      0% { opacity: 1; transform: translate(0, 0) scale(1); }
+      100% { opacity: 0; transform: translate(var(--drift, 0px), 120px) scale(0.3); }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+
+    /* === RESPONSIVE === */
+    @media (max-width: 800px) {
+      .code-step-row {
+        flex-direction: column;
+      }
+      .step-panel {
+        width: 100%;
+      }
+    }
+    @media (max-width: 600px) {
+      .code-block {
+        font-size: 0.85rem;
+      }
+      .output-slot {
+        width: 70px;
+        height: 44px;
+        font-size: 0.85rem;
+      }
+      .value-tile {
+        padding: 10px 14px;
+        font-size: 0.95rem;
+      }
+      .final-score-value {
+        font-size: 1.9rem;
+      }
+      .final-score-box {
+        padding: 24px 20px;
+      }
+      .game-header h1 {
+        font-size: 0.85rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="game-container">
+  <a class="back-link" id="backLink" href="../code-quest.html">Code Club Quest</a>
+
+  <!-- GAME HEADER -->
+  <div class="game-header">
+    <h1>Loop Tracer</h1>
+  </div>
+  <div class="level-badge">
+    <span id="levelBadge">All Loops</span>
+  </div>
+
+  <!-- HUD -->
+  <div class="hud" id="hud" style="display:none;">
+    <div class="hud-item round-num">
+      Round
+      <span id="roundNum">1/5</span>
+    </div>
+    <div class="hud-item">
+      Score
+      <span id="scoreDisplay">0</span>
+    </div>
+  </div>
+
+  <!-- START SCREEN -->
+  <div class="start-screen" id="startScreen">
+    <div class="emoji-title">&#128269;</div>
+    <h2>Loop Tracer</h2>
+    <div class="instructions">
+      Read the loop code and predict what gets printed to the console.
+      Click the values <strong>in order</strong> to fill the output slots.
+      You have <strong>30 seconds</strong> per round. 5 rounds total!
+    </div>
+    <button class="btn primary" id="startBtn">Start</button>
+  </div>
+
+  <!-- GAME AREA -->
+  <div class="game-area hidden" id="gameArea">
+    <!-- Code and step-through panels side by side -->
+    <div class="code-step-row">
+      <!-- Code panel -->
+      <div class="code-panel">
+        <div class="timer-bar-track">
+          <div class="timer-bar" id="timerBar"></div>
+        </div>
+        <div class="code-panel-header">
+          <div class="code-panel-label">Predict the output</div>
+          <div class="timer-text" id="timerText">30s</div>
+        </div>
+        <div class="code-block" id="codeBlock"></div>
+      </div>
+
+      <!-- Step-through panel (on the right) -->
+      <div class="step-panel" id="stepPanel">
+        <div class="step-panel-header">Step-Through</div>
+        <div class="step-controls">
+          <button class="step-play-btn" id="stepPlayBtn" disabled title="Replay">&#9654;</button>
+          <div class="speed-control">
+            <label for="speedSlider">Speed:</label>
+            <input type="range" id="speedSlider" min="1" max="5" value="3">
+          </div>
+        </div>
+        <div class="step-vars" id="stepVars"></div>
+        <div class="step-output" id="stepOutput"></div>
+      </div>
+    </div>
+
+    <!-- Output slots -->
+    <div class="prompt-text">Click values in order of output:</div>
+    <div class="output-area">
+      <div class="output-slots" id="outputSlots"></div>
+    </div>
+
+    <!-- Value tiles -->
+    <div class="value-tiles" id="valueTiles"></div>
+
+    <!-- Submit / Undo -->
+    <div class="submit-row">
+      <button class="btn pink" id="undoBtn" style="margin-right:8px;" disabled>Undo</button>
+      <button class="btn primary" id="submitBtn" disabled>Submit</button>
+    </div>
+
+    <!-- Round result -->
+    <div class="round-result" id="roundResult"></div>
+
+    <!-- Next round button (shown after step-through) -->
+    <div class="submit-row">
+      <button class="btn" id="nextBtn" style="display:none;">Next Round</button>
+    </div>
+  </div>
+
+  <!-- END SCREEN -->
+  <div class="end-screen" id="endScreen">
+    <div class="final-score-box">
+      <div class="final-score-label">Final Score</div>
+      <div class="final-score-value" id="finalScore">0</div>
+      <div class="final-score-sub" id="finalSub"></div>
+    </div>
+    <div class="final-message" id="finalMessage"></div>
+    <div class="end-buttons">
+      <button class="btn primary" id="playAgainBtn">Play Again</button>
+      <a class="btn pink" id="backToQuest" href="../code-quest.html">Back to Quest</a>
+    </div>
+  </div>
+</div>
+
+<!-- Celebration container -->
+<div class="celebration" id="celebration"></div>
+
+<script>
+// =========================================================
+// ROUND DATA
+// =========================================================
+const ALL_ROUNDS = [
+  {
+    type: 'forof',
+    code: 'let colors = ["red", "blue", "green"];\nfor (let color of colors) {\n  console.log(color);\n}',
+    codeLines: [
+      'let colors = ["red", "blue", "green"];',
+      'for (let color of colors) {',
+      '  console.log(color);',
+      '}'
+    ],
+    output: ['red', 'blue', 'green'],
+    distractors: ['yellow', 'purple'],
+    // Step-through: array of steps. Each step: { highlightLine, vars, outputLine (index or null) }
+    steps: [
+      { highlightLine: 0, vars: 'colors = ["red", "blue", "green"]', outputIdx: null },
+      { highlightLine: 1, vars: 'color = "red"', outputIdx: null },
+      { highlightLine: 2, vars: 'color = "red"', outputIdx: 0 },
+      { highlightLine: 1, vars: 'color = "blue"', outputIdx: null },
+      { highlightLine: 2, vars: 'color = "blue"', outputIdx: 1 },
+      { highlightLine: 1, vars: 'color = "green"', outputIdx: null },
+      { highlightLine: 2, vars: 'color = "green"', outputIdx: 2 },
+    ]
+  },
+  {
+    type: 'forof',
+    code: 'let nums = [1, 2, 3];\nfor (let n of nums) {\n  console.log(n * 2);\n}',
+    codeLines: [
+      'let nums = [1, 2, 3];',
+      'for (let n of nums) {',
+      '  console.log(n * 2);',
+      '}'
+    ],
+    output: ['2', '4', '6'],
+    distractors: ['1', '3', '8'],
+    steps: [
+      { highlightLine: 0, vars: 'nums = [1, 2, 3]', outputIdx: null },
+      { highlightLine: 1, vars: 'n = 1', outputIdx: null },
+      { highlightLine: 2, vars: 'n * 2 = 2', outputIdx: 0 },
+      { highlightLine: 1, vars: 'n = 2', outputIdx: null },
+      { highlightLine: 2, vars: 'n * 2 = 4', outputIdx: 1 },
+      { highlightLine: 1, vars: 'n = 3', outputIdx: null },
+      { highlightLine: 2, vars: 'n * 2 = 6', outputIdx: 2 },
+    ]
+  },
+  {
+    type: 'while',
+    code: 'let x = 10;\nwhile (x > 0) {\n  console.log(x);\n  x = x - 4;\n}',
+    codeLines: [
+      'let x = 10;',
+      'while (x > 0) {',
+      '  console.log(x);',
+      '  x = x - 4;',
+      '}'
+    ],
+    output: ['10', '6', '2'],
+    distractors: ['4', '0', '-2'],
+    steps: [
+      { highlightLine: 0, vars: 'x = 10', outputIdx: null },
+      { highlightLine: 1, vars: 'x = 10, 10 > 0 is true', outputIdx: null },
+      { highlightLine: 2, vars: 'x = 10', outputIdx: 0 },
+      { highlightLine: 3, vars: 'x = 10 - 4 = 6', outputIdx: null },
+      { highlightLine: 1, vars: 'x = 6, 6 > 0 is true', outputIdx: null },
+      { highlightLine: 2, vars: 'x = 6', outputIdx: 1 },
+      { highlightLine: 3, vars: 'x = 6 - 4 = 2', outputIdx: null },
+      { highlightLine: 1, vars: 'x = 2, 2 > 0 is true', outputIdx: null },
+      { highlightLine: 2, vars: 'x = 2', outputIdx: 2 },
+      { highlightLine: 3, vars: 'x = 2 - 4 = -2', outputIdx: null },
+      { highlightLine: 1, vars: 'x = -2, -2 > 0 is false', outputIdx: null },
+    ]
+  },
+  {
+    type: 'forof',
+    code: 'let prices = [5, 10, 15];\nlet total = 0;\nfor (let p of prices) {\n  total = total + p;\n  console.log(total);\n}',
+    codeLines: [
+      'let prices = [5, 10, 15];',
+      'let total = 0;',
+      'for (let p of prices) {',
+      '  total = total + p;',
+      '  console.log(total);',
+      '}'
+    ],
+    output: ['5', '15', '30'],
+    distractors: ['10', '20', '25'],
+    steps: [
+      { highlightLine: 0, vars: 'prices = [5, 10, 15]', outputIdx: null },
+      { highlightLine: 1, vars: 'total = 0', outputIdx: null },
+      { highlightLine: 2, vars: 'p = 5', outputIdx: null },
+      { highlightLine: 3, vars: 'total = 0 + 5 = 5', outputIdx: null },
+      { highlightLine: 4, vars: 'total = 5', outputIdx: 0 },
+      { highlightLine: 2, vars: 'p = 10', outputIdx: null },
+      { highlightLine: 3, vars: 'total = 5 + 10 = 15', outputIdx: null },
+      { highlightLine: 4, vars: 'total = 15', outputIdx: 1 },
+      { highlightLine: 2, vars: 'p = 15', outputIdx: null },
+      { highlightLine: 3, vars: 'total = 15 + 15 = 30', outputIdx: null },
+      { highlightLine: 4, vars: 'total = 30', outputIdx: 2 },
+    ]
+  },
+  {
+    type: 'while',
+    code: 'let countdown = 3;\nwhile (countdown > 0) {\n  console.log(countdown);\n  countdown = countdown - 1;\n}\nconsole.log("Go!");',
+    codeLines: [
+      'let countdown = 3;',
+      'while (countdown > 0) {',
+      '  console.log(countdown);',
+      '  countdown = countdown - 1;',
+      '}',
+      'console.log("Go!");'
+    ],
+    output: ['3', '2', '1', 'Go!'],
+    distractors: ['0', 'Stop!', '4'],
+    steps: [
+      { highlightLine: 0, vars: 'countdown = 3', outputIdx: null },
+      { highlightLine: 1, vars: 'countdown = 3, 3 > 0 is true', outputIdx: null },
+      { highlightLine: 2, vars: 'countdown = 3', outputIdx: 0 },
+      { highlightLine: 3, vars: 'countdown = 3 - 1 = 2', outputIdx: null },
+      { highlightLine: 1, vars: 'countdown = 2, 2 > 0 is true', outputIdx: null },
+      { highlightLine: 2, vars: 'countdown = 2', outputIdx: 1 },
+      { highlightLine: 3, vars: 'countdown = 2 - 1 = 1', outputIdx: null },
+      { highlightLine: 1, vars: 'countdown = 1, 1 > 0 is true', outputIdx: null },
+      { highlightLine: 2, vars: 'countdown = 1', outputIdx: 2 },
+      { highlightLine: 3, vars: 'countdown = 1 - 1 = 0', outputIdx: null },
+      { highlightLine: 1, vars: 'countdown = 0, 0 > 0 is false', outputIdx: null },
+      { highlightLine: 5, vars: 'countdown = 0', outputIdx: 3 },
+    ]
+  }
+];
+
+// =========================================================
+// GAME STATE
+// =========================================================
+const TOTAL_ROUNDS = 5;
+const TIME_PER_ROUND = 30;
+
+let currentLevel = 'loop';
+let rounds = [];
+let currentRound = 0;
+let score = 0;
+let timerInterval = null;
+let timeLeft = TIME_PER_ROUND;
+let answered = false;
+let selectedValues = []; // values player has picked in order
+let currentRoundData = null;
+let allOptions = []; // shuffled options for current round
+let stepAnimationId = 0; // to cancel previous step-through animations
+
+// DOM refs
+const backLinkEl = document.getElementById('backLink');
+const backToQuestEl = document.getElementById('backToQuest');
+const levelBadgeEl = document.getElementById('levelBadge');
+const hudEl = document.getElementById('hud');
+const roundNumEl = document.getElementById('roundNum');
+const scoreDisplayEl = document.getElementById('scoreDisplay');
+const startScreenEl = document.getElementById('startScreen');
+const gameAreaEl = document.getElementById('gameArea');
+const endScreenEl = document.getElementById('endScreen');
+const codeBlockEl = document.getElementById('codeBlock');
+const outputSlotsEl = document.getElementById('outputSlots');
+const valueTilesEl = document.getElementById('valueTiles');
+const timerBarEl = document.getElementById('timerBar');
+const timerTextEl = document.getElementById('timerText');
+const submitBtn = document.getElementById('submitBtn');
+const undoBtn = document.getElementById('undoBtn');
+const nextBtn = document.getElementById('nextBtn');
+const roundResultEl = document.getElementById('roundResult');
+const stepPanelEl = document.getElementById('stepPanel');
+const stepVarsEl = document.getElementById('stepVars');
+const stepOutputEl = document.getElementById('stepOutput');
+const stepPlayBtn = document.getElementById('stepPlayBtn');
+const speedSlider = document.getElementById('speedSlider');
+const startBtn = document.getElementById('startBtn');
+const playAgainBtn = document.getElementById('playAgainBtn');
+const finalScoreEl = document.getElementById('finalScore');
+const finalSubEl = document.getElementById('finalSub');
+const finalMessageEl = document.getElementById('finalMessage');
+const celebrationEl = document.getElementById('celebration');
+
+// =========================================================
+// LEVEL LABELS
+// =========================================================
+const LEVEL_LABELS = {
+  loop: 'All Loops',
+  array: 'For...Of Only',
+};
+
+// =========================================================
+// INIT
+// =========================================================
+function init() {
+  const params = new URLSearchParams(window.location.search);
+  const lvl = params.get('level');
+  if (lvl && LEVEL_LABELS[lvl]) {
+    currentLevel = lvl;
+  }
+
+  // Preserve ?v= param in back links
+  const vParam = params.get('v');
+  if (vParam) {
+    const questUrl = '../code-quest.html?v=' + encodeURIComponent(vParam);
+    backLinkEl.href = questUrl;
+    backToQuestEl.href = questUrl;
+  }
+
+  levelBadgeEl.textContent = LEVEL_LABELS[currentLevel] || currentLevel;
+
+  // Show start screen
+  startScreenEl.classList.remove('hidden');
+  gameAreaEl.classList.add('hidden');
+  endScreenEl.classList.remove('visible');
+  hudEl.style.display = 'none';
+}
+
+function startGame() {
+  // Build rounds based on level
+  let pool;
+  if (currentLevel === 'array') {
+    pool = ALL_ROUNDS.filter(r => r.type === 'forof');
+  } else {
+    pool = [...ALL_ROUNDS];
+  }
+  shuffle(pool);
+  rounds = pool.slice(0, TOTAL_ROUNDS);
+
+  // If we need more rounds (array level only has 3 for...of), cycle
+  while (rounds.length < TOTAL_ROUNDS) {
+    const extra = [...pool];
+    shuffle(extra);
+    rounds = rounds.concat(extra);
+  }
+  rounds = rounds.slice(0, TOTAL_ROUNDS);
+
+  currentRound = 0;
+  score = 0;
+  scoreDisplayEl.textContent = '0';
+
+  startScreenEl.classList.add('hidden');
+  gameAreaEl.classList.remove('hidden');
+  endScreenEl.classList.remove('visible');
+  hudEl.style.display = 'flex';
+
+  showRound();
+}
+
+// =========================================================
+// SHOW ROUND
+// =========================================================
+function showRound() {
+  answered = false;
+  selectedValues = [];
+  currentRoundData = rounds[currentRound];
+
+  roundNumEl.textContent = (currentRound + 1) + '/' + TOTAL_ROUNDS;
+  roundResultEl.textContent = '';
+  roundResultEl.className = 'round-result';
+  stepPanelEl.classList.remove('visible');
+  stepPlayBtn.disabled = true;
+  stepPlayBtn.classList.remove('playing');
+  nextBtn.style.display = 'none';
+  submitBtn.disabled = true;
+  undoBtn.disabled = true;
+
+  // Render code with line spans
+  codeBlockEl.innerHTML = '';
+  currentRoundData.codeLines.forEach((line, i) => {
+    const span = document.createElement('span');
+    span.className = 'line';
+    span.dataset.lineIdx = i;
+    span.textContent = line;
+    codeBlockEl.appendChild(span);
+    codeBlockEl.appendChild(document.createTextNode('\n'));
+  });
+
+  // Build output slots
+  outputSlotsEl.innerHTML = '';
+  currentRoundData.output.forEach((_, i) => {
+    const slot = document.createElement('div');
+    slot.className = 'output-slot';
+    slot.innerHTML = '<span class="slot-label">#' + (i + 1) + '</span><span class="slot-value"></span>';
+    slot.addEventListener('click', () => removeFromSlot(i));
+    outputSlotsEl.appendChild(slot);
+  });
+
+  // Build value tiles (correct + distractors, shuffled)
+  allOptions = [...currentRoundData.output, ...currentRoundData.distractors];
+  shuffle(allOptions);
+
+  valueTilesEl.innerHTML = '';
+  allOptions.forEach((val, i) => {
+    const tile = document.createElement('button');
+    tile.className = 'value-tile';
+    tile.textContent = val;
+    tile.dataset.tileIdx = i;
+    tile.addEventListener('click', () => selectTile(i));
+    valueTilesEl.appendChild(tile);
+  });
+
+  startTimer();
+}
+
+// =========================================================
+// TILE SELECTION
+// =========================================================
+function selectTile(tileIdx) {
+  if (answered) return;
+  if (selectedValues.length >= currentRoundData.output.length) return;
+
+  const tile = valueTilesEl.children[tileIdx];
+  if (tile.classList.contains('used')) return;
+
+  tile.classList.add('used');
+  selectedValues.push({ value: allOptions[tileIdx], tileIdx: tileIdx });
+
+  // Fill next open slot
+  updateSlots();
+  undoBtn.disabled = false;
+  submitBtn.disabled = selectedValues.length < currentRoundData.output.length;
+}
+
+function removeFromSlot(slotIdx) {
+  if (answered) return;
+  // Only allow removing the last filled slot
+  if (slotIdx !== selectedValues.length - 1) return;
+
+  const removed = selectedValues.pop();
+  // Un-use the tile
+  const tile = valueTilesEl.children[removed.tileIdx];
+  tile.classList.remove('used');
+
+  updateSlots();
+  undoBtn.disabled = selectedValues.length === 0;
+  submitBtn.disabled = true;
+}
+
+function undoLast() {
+  if (answered || selectedValues.length === 0) return;
+  removeFromSlot(selectedValues.length - 1);
+}
+
+function updateSlots() {
+  const slots = outputSlotsEl.querySelectorAll('.output-slot');
+  slots.forEach((slot, i) => {
+    const valSpan = slot.querySelector('.slot-value');
+    if (i < selectedValues.length) {
+      valSpan.textContent = selectedValues[i].value;
+      slot.classList.add('filled');
+    } else {
+      valSpan.textContent = '';
+      slot.classList.remove('filled');
+    }
+    slot.classList.remove('correct', 'wrong');
+  });
+}
+
+// =========================================================
+// SUBMIT
+// =========================================================
+function submitAnswer() {
+  if (answered) return;
+  answered = true;
+  stopTimer();
+
+  const playerOutput = selectedValues.map(s => s.value);
+  const correctOutput = currentRoundData.output;
+  const isCorrect = playerOutput.length === correctOutput.length &&
+    playerOutput.every((v, i) => v === correctOutput[i]);
+
+  // Mark slots
+  const slots = outputSlotsEl.querySelectorAll('.output-slot');
+  slots.forEach((slot, i) => {
+    if (i < playerOutput.length && playerOutput[i] === correctOutput[i]) {
+      slot.classList.add('correct');
+    } else {
+      slot.classList.add('wrong');
+    }
+  });
+
+  if (isCorrect) {
+    score += 100;
+    scoreDisplayEl.textContent = score;
+    roundResultEl.textContent = 'CORRECT! +100';
+    roundResultEl.className = 'round-result correct';
+    spawnCelebration();
+  } else {
+    roundResultEl.textContent = 'NOT QUITE...';
+    roundResultEl.className = 'round-result wrong';
+  }
+
+  // Disable tiles
+  valueTilesEl.querySelectorAll('.value-tile').forEach(t => t.style.pointerEvents = 'none');
+  submitBtn.disabled = true;
+  undoBtn.disabled = true;
+
+  // Run step-through animation
+  setTimeout(() => runStepThrough(), 800);
+}
+
+// =========================================================
+// TIMER
+// =========================================================
+function startTimer() {
+  timeLeft = TIME_PER_ROUND;
+  updateTimerDisplay();
+  timerBarEl.style.width = '100%';
+  timerBarEl.className = 'timer-bar';
+  timerTextEl.className = 'timer-text';
+
+  const startTime = Date.now();
+  const totalMs = TIME_PER_ROUND * 1000;
+
+  timerInterval = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const remaining = Math.max(0, totalMs - elapsed);
+    timeLeft = remaining / 1000;
+
+    const pct = (remaining / totalMs) * 100;
+    timerBarEl.style.width = pct + '%';
+
+    if (timeLeft <= 8) {
+      timerBarEl.className = 'timer-bar danger';
+      timerTextEl.className = 'timer-text danger';
+    } else if (timeLeft <= 15) {
+      timerBarEl.className = 'timer-bar warning';
+      timerTextEl.className = 'timer-text warning';
+    } else {
+      timerBarEl.className = 'timer-bar';
+      timerTextEl.className = 'timer-text';
+    }
+
+    updateTimerDisplay();
+
+    if (remaining <= 0) {
+      timeUp();
+    }
+  }, 50);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+}
+
+function updateTimerDisplay() {
+  timerTextEl.textContent = Math.ceil(timeLeft) + 's';
+}
+
+function timeUp() {
+  if (answered) return;
+  answered = true;
+  stopTimer();
+
+  timerTextEl.textContent = '0s';
+  timerBarEl.style.width = '0%';
+
+  roundResultEl.textContent = 'TIME UP!';
+  roundResultEl.className = 'round-result wrong';
+
+  // Show correct answers in slots
+  const slots = outputSlotsEl.querySelectorAll('.output-slot');
+  currentRoundData.output.forEach((val, i) => {
+    const valSpan = slots[i].querySelector('.slot-value');
+    valSpan.textContent = val;
+    slots[i].classList.add('correct');
+  });
+
+  valueTilesEl.querySelectorAll('.value-tile').forEach(t => t.style.pointerEvents = 'none');
+  submitBtn.disabled = true;
+  undoBtn.disabled = true;
+
+  setTimeout(() => runStepThrough(), 800);
+}
+
+// =========================================================
+// STEP-THROUGH ANIMATION
+// =========================================================
+function getStepDelay() {
+  // Speed slider: 1 = slowest (1960ms), 5 = fastest (1000ms)
+  const speed = parseInt(speedSlider.value, 10);
+  return 2200 - (speed * 240);
+}
+
+function runStepThrough(isReplay) {
+  // Cancel any previous animation
+  stepAnimationId++;
+  const thisAnimationId = stepAnimationId;
+
+  stepPanelEl.classList.add('visible');
+  stepVarsEl.textContent = '';
+  stepPlayBtn.disabled = true;
+  stepPlayBtn.classList.add('playing');
+
+  // Prepare output lines in step panel
+  stepOutputEl.innerHTML = '';
+  currentRoundData.output.forEach((val, i) => {
+    const div = document.createElement('div');
+    div.className = 'step-out-line';
+    div.textContent = '> ' + val;
+    div.dataset.outIdx = i;
+    stepOutputEl.appendChild(div);
+  });
+
+  const steps = currentRoundData.steps;
+  let stepIdx = 0;
+  const codeLines = codeBlockEl.querySelectorAll('.line');
+
+  function doStep() {
+    // Check if this animation was cancelled
+    if (thisAnimationId !== stepAnimationId) return;
+
+    if (stepIdx >= steps.length) {
+      // Clear highlight
+      codeLines.forEach(l => l.classList.remove('highlight'));
+      // Enable replay button and show next button
+      stepPlayBtn.disabled = false;
+      stepPlayBtn.classList.remove('playing');
+      if (!isReplay) {
+        nextBtn.style.display = 'inline-block';
+      }
+      return;
+    }
+
+    const step = steps[stepIdx];
+
+    // Highlight current line
+    codeLines.forEach(l => l.classList.remove('highlight'));
+    if (step.highlightLine !== null && codeLines[step.highlightLine]) {
+      codeLines[step.highlightLine].classList.add('highlight');
+    }
+
+    // Update vars
+    stepVarsEl.textContent = step.vars;
+
+    // Show output if applicable
+    if (step.outputIdx !== null) {
+      const outLine = stepOutputEl.querySelector('[data-out-idx="' + step.outputIdx + '"]');
+      if (outLine) outLine.classList.add('visible');
+    }
+
+    stepIdx++;
+    setTimeout(doStep, getStepDelay());
+  }
+
+  doStep();
+}
+
+function replayStepThrough() {
+  if (!currentRoundData) return;
+  runStepThrough(true);
+}
+
+// =========================================================
+// NEXT ROUND / END GAME
+// =========================================================
+function nextRound() {
+  currentRound++;
+  if (currentRound >= TOTAL_ROUNDS) {
+    endGame();
+  } else {
+    showRound();
+  }
+}
+
+function endGame() {
+  stopTimer();
+  gameAreaEl.classList.add('hidden');
+  hudEl.style.display = 'none';
+  endScreenEl.classList.add('visible');
+
+  finalScoreEl.textContent = score;
+
+  const maxScore = TOTAL_ROUNDS * 100;
+  const pct = score / maxScore;
+  if (pct === 1) {
+    finalMessageEl.textContent = 'PERFECT SCORE!';
+    finalSubEl.textContent = 'You traced every loop!';
+  } else if (pct >= 0.6) {
+    finalMessageEl.textContent = 'GREAT JOB!';
+    finalSubEl.textContent = 'You\'re getting the hang of loops!';
+  } else if (pct >= 0.4) {
+    finalMessageEl.textContent = 'NICE TRY!';
+    finalSubEl.textContent = 'Keep tracing, you\'ll get there!';
+  } else {
+    finalMessageEl.textContent = 'KEEP GOING!';
+    finalSubEl.textContent = 'Loops take practice. Try again!';
+  }
+
+  finalScoreEl.textContent = score + '/' + maxScore;
+
+  if (pct === 1) {
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => spawnCelebration(40), i * 300);
+    }
+  }
+}
+
+// =========================================================
+// CELEBRATION PARTICLES
+// =========================================================
+function spawnCelebration(count = 16) {
+  const colors = ['#00f5ff', '#ff6b9d', '#ffbe0b', '#39ff14', '#a78bfa'];
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = (30 + Math.random() * 40) + '%';
+    p.style.top = (20 + Math.random() * 30) + '%';
+    p.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    p.style.animationDuration = (0.6 + Math.random() * 0.6) + 's';
+    p.style.animationDelay = (Math.random() * 0.2) + 's';
+    const drift = (Math.random() - 0.5) * 100;
+    p.style.setProperty('--drift', drift + 'px');
+    celebrationEl.appendChild(p);
+    setTimeout(() => p.remove(), 1400);
+  }
+}
+
+// =========================================================
+// UTILITIES
+// =========================================================
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// =========================================================
+// EVENT LISTENERS
+// =========================================================
+startBtn.addEventListener('click', startGame);
+submitBtn.addEventListener('click', submitAnswer);
+undoBtn.addEventListener('click', undoLast);
+nextBtn.addEventListener('click', nextRound);
+stepPlayBtn.addEventListener('click', replayStepThrough);
+playAgainBtn.addEventListener('click', () => {
+  startGame();
+});
+
+// =========================================================
+// START
+// =========================================================
+init();
+</script>
+
+</body>
+</html>

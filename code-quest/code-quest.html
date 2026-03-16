@@ -490,6 +490,74 @@
       margin: 12px 0;
     }
     .explanation-body strong { color: var(--neon-cyan); }
+
+    /* Starburst attention bubble */
+    .explanation-wrapper {
+      position: relative;
+    }
+    .starburst-container {
+      position: absolute;
+      top: -20px;
+      display: none;
+      align-items: flex-start;
+      gap: 4px;
+      z-index: 10;
+      animation: starburstBounce 0.6s ease-out;
+    }
+    .starburst-container.visible { display: flex; }
+    .starburst-container.left {
+      right: 100%;
+      margin-right: 24px;
+      flex-direction: row;
+    }
+    .starburst-container.right {
+      left: 100%;
+      margin-left: 24px;
+      flex-direction: row-reverse;
+    }
+    .starburst {
+      background: var(--neon-yellow);
+      color: #1a1a2e;
+      font-family: 'Fredoka', sans-serif;
+      font-weight: 600;
+      font-size: 0.45rem;
+      padding: 16px 20px;
+      border-radius: 4px;
+      white-space: nowrap;
+      clip-path: polygon(
+        50% 0%, 61% 11%, 75% 5%, 77% 20%, 93% 22%, 85% 35%,
+        100% 45%, 88% 58%, 95% 73%, 80% 73%, 75% 90%, 61% 80%,
+        50% 95%, 39% 80%, 25% 90%, 20% 73%, 5% 73%, 12% 58%,
+        0% 45%, 15% 35%, 7% 22%, 23% 20%, 25% 5%, 39% 11%
+      );
+      box-shadow: 0 0 12px rgba(255, 190, 11, 0.4);
+      transform: scale(2);
+    }
+    .starburst-arrow {
+      width: 40px;
+      height: 50px;
+      flex-shrink: 0;
+    }
+    .starburst-container.left .starburst-arrow {
+      transform: translate(30px, -30px) rotate(-39deg) scale(2);
+    }
+    .starburst-container.right .starburst-arrow {
+      transform: translate(-30px, -30px) rotate(39deg) scale(2);
+    }
+    .starburst-arrow path {
+      fill: none;
+      stroke: var(--neon-yellow);
+      stroke-width: 2.5;
+      stroke-linecap: round;
+    }
+    @keyframes starburstBounce {
+      0% { opacity: 0; transform: scale(0.5) rotate(-10deg); }
+      60% { transform: scale(1.1) rotate(3deg); }
+      100% { opacity: 1; transform: scale(1) rotate(0deg); }
+    }
+    @media (max-width: 900px) {
+      .starburst-container { display: none !important; }
+    }
     .callout-box {
       background: var(--surface-light);
       border: 2px solid var(--neon-yellow);
@@ -1034,7 +1102,15 @@
     <div class="lesson-content">
       <div class="explanation-icon" id="explanationIcon"></div>
       <h2 id="explanationTitle"></h2>
-      <div class="explanation-body" id="explanationBody"></div>
+      <div class="explanation-wrapper">
+        <div class="starburst-container" id="starburstContainer">
+          <div class="starburst" id="starburstText"></div>
+          <svg class="starburst-arrow" id="starburstArrow" viewBox="0 0 40 50">
+            <path d="M 35 5 Q 10 15 20 40 L 15 35 M 20 40 L 25 33" />
+          </svg>
+        </div>
+        <div class="explanation-body" id="explanationBody"></div>
+      </div>
       <div class="callout-box">
         <div class="callout-label">Real World</div>
         <p id="realWorldText"></p>
@@ -2736,6 +2812,20 @@ function selectLevel(index) {
 // ============================================================
 // EXPLANATION VIEW
 // ============================================================
+var STARBURST_MESSAGES = [
+  'Actually read this',
+  'Kinda important',
+  'No, for real',
+  'Don\'t skip this',
+  'Read. You. It.',
+  'Srsly, tho read it',
+  'Pow! Read it!',
+  'This in here → 🧠',
+  'Zonk!',
+  'This.',
+  '👀',
+];
+
 function showExplanation(lessonIndex) {
   var lesson = LESSONS[lessonIndex];
   var si = appState.currentSection || 0;
@@ -2749,6 +2839,21 @@ function showExplanation(lessonIndex) {
   document.getElementById('levelDisplay').textContent = lessonIndex + 1;
   appState.currentStep = 'explanation';
   updateStepIndicator(lessonIndex);
+
+  // Show starburst bubble for emphasis
+  var starburstContainer = document.getElementById('starburstContainer');
+  var starburstArrow = document.getElementById('starburstArrow');
+  var msg = STARBURST_MESSAGES[Math.floor(Math.random() * STARBURST_MESSAGES.length)];
+  var isLeft = Math.random() < 0.5;
+  document.getElementById('starburstText').innerHTML = msg;
+  starburstContainer.className = 'starburst-container visible ' + (isLeft ? 'left' : 'right');
+  // Flip arrow SVG for right side
+  if (isLeft) {
+    starburstArrow.innerHTML = '<path d="M 5 5 Q 30 15 20 40 L 25 35 M 20 40 L 15 33" />';
+  } else {
+    starburstArrow.innerHTML = '<path d="M 35 5 Q 10 15 20 40 L 15 35 M 20 40 L 25 33" />';
+  }
+
   showView('explanation');
 }
 

@@ -3316,6 +3316,17 @@ function init() {
   renderMono('monoWelcome', 'wave', 6);
   document.querySelector('#monoWelcome').classList.add('mono-anim-bob');
 
+  // Deep-link to a specific lesson (e.g. ?lesson=loop or ?lesson=function)
+  var startLesson = new URLSearchParams(window.location.search).get('lesson');
+  if (startLesson) {
+    var startIdx = LESSONS.findIndex(function(l) { return l.id === startLesson; });
+    if (startIdx !== -1) {
+      renderLevelMap();
+      showExplanation(startIdx);
+      return;
+    }
+  }
+
   // Resume from saved state
   if (appState.currentStep === 'welcome' && appState.completedLevels.length === 0) {
     showView('welcome');

@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel Poke — code-mob</title>
+  <link rel="stylesheet" href="/shared.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+
+  <style>
+    /* ── Layout ─────────────────────────────────────────────────────────────── */
+
+    body {
+      min-height: 100vh;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    .page-wrapper {
+      display: flex;
+      flex-direction: row;
+      min-height: 100vh;
+      gap: 0;
+    }
+
+    /* ── Left sidebar ────────────────────────────────────────────────────────── */
+
+    .sidebar {
+      width: 40%;
+      min-width: 280px;
+      max-width: 420px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    .sidebar-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 18px;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 16px var(--neon-cyan), 0 0 32px rgba(0,245,255,0.4);
+      line-height: 1.4;
+      letter-spacing: 1px;
+    }
+
+    .sidebar-subtitle {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 15px;
+      color: var(--text-dim);
+      margin-top: 6px;
+    }
+
+    /* ── Name badge ──────────────────────────────────────────────────────────── */
+
+    .name-badge {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--neon-pink);
+      border-radius: 4px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .name-badge-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--neon-pink);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+
+    .name-badge-value {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 15px;
+      color: var(--neon-yellow);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── Pixel counter ───────────────────────────────────────────────────────── */
+
+    .pixel-counter {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--neon-green);
+      border-radius: 4px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .pixel-counter-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--neon-green);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+
+    .pixel-counter-value {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 13px;
+      color: var(--neon-green);
+      text-shadow: 0 0 8px var(--neon-green);
+      transition: transform 0.15s ease, text-shadow 0.15s ease;
+    }
+
+    .pixel-counter-value.bump {
+      transform: scale(1.25);
+      text-shadow: 0 0 18px var(--neon-green);
+    }
+
+    /* ── Section labels ──────────────────────────────────────────────────────── */
+
+    .section-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--neon-cyan);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Grid reference ──────────────────────────────────────────────────────── */
+
+    .grid-ref {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 14px;
+    }
+
+    .grid-info {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+      color: var(--text);
+      margin-bottom: 12px;
+      line-height: 1.8;
+    }
+
+    .grid-info strong {
+      color: var(--neon-yellow);
+    }
+
+    /* Coordinate diagram */
+    .coord-diagram {
+      position: relative;
+      width: 120px;
+      height: 100px;
+      margin: 4px auto 0;
+    }
+
+    .coord-grid {
+      position: absolute;
+      inset: 16px 0 0 16px;
+      width: 88px;
+      height: 78px;
+      border: 1px solid rgba(0,245,255,0.35);
+      background: repeating-linear-gradient(
+          0deg, transparent, transparent 18px,
+          rgba(0,245,255,0.07) 18px, rgba(0,245,255,0.07) 19px
+        ),
+        repeating-linear-gradient(
+          90deg, transparent, transparent 20px,
+          rgba(0,245,255,0.07) 20px, rgba(0,245,255,0.07) 21px
+        );
+    }
+
+    .coord-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: var(--neon-cyan);
+      position: absolute;
+    }
+
+    .coord-label.top-left  { top: 16px; left: 17px; }
+    .coord-label.top-right { top: 16px; right: 0; }
+    .coord-label.bot-left  { bottom: 0; left: 17px; }
+    .coord-label.x-arrow   { top: 3px; left: 50%; transform: translateX(-50%); color: var(--neon-yellow); }
+    .coord-label.y-arrow   { top: 50%; left: 2px; transform: translateY(-50%); color: var(--neon-pink); writing-mode: vertical-rl; text-orientation: mixed; }
+
+    .coord-dot {
+      position: absolute;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--neon-pink);
+      box-shadow: 0 0 6px var(--neon-pink);
+    }
+
+    .coord-dot.origin { top: 16px; left: 16px; }
+
+    /* ── Color chips ─────────────────────────────────────────────────────────── */
+
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .color-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .color-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ── Challenges ──────────────────────────────────────────────────────────── */
+
+    .challenge-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .challenge-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 12px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .challenge-card.selectable {
+      cursor: pointer;
+    }
+
+    .challenge-card.selectable:hover {
+      border-color: var(--neon-purple);
+      background: rgba(191,0,255,0.08);
+    }
+
+    .challenge-card.active {
+      border-color: var(--neon-cyan);
+      background: rgba(0,245,255,0.06);
+    }
+
+    .challenge-card.done {
+      border-color: var(--neon-green);
+      background: rgba(57,255,20,0.05);
+    }
+
+    .challenge-num {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      color: var(--neon-purple);
+      background: rgba(191,0,255,0.15);
+      border: 1px solid var(--neon-purple);
+      border-radius: 3px;
+      padding: 3px 6px;
+      flex-shrink: 0;
+      line-height: 1.5;
+    }
+
+    .challenge-text {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    .challenge-hint {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    .challenge-link {
+      margin-top: 6px;
+    }
+
+    .challenge-link a {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--neon-cyan);
+      text-decoration: none;
+    }
+
+    .challenge-link a:hover {
+      text-decoration: underline;
+    }
+
+    /* ── My Canvas ───────────────────────────────────────────────────────────── */
+
+    .my-canvas-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--neon-pink);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .my-canvas-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      background: rgba(255,107,157,0.06);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .my-canvas-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--neon-pink);
+      letter-spacing: 1px;
+    }
+
+    .clear-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: var(--text-dim);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 3px 8px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .clear-btn:hover {
+      color: var(--neon-red);
+      border-color: var(--neon-red);
+    }
+
+    .my-canvas-body {
+      padding: 12px;
+      display: flex;
+      justify-content: center;
+    }
+
+    #my-grid {
+      display: grid;
+      grid-template-columns: repeat(40, 1fr);
+      grid-template-rows: repeat(40, 1fr);
+      width: 240px;
+      height: 240px;
+      background: #020210;
+      gap: 0;
+      flex-shrink: 0;
+    }
+
+    .my-cell {
+      background: #0a0a1a;
+    }
+
+    /* ── Right panel ─────────────────────────────────────────────────────────── */
+
+    .main-panel {
+      flex: 1;
+      min-width: 0;
+      padding: 24px 24px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      overflow-y: auto;
+    }
+
+    /* ── Provided code block ─────────────────────────────────────────────────── */
+
+    .provided-code-wrap {
+      background: #0a0a1e;
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--neon-purple);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .provided-code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      background: rgba(191,0,255,0.1);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .provided-code-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--neon-purple);
+      letter-spacing: 1px;
+    }
+
+    .provided-code-badge {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: var(--text-dim);
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 2px 6px;
+    }
+
+    .provided-code-body {
+      padding: 12px 16px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #c8d8ff;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    .pc-comment  { color: #546e7a; }
+    .pc-keyword  { color: #c792ea; }
+    .pc-fn       { color: #82aaff; }
+    .pc-param    { color: #f78c6c; }
+    .pc-string   { color: #c3e88d; }
+    .pc-punct    { color: #89ddff; }
+
+    /* ── Editor section ──────────────────────────────────────────────────────── */
+
+    .editor-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--neon-cyan);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .editor-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      background: rgba(0,245,255,0.06);
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+    }
+
+    .editor-tabs {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: var(--text-dim);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 5px 9px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      color: var(--neon-cyan);
+      border-color: rgba(0,245,255,0.4);
+    }
+
+    .tab-btn.active {
+      color: var(--neon-cyan);
+      border-color: var(--neon-cyan);
+      background: rgba(0,245,255,0.08);
+    }
+
+    .editor-hint {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .CodeMirror {
+      height: 300px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ── Run button ──────────────────────────────────────────────────────────── */
+
+    .run-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 14px 24px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 13px;
+      color: var(--neon-green);
+      background: rgba(57,255,20,0.07);
+      border: 2px solid var(--neon-green);
+      border-radius: 4px;
+      cursor: pointer;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+    }
+
+    .run-btn:hover {
+      background: rgba(57,255,20,0.15);
+      box-shadow: 0 0 18px rgba(57,255,20,0.5);
+    }
+
+    .run-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 0 8px rgba(57,255,20,0.3);
+    }
+
+    .run-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .run-btn .play-icon {
+      font-size: 16px;
+    }
+
+    /* ── Output ──────────────────────────────────────────────────────────────── */
+
+    .output-area {
+      min-height: 48px;
+      background: #050516;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 12px 16px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      display: none;
+    }
+
+    .output-area.visible {
+      display: block;
+    }
+
+    .output-success {
+      color: var(--neon-green);
+    }
+
+    .output-error {
+      color: var(--neon-red);
+    }
+
+    /* ── Mobile layout ───────────────────────────────────────────────────────── */
+
+    @media (max-width: 768px) {
+      .page-wrapper {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        max-width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .main-panel {
+        padding: 16px;
+      }
+
+      .color-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-wrapper">
+
+  <!-- ═══ LEFT SIDEBAR ═══════════════════════════════════════════════════════ -->
+  <aside class="sidebar">
+
+    <!-- Title -->
+    <div>
+      <div class="sidebar-title">PIXEL<br>POKE</div>
+      <div class="sidebar-subtitle">Paint the screen with code!</div>
+    </div>
+
+    <!-- Name + pixel counter -->
+    <div class="name-badge">
+      <span class="name-badge-label">Coder</span>
+      <span class="name-badge-value" id="displayName">...</span>
+    </div>
+
+    <div class="pixel-counter">
+      <span class="pixel-counter-label">Painted</span>
+      <span class="pixel-counter-value" id="pixelCountDisplay">0</span>
+      <span style="font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--text-dim);">pixels</span>
+    </div>
+
+    <!-- Grid reference -->
+    <div>
+      <div class="section-label">Grid Reference</div>
+      <div class="grid-ref">
+        <div class="grid-info">
+          <strong>Grid: 40 &times; 40</strong><br>
+          x: <strong>0</strong> (left) &rarr; <strong>39</strong> (right)<br>
+          y: <strong>0</strong> (top) &rarr; <strong>39</strong> (bottom)
+        </div>
+        <!-- Visual coordinate diagram -->
+        <div class="coord-diagram" aria-hidden="true">
+          <span class="coord-label x-arrow">x &rarr;</span>
+          <span class="coord-label y-arrow">y &darr;</span>
+          <div class="coord-grid"></div>
+          <span class="coord-label top-left">(0,0)</span>
+          <span class="coord-label top-right">(39,0)</span>
+          <span class="coord-label bot-left">(0,39)</span>
+          <div class="coord-dot origin"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Available colors -->
+    <div>
+      <div class="section-label">Available Colors</div>
+      <div class="color-grid">
+        <div class="color-item"><div class="color-swatch" style="background:var(--neon-cyan);box-shadow:0 0 5px var(--neon-cyan)"></div>cyan</div>
+        <div class="color-item"><div class="color-swatch" style="background:var(--neon-pink);box-shadow:0 0 5px var(--neon-pink)"></div>pink</div>
+        <div class="color-item"><div class="color-swatch" style="background:var(--neon-yellow);box-shadow:0 0 5px var(--neon-yellow)"></div>yellow</div>
+        <div class="color-item"><div class="color-swatch" style="background:var(--neon-green);box-shadow:0 0 5px var(--neon-green)"></div>green</div>
+        <div class="color-item"><div class="color-swatch" style="background:var(--neon-red);box-shadow:0 0 5px var(--neon-red)"></div>red</div>
+        <div class="color-item"><div class="color-swatch" style="background:var(--neon-purple);box-shadow:0 0 5px var(--neon-purple)"></div>purple</div>
+        <div class="color-item"><div class="color-swatch" style="background:#ffffff;box-shadow:0 0 5px #fff"></div>white</div>
+        <div class="color-item"><div class="color-swatch" style="background:var(--neon-orange);box-shadow:0 0 5px var(--neon-orange)"></div>orange</div>
+      </div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);margin-top:8px;">
+        Also any hex code: <span style="color:var(--neon-cyan)">"#ff0000"</span>
+      </div>
+    </div>
+
+    <!-- Challenges -->
+    <div>
+      <div class="section-label">Challenges</div>
+      <div class="challenge-list">
+
+        <div class="challenge-card active" id="challenge-1" onclick="selectChallenge(1)">
+          <span class="challenge-num">1</span>
+          <div>
+            <div class="challenge-text">Draw one pixel at any coordinate</div>
+            <div class="challenge-hint">drawPixel(x, y, "color")</div>
+          </div>
+        </div>
+
+        <div class="challenge-card selectable" id="challenge-2" onclick="selectChallenge(2)">
+          <span class="challenge-num">2</span>
+          <div>
+            <div class="challenge-text">Draw a line using a loop</div>
+            <div class="challenge-hint">let i = 0; while (i &lt; 10) { ... }</div>
+            <div class="challenge-link"><a href="https://mcc.alexmchardy.net/code-quest/code-quest.html?v=2&lesson=loop" target="_blank" onclick="event.stopPropagation()">&#128218; Learn loops in Code Quest II &rarr;</a></div>
+          </div>
+        </div>
+
+        <div class="challenge-card selectable" id="challenge-3" onclick="selectChallenge(3)">
+          <span class="challenge-num">3</span>
+          <div>
+            <div class="challenge-text">Write a function that draws a shape</div>
+            <div class="challenge-hint">function drawBox(x, y) { ... }</div>
+            <div class="challenge-link"><a href="https://mcc.alexmchardy.net/code-quest/code-quest.html?v=2&lesson=function" target="_blank" onclick="event.stopPropagation()">&#128218; Learn functions in Code Quest II &rarr;</a></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ═══ RIGHT MAIN PANEL ════════════════════════════════════════════════════ -->
+  <main class="main-panel">
+
+    <!-- Provided API block (read-only, decorative) -->
+    <div class="provided-code-wrap">
+      <div class="provided-code-header">
+        <span class="provided-code-label">PROVIDED CODE</span>
+        <span class="provided-code-badge">READ ONLY</span>
+      </div>
+      <div class="provided-code-body"><span class="pc-comment">// Your code name is stored in NAME</span>
+<span class="pc-comment">// Call drawPixel to paint the screen!</span>
+
+<span class="pc-keyword">async function</span> <span class="pc-fn">drawPixel</span><span class="pc-punct">(</span><span class="pc-param">x</span><span class="pc-punct">,</span> <span class="pc-param">y</span><span class="pc-punct">,</span> <span class="pc-param">color</span><span class="pc-punct">) {</span>
+  <span class="pc-comment">// sends your pixel to the room screen</span>
+<span class="pc-punct">}</span></div>
+    </div>
+
+    <!-- CodeMirror editor -->
+    <div class="editor-wrap">
+      <div class="editor-header">
+        <div class="editor-tabs">
+          <button class="tab-btn active" id="tab-1" onclick="selectChallenge(1)">Challenge 1</button>
+          <button class="tab-btn" id="tab-2" onclick="selectChallenge(2)">Challenge 2</button>
+          <button class="tab-btn" id="tab-3" onclick="selectChallenge(3)">Challenge 3</button>
+        </div>
+        <span class="editor-hint">Ctrl+Enter to run</span>
+      </div>
+      <textarea id="code-editor"></textarea>
+    </div>
+
+    <!-- Run button -->
+    <button class="run-btn" id="run-btn" onclick="runCode()">
+      <span class="play-icon">&#9654;</span> RUN
+    </button>
+
+    <!-- Output area -->
+    <div class="output-area" id="output-area"></div>
+
+    <!-- My Canvas -->
+    <div class="my-canvas-wrap">
+      <div class="my-canvas-header">
+        <span class="my-canvas-label">My Pixels</span>
+        <button class="clear-btn" onclick="clearMyGrid()">Clear Preview</button>
+      </div>
+      <div class="my-canvas-body">
+        <div id="my-grid"></div>
+      </div>
+    </div>
+
+  </main>
+
+</div><!-- .page-wrapper -->
+
+<script>
+  // ── Name prompt ───────────────────────────────────────────────────────────────
+
+  let rawName = prompt('Enter your code name (no spaces):') || 'Anonymous';
+  rawName = rawName.slice(0, 20).replace(/\s+/g, '_') || 'Anonymous';
+  const NAME = rawName;
+  document.getElementById('displayName').textContent = NAME;
+
+  // ── Color helpers ─────────────────────────────────────────────────────────────
+
+  const COLOR_MAP = {
+    cyan: '#00f5ff', pink: '#ff6b9d', yellow: '#ffbe0b',
+    green: '#39ff14', red: '#ff4444', purple: '#bf00ff',
+    white: '#ffffff', orange: '#ff8c00',
+  };
+
+  function resolveColor(c) { return COLOR_MAP[c] || c; }
+
+  // ── Pixel counter (single source of truth) ────────────────────────────────────
+
+  let pixelCount = 0;
+
+  function updatePixelCounter() {
+    const el = document.getElementById('pixelCountDisplay');
+    el.textContent = pixelCount;
+    el.classList.remove('bump');
+    void el.offsetWidth;
+    el.classList.add('bump');
+    setTimeout(() => el.classList.remove('bump'), 200);
+    if (pixelCount >= 1) document.getElementById('challenge-1').classList.add('done');
+  }
+
+  // ── My Canvas (local pixel preview) ──────────────────────────────────────────
+
+  let myPixelEls = [];
+
+  function buildMyGrid() {
+    const grid = document.getElementById('my-grid');
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < 1600; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'my-cell';
+      frag.appendChild(cell);
+      myPixelEls.push(cell);
+    }
+    grid.appendChild(frag);
+  }
+
+  function updateMyGrid(x, y, color) {
+    const el = myPixelEls[Math.round(y) * 40 + Math.round(x)];
+    if (el) el.style.background = resolveColor(color);
+  }
+
+  function clearMyGrid() {
+    myPixelEls.forEach(el => el.style.background = '#0a0a1a');
+  }
+
+  // ── Infinite-loop guard (reset on each Run) ───────────────────────────────────
+
+  let _runPixelCount = 0;
+  const _MAX_PIXELS_PER_RUN = 500;
+
+  // ── drawPixel (provided — student code calls this) ────────────────────────────
+
+  async function drawPixel(x, y, color) {
+    if (++_runPixelCount > _MAX_PIXELS_PER_RUN) {
+      throw new Error(`drawPixel called too many times! (max ${_MAX_PIXELS_PER_RUN} per run — check for infinite loops)`);
+    }
+    pixelCount++;
+    updateMyGrid(x, y, color);
+    updatePixelCounter();
+    const res = await fetch('/game/pixel-poke/pixel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ x: Math.round(x), y: Math.round(y), color, name: NAME }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      pixelCount--;
+      updatePixelCounter();
+      throw new Error(data.error || 'Server error');
+    }
+    return data;
+  }
+
+  // ── Challenge selection ───────────────────────────────────────────────────────
+
+  function randomCoord(margin = 5) {
+    return Math.floor(Math.random() * (40 - margin * 2)) + margin;
+  }
+
+  const CHALLENGE_STARTERS = {
+    1: () => {
+      const x = randomCoord(), y = randomCoord();
+      return `// Challenge 1: Draw one pixel!\n// drawPixel(x, y, "color")\n\ndrawPixel(${x}, ${y}, "cyan");`;
+    },
+    2: () => {
+      const x = randomCoord(8), y = randomCoord();
+      return `// Challenge 2: Draw a line using a loop!\n// Use a while loop to draw several pixels in a row.\n\n// let x = ${x};\n// let y = ${y};\n// let i = 0;\n// while (i < 10) {\n//   drawPixel(x + i, y, "pink");\n//   i = i + 1;\n// }`;
+    },
+    3: () => {
+      return `// Challenge 3: Write a function that draws a shape!\n// Define a function, then call it.\n\n// function drawBox(x, y, size, color) {\n//   ...\n// }\n//\n// drawBox(10, 10, 5, "purple");`;
+    },
+  };
+
+  let currentChallenge = 1;
+  const savedCode = { 1: null, 2: null, 3: null };
+
+  function selectChallenge(n) {
+    // save current editor content for the active challenge
+    savedCode[currentChallenge] = editor.getValue();
+    currentChallenge = n;
+
+    // update sidebar cards and tab buttons
+    [1, 2, 3].forEach(i => {
+      document.getElementById(`challenge-${i}`).classList.toggle('active', i === n);
+      document.getElementById(`tab-${i}`).classList.toggle('active', i === n);
+    });
+
+    // restore saved code or show the starter hint
+    editor.setValue(savedCode[n] !== null ? savedCode[n] : CHALLENGE_STARTERS[n]());
+    editor.focus();
+  }
+
+  // ── CodeMirror ────────────────────────────────────────────────────────────────
+
+  const editor = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
+    mode: 'javascript',
+    theme: 'material-darker',
+    lineNumbers: true,
+    indentUnit: 2,
+    tabSize: 2,
+    indentWithTabs: false,
+    autofocus: true,
+    extraKeys: { 'Ctrl-Enter': runCode, 'Cmd-Enter': runCode },
+  });
+
+  // ── Output helpers ────────────────────────────────────────────────────────────
+
+  function escapeHtml(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function clearOutput() {
+    const el = document.getElementById('output-area');
+    el.className = 'output-area';
+    el.innerHTML = '';
+  }
+
+  function showSuccess(msg) {
+    const el = document.getElementById('output-area');
+    el.className = 'output-area visible';
+    el.innerHTML = `<span class="output-success">&#10003; ${escapeHtml(msg)}</span>`;
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('output-area');
+    el.className = 'output-area visible';
+    el.innerHTML = `<span class="output-error">&#10007; Error: ${escapeHtml(msg)}</span>`;
+  }
+
+  // ── Run ───────────────────────────────────────────────────────────────────────
+
+  async function runCode() {
+    const btn = document.getElementById('run-btn');
+    clearOutput();
+    btn.disabled = true;
+    _runPixelCount = 0;
+    try {
+      await eval(`(async () => { ${editor.getValue()} })()`);
+      showSuccess(`Code ran! You've painted ${pixelCount} pixel${pixelCount !== 1 ? 's' : ''} total.`);
+    } catch (e) {
+      showError(e.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────────
+
+  buildMyGrid();
+  editor.setValue(CHALLENGE_STARTERS[1]());
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "code-mob",
+  "version": "1.0.0",
+  "description": "Classroom platform where students write JS to affect a shared room screen",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "ws": "^8.16.0"
+  }
+}

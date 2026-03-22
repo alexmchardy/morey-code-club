@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel Poke — Room Screen</title>
+  <link rel="stylesheet" href="shared.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      user-select: none;
+      font-family: 'Press Start 2P', monospace;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ─── Top Bar ─────────────────────────────────────────────────────────────── */
+
+    #top-bar {
+      flex: 0 0 50px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      background: var(--surface);
+      border-bottom: 2px solid var(--neon-cyan);
+      z-index: 10;
+    }
+
+    #top-bar-title {
+      font-size: 18px;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 8px var(--neon-cyan), 0 0 20px var(--neon-cyan), 0 0 40px rgba(0,245,255,0.4);
+      letter-spacing: 2px;
+    }
+
+    #top-bar-center { font-size: 12px; color: var(--neon-pink);   text-shadow: 0 0 8px var(--neon-pink); }
+    #top-bar-right  { font-size: 12px; color: var(--neon-yellow); text-shadow: 0 0 8px var(--neon-yellow); }
+
+    /* ─── Main Area (canvas + sidebar) ────────────────────────────────────────── */
+
+    #main-area {
+      flex: 1 1 0;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ─── Canvas Area ─────────────────────────────────────────────────────────── */
+
+    #canvas-area {
+      flex: 1 1 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    /* Wrapper is square and positioned relatively so overlays can use absolute */
+    #pixel-grid-wrapper {
+      position: relative;
+      --grid-sz: min(calc(100vh - 78px), calc(100vw - 300px - 16px));
+      width: var(--grid-sz);
+      height: var(--grid-sz);
+      flex-shrink: 0;
+    }
+
+    /* ─── Pixel Grid ──────────────────────────────────────────────────────────── */
+
+    #pixel-grid {
+      display: grid;
+      grid-template-columns: repeat(40, 1fr);
+      grid-template-rows: repeat(40, 1fr);
+      gap: 1px;
+      width: 100%;
+      height: 100%;
+      background: #020210;
+    }
+
+    .pixel-cell {
+      background: #0a0a1a;
+      display: block;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    @keyframes pixelFlash {
+      0%   { filter: brightness(3.5) }
+      100% { filter: brightness(1) }
+    }
+
+    .pixel-cell.flash {
+      animation: pixelFlash 0.4s ease-out forwards;
+    }
+
+    /* ─── Name Labels Overlay ─────────────────────────────────────────────────── */
+
+    #name-labels-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 5;
+    }
+
+    .name-label {
+      position: absolute;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 2px 5px;
+      border-radius: 2px;
+      white-space: nowrap;
+      transform: translateY(-100%);
+      line-height: 1.3;
+      border-left: 3px solid var(--label-color, #fff);
+    }
+
+    /* ─── Explosions ──────────────────────────────────────────────────────────── */
+
+    #explosions-container {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: visible;
+      z-index: 15;
+    }
+
+    @keyframes explode {
+      0%   { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+      12%  { transform: translate(-50%, -65%) scale(1.2); opacity: 1; }
+      100% { transform: translate(-50%, -200%) scale(0.9); opacity: 0; }
+    }
+
+    .explosion {
+      position: absolute;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 14px;
+      color: var(--neon-orange);
+      text-shadow: 0 0 10px var(--neon-red), 0 0 24px var(--neon-orange);
+      white-space: nowrap;
+      pointer-events: none;
+      background: rgba(0, 0, 0, 0.85);
+      border: 2px solid var(--neon-red);
+      padding: 6px 12px;
+      border-radius: 3px;
+      animation: explode 8s ease-out forwards;
+      line-height: 1.6;
+    }
+
+    /* ─── Sidebar ─────────────────────────────────────────────────────────────── */
+
+    #sidebar {
+      flex: 0 0 300px;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border-left: 2px solid var(--border);
+      overflow: hidden;
+    }
+
+    .sidebar-panel {
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-panel-header {
+      font-size: 9px;
+      color: var(--neon-cyan);
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ─── Leaderboard ─────────────────────────────────────────────────────────── */
+
+    #leaderboard-panel {
+      flex: 0 0 auto;
+    }
+
+    #leaderboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .lb-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+    .lb-rank {
+      color: var(--text-dim);
+      width: 16px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .lb-row:first-child .lb-rank {
+      color: var(--neon-yellow);
+    }
+
+    .lb-name {
+      color: var(--text);
+      flex: 1 1 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .lb-row:first-child .lb-name {
+      color: var(--neon-cyan);
+      text-shadow: 0 0 6px var(--neon-cyan);
+    }
+
+    .lb-bar-wrap {
+      flex: 0 0 60px;
+      height: 7px;
+      background: var(--bg);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .lb-bar {
+      height: 100%;
+      background: var(--neon-cyan);
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+
+    .lb-row:first-child .lb-bar { background: var(--neon-yellow); }
+
+    .lb-count {
+      color: var(--neon-yellow);
+      flex-shrink: 0;
+      width: 30px;
+      text-align: right;
+      font-size: 10px;
+    }
+
+    /* ─── Event Log ───────────────────────────────────────────────────────────── */
+
+    #event-log-panel {
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 10px;
+    }
+
+    #event-log-list {
+      flex: 1 1 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .log-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 9px;
+      color: var(--text-dim);
+      line-height: 1.5;
+      flex-shrink: 0;
+    }
+
+    .log-chip {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .log-name {
+      color: var(--text);
+      font-size: 9px;
+      flex-shrink: 0;
+      max-width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .log-detail {
+      color: var(--text-dim);
+      font-size: 9px;
+    }
+
+    /* ─── Bottom Ticker ───────────────────────────────────────────────────────── */
+
+    #ticker-bar {
+      flex: 0 0 28px;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      background: var(--surface);
+      border-top: 2px solid var(--neon-green);
+      z-index: 10;
+    }
+
+    #ticker-track {
+      white-space: nowrap;
+      font-size: 8px;
+      color: var(--neon-green);
+      text-shadow: 0 0 6px var(--neon-green);
+      padding: 0 8px;
+    }
+
+    @keyframes tickerScroll {
+      from { transform: translateX(100vw) }
+      to   { transform: translateX(-100%) }
+    }
+
+    #ticker-track.running {
+      animation: tickerScroll 30s linear forwards;
+    }
+
+    /* ─── Connection Dot ──────────────────────────────────────────────────────── */
+
+    #conn-dot {
+      position: fixed;
+      top: 17px;
+      right: 8px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--neon-red);
+      z-index: 1000;
+      transition: background 0.3s;
+    }
+
+    #conn-dot.connected    { background: var(--neon-green);  box-shadow: 0 0 6px var(--neon-green); }
+    #conn-dot.connecting   { background: var(--neon-yellow); box-shadow: 0 0 6px var(--neon-yellow); }
+    #conn-dot.disconnected { background: var(--neon-red);    box-shadow: 0 0 6px var(--neon-red); }
+
+    /* ─── PAUSED Overlay ──────────────────────────────────────────────────────── */
+
+    #paused-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 3, 16, 0.82);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #paused-overlay.visible { display: flex; }
+
+    @keyframes pausedBlink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.2; }
+    }
+
+    #paused-label {
+      font-size: 64px;
+      color: var(--neon-red);
+      text-shadow: 0 0 20px var(--neon-red), 0 0 50px rgba(255,68,68,0.5);
+      animation: pausedBlink 1.2s ease-in-out infinite;
+      letter-spacing: 4px;
+    }
+
+    /* ─── Broadcast Overlay ───────────────────────────────────────────────────── */
+
+    #broadcast-overlay {
+      display: none;
+      position: fixed;
+      bottom: 44px;
+      left: 50%;
+      transform: translateX(-50%) scale(0.8);
+      background: var(--surface);
+      border: 2px solid var(--neon-yellow);
+      padding: 14px 28px;
+      z-index: 600;
+      max-width: 80vw;
+      text-align: center;
+    }
+
+    #broadcast-overlay.visible {
+      display: block;
+      animation: broadcastIn 0.25s ease-out forwards;
+    }
+
+    @keyframes broadcastIn {
+      from { transform: translateX(-50%) scale(0.8); opacity: 0; }
+      to   { transform: translateX(-50%) scale(1);   opacity: 1; }
+    }
+
+    #broadcast-message {
+      font-size: 16px;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 10px var(--neon-yellow);
+      line-height: 1.6;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+
+  <div id="top-bar">
+    <span id="top-bar-title">PIXEL POKE</span>
+    <span id="top-bar-center">&#9632; <span id="pixel-count">0</span> PIXELS</span>
+    <span id="top-bar-right">&#9679; <span id="student-count">0</span> STUDENTS</span>
+  </div>
+
+  <div id="main-area">
+
+    <div id="canvas-area">
+      <div id="pixel-grid-wrapper">
+        <div id="pixel-grid"></div>
+        <div id="name-labels-overlay"></div>
+        <div id="explosions-container"></div>
+      </div>
+    </div>
+
+    <div id="sidebar">
+      <div class="sidebar-panel" id="leaderboard-panel">
+        <div class="sidebar-panel-header">LEADERBOARD</div>
+        <div id="leaderboard-list"></div>
+      </div>
+      <div id="event-log-panel">
+        <div class="sidebar-panel-header">RECENT EVENTS</div>
+        <div id="event-log-list"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="ticker-bar">
+    <span id="ticker-track"></span>
+  </div>
+
+</div>
+
+<div id="conn-dot" class="disconnected"></div>
+
+<div id="paused-overlay">
+  <div id="paused-label">&#9208; PAUSED</div>
+</div>
+
+<div id="broadcast-overlay">
+  <div id="broadcast-message"></div>
+</div>
+
+<script>
+  // ── Supabase config — replace with your project values ───────────────────────
+  const SUPABASE_URL      = 'https://facwrgpgbffgrriolgcy.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhY3dyZ3BnYmZmZ3JyaW9sZ2N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzkyODYsImV4cCI6MjA4OTcxNTI4Nn0.G8tmDmDmmMa7O6y-CPd16na4RzOjk-nwnkE4HF383js';
+
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ─── Constants ────────────────────────────────────────────────────────────────
+
+  const COLORS = {
+    cyan:   '#00f5ff', pink:   '#ff6b9d', yellow: '#ffbe0b',
+    green:  '#39ff14', red:    '#ff4444', purple: '#bf00ff',
+    white:  '#ffffff', orange: '#ff8c00',
+  };
+
+  const GRID_SIZE = 40;
+  const LOG_MAX   = 18;
+  const LB_MAX    = 10;
+
+  // ─── State ────────────────────────────────────────────────────────────────────
+
+  let pixelEls      = [];   // flat [1600] cell divs
+  let pixelOwners   = {};   // "x,y" → student_name currently painting that cell
+  let studentLabels = {};   // name → DOM label el (first-pixel label)
+  let localStudents = {};   // name → { pixelCount }
+  let totalPixels   = 0;
+  let studentSet    = new Set();
+  let broadcastTimer = null;
+  let currentSessionId = null;
+
+  // ─── DOM Refs ─────────────────────────────────────────────────────────────────
+
+  const pixelCountEl      = document.getElementById('pixel-count');
+  const studentCountEl    = document.getElementById('student-count');
+  const tickerTrack       = document.getElementById('ticker-track');
+  const connDot           = document.getElementById('conn-dot');
+  const pausedOverlay     = document.getElementById('paused-overlay');
+  const broadcastOverlay  = document.getElementById('broadcast-overlay');
+  const broadcastMessage  = document.getElementById('broadcast-message');
+  const nameLabelsOverlay = document.getElementById('name-labels-overlay');
+  const explosionsCont    = document.getElementById('explosions-container');
+  const leaderboardList   = document.getElementById('leaderboard-list');
+  const eventLogList      = document.getElementById('event-log-list');
+
+  // ─── Utilities ────────────────────────────────────────────────────────────────
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function setConnStatus(s) { connDot.className = s; }
+
+  // ─── Grid Build ───────────────────────────────────────────────────────────────
+
+  function buildGrid() {
+    const grid = document.getElementById('pixel-grid');
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'pixel-cell';
+      frag.appendChild(cell);
+      pixelEls.push(cell);
+    }
+    grid.appendChild(frag);
+  }
+
+  // ─── Paint ────────────────────────────────────────────────────────────────────
+
+  function paintCell(x, y, color, animate) {
+    const idx = y * GRID_SIZE + x;
+    const el = pixelEls[idx];
+    if (!el) return;
+    el.style.background = COLORS[color] || color;
+    if (animate) {
+      el.classList.remove('flash');
+      void el.offsetWidth;
+      el.classList.add('flash');
+    }
+  }
+
+  function clearAllCells() {
+    for (const el of pixelEls) {
+      el.style.background = '#0a0a1a';
+      el.classList.remove('flash');
+    }
+  }
+
+  // ─── Name Labels ──────────────────────────────────────────────────────────────
+
+  function addNameLabel(name, x, y, color) {
+    if (studentLabels[name]) return;
+    const label = document.createElement('span');
+    label.className = 'name-label';
+    label.textContent = name;
+    label.style.setProperty('--label-color', COLORS[color] || '#fff');
+    label.style.left = `${(x / GRID_SIZE) * 100}%`;
+    label.style.top  = `${(y / GRID_SIZE) * 100}%`;
+    nameLabelsOverlay.appendChild(label);
+    studentLabels[name] = label;
+  }
+
+  function clearNameLabels() {
+    nameLabelsOverlay.innerHTML = '';
+    studentLabels = {};
+  }
+
+  // ─── Explosions ───────────────────────────────────────────────────────────────
+
+  function showExplosion(overwriter, victim, x, y) {
+    const el = document.createElement('div');
+    el.className = 'explosion';
+    el.textContent = `\u{1F4A5} ${overwriter} overwrote ${victim}!`;
+    el.style.left = `${((x + 0.5) / GRID_SIZE) * 100}%`;
+    el.style.top  = `${((y + 0.5) / GRID_SIZE) * 100}%`;
+    explosionsCont.appendChild(el);
+    el.addEventListener('animationend', () => el.remove(), { once: true });
+  }
+
+  // ─── Counters ─────────────────────────────────────────────────────────────────
+
+  function updateCounters() {
+    pixelCountEl.textContent  = totalPixels;
+    studentCountEl.textContent = studentSet.size;
+  }
+
+  // ─── Leaderboard ──────────────────────────────────────────────────────────────
+
+  function updateLeaderboard(students) {
+    const sorted = Object.entries(students)
+      .sort(([, a], [, b]) => b.pixelCount - a.pixelCount)
+      .slice(0, LB_MAX);
+    const maxCount = sorted.length > 0 ? sorted[0][1].pixelCount : 1;
+    leaderboardList.innerHTML = '';
+    sorted.forEach(([name, data], i) => {
+      const pct = Math.round((data.pixelCount / maxCount) * 100);
+      const row = document.createElement('div');
+      row.className = 'lb-row';
+      row.innerHTML =
+        `<span class="lb-rank">${i + 1}</span>` +
+        `<span class="lb-name">${escapeHtml(name)}</span>` +
+        `<span class="lb-bar-wrap"><span class="lb-bar" style="width:${pct}%"></span></span>` +
+        `<span class="lb-count">${data.pixelCount}</span>`;
+      leaderboardList.appendChild(row);
+    });
+  }
+
+  // ─── Event Log ────────────────────────────────────────────────────────────────
+
+  function addEventLogEntry(name, x, y, color, prepend = true) {
+    const row = document.createElement('div');
+    row.className = 'log-row';
+    const hex = COLORS[color] || '#888';
+    row.innerHTML =
+      `<span class="log-chip" style="background:${hex}"></span>` +
+      `<span class="log-name">${escapeHtml(name)}</span>` +
+      `<span class="log-detail">(${x},${y}) ${escapeHtml(color)}</span>`;
+    if (prepend) {
+      eventLogList.prepend(row);
+    } else {
+      eventLogList.appendChild(row);
+    }
+    while (eventLogList.children.length > LOG_MAX) eventLogList.lastChild.remove();
+  }
+
+  // ─── Ticker ───────────────────────────────────────────────────────────────────
+
+  function clearTicker() {
+    tickerTrack.classList.remove('running');
+    tickerTrack.textContent = '';
+  }
+
+  function addTickerEvent(name, x, y, color) {
+    tickerTrack.classList.remove('running');
+    void tickerTrack.offsetWidth;
+    tickerTrack.textContent = `${name} painted (${x},${y}) in ${color}`;
+    tickerTrack.classList.add('running');
+  }
+
+  // ─── Overlays ─────────────────────────────────────────────────────────────────
+
+  function showPaused()  { pausedOverlay.classList.add('visible'); }
+  function hidePaused()  { pausedOverlay.classList.remove('visible'); }
+
+  function showBroadcast(message) {
+    broadcastMessage.textContent = message;
+    broadcastOverlay.classList.remove('visible');
+    void broadcastOverlay.offsetWidth;
+    broadcastOverlay.classList.add('visible');
+    if (broadcastTimer) clearTimeout(broadcastTimer);
+    broadcastTimer = setTimeout(() => {
+      broadcastOverlay.classList.remove('visible');
+      broadcastTimer = null;
+    }, 5000);
+  }
+
+  // ─── clearAll: reset canvas + leaderboard + log ───────────────────────────────
+
+  function clearAll() {
+    clearAllCells();
+    clearNameLabels();
+    explosionsCont.innerHTML = '';
+    pixelOwners   = {};
+    localStudents = {};
+    totalPixels   = 0;
+    studentSet.clear();
+    clearTicker();
+    eventLogList.innerHTML    = '';
+    leaderboardList.innerHTML = '';
+    updateCounters();
+    hidePaused();
+  }
+
+  // ─── Apply Full State ─────────────────────────────────────────────────────────
+  // Called on initial load; pixels/students are Supabase row arrays.
+
+  function applyState({ pixels, students }) {
+    clearAll();
+
+    // Seed local student counts
+    for (const row of (students || [])) {
+      localStudents[row.name] = { pixelCount: row.pixel_count };
+    }
+
+    // Sort pixels by painted_at ascending so first-pixel labels are correct
+    const sorted = (pixels || []).slice().sort((a, b) =>
+      new Date(a.painted_at) - new Date(b.painted_at)
+    );
+
+    for (const row of sorted) {
+      paintCell(row.x, row.y, row.color, false);
+      pixelOwners[`${row.x},${row.y}`] = row.student_name;
+      studentSet.add(row.student_name);
+      totalPixels++;
+      addNameLabel(row.student_name, row.x, row.y, row.color);
+    }
+
+    updateCounters();
+    updateLeaderboard(localStudents);
+  }
+
+  // ─── Handle live pixel event ──────────────────────────────────────────────────
+
+  function handlePixelEvent(newRow, oldRow) {
+    const { x, y, color, student_name: name } = newRow;
+    const key = `${x},${y}`;
+    const previousOwner = pixelOwners[key];
+
+    if (previousOwner && previousOwner !== name) {
+      showExplosion(name, previousOwner, x, y);
+    }
+
+    pixelOwners[key] = name;
+    paintCell(x, y, color, true);
+    addNameLabel(name, x, y, color);
+
+    if (!localStudents[name]) localStudents[name] = { pixelCount: 0 };
+    localStudents[name].pixelCount++;
+    studentSet.add(name);
+    totalPixels++;
+    updateCounters();
+    updateLeaderboard(localStudents);
+    addTickerEvent(name, x, y, color);
+    addEventLogEntry(name, x, y, color, true);
+  }
+
+  // ─── Handle session UPDATE ────────────────────────────────────────────────────
+
+  function handleSessionUpdate(newSession, oldSession) {
+    // Paused state changed
+    if (newSession.paused !== oldSession?.paused) {
+      if (newSession.paused) showPaused(); else hidePaused();
+    }
+    // Broadcast message sent
+    if (newSession.broadcast_at !== oldSession?.broadcast_at && newSession.broadcast_msg) {
+      showBroadcast(newSession.broadcast_msg);
+    }
+    // Canvas cleared
+    if (newSession.cleared_at !== oldSession?.cleared_at) {
+      clearAll();
+    }
+  }
+
+  // ─── Switch to a new session ──────────────────────────────────────────────────
+
+  async function switchToSession(sessionId) {
+    currentSessionId = sessionId;
+    clearAll();
+    await loadState(sessionId);
+    subscribeToSession(sessionId);
+  }
+
+  // ─── Load initial state from Supabase ────────────────────────────────────────
+
+  async function loadState(sessionId) {
+    const [{ data: pixels }, { data: students }] = await Promise.all([
+      db.schema('code_mob').from('pixels').select('*').eq('session_id', sessionId),
+      db.schema('code_mob').from('students').select('*').eq('session_id', sessionId),
+    ]);
+    applyState({ pixels, students });
+  }
+
+  // ─── Subscribe to Realtime for a session ─────────────────────────────────────
+
+  function subscribeToSession(sessionId) {
+    // Pixels: INSERT = new pixel, UPDATE = overwrite
+    db.channel('pixels-' + sessionId)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'code_mob', table: 'pixels',
+        filter: `session_id=eq.${sessionId}`,
+      }, (payload) => handlePixelEvent(payload.new, null))
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'code_mob', table: 'pixels',
+        filter: `session_id=eq.${sessionId}`,
+      }, (payload) => handlePixelEvent(payload.new, payload.old))
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') setConnStatus('connected');
+        else if (status === 'CHANNEL_ERROR') setConnStatus('disconnected');
+      });
+
+    // Session: pause / broadcast / clear
+    db.channel('session-' + sessionId)
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'code_mob', table: 'sessions',
+        filter: `id=eq.${sessionId}`,
+      }, (payload) => handleSessionUpdate(payload.new, payload.old))
+      .subscribe();
+  }
+
+  // ─── Watch for new sessions (teacher creates a new session) ──────────────────
+
+  function watchForNewSessions() {
+    db.channel('new-sessions')
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'code_mob', table: 'sessions',
+      }, (payload) => switchToSession(payload.new.id))
+      .subscribe();
+  }
+
+  // ─── Init ─────────────────────────────────────────────────────────────────────
+
+  async function init() {
+    buildGrid();
+    setConnStatus('connecting');
+
+    // Load most recent session
+    const { data: session } = await db
+      .schema('code_mob')
+      .from('sessions')
+      .select('id, paused')
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (session) {
+      currentSessionId = session.id;
+      await loadState(session.id);
+      if (session.paused) showPaused();
+      subscribeToSession(session.id);
+    }
+
+    watchForNewSessions();
+  }
+
+  init();
+</script>
+</body>
+</html>

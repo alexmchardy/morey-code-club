@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>code-mob // ADMIN</title>
+  <link rel="stylesheet" href="shared.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    /* ─── Layout ─────────────────────────────────────────────────────────────── */
+
+    body {
+      padding: 16px;
+      min-height: 100vh;
+    }
+
+    .admin-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .admin-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 13px;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 16px var(--neon-cyan);
+      letter-spacing: 2px;
+      margin: 0;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      margin-left: auto;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .conn-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--text-dim);
+    }
+
+    .conn-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--neon-red);
+      flex-shrink: 0;
+    }
+
+    .conn-dot.green  { background: var(--neon-green);  box-shadow: 0 0 6px var(--neon-green); }
+    .conn-dot.yellow { background: var(--neon-yellow); box-shadow: 0 0 6px var(--neon-yellow); }
+    .conn-dot.red    { background: var(--neon-red);    box-shadow: 0 0 6px var(--neon-red); }
+
+    .paused-badge {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--neon-red);
+      border: 1px solid var(--neon-red);
+      padding: 4px 8px;
+      border-radius: 2px;
+      display: none;
+    }
+
+    .paused-badge.visible { display: inline-block; }
+
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 900px) {
+      .grid-layout { grid-template-columns: 1fr; }
+    }
+
+    .left-col, .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* ─── Share Panel ─────────────────────────────────────────────────────────── */
+
+    .url-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+
+    .url-row {
+      margin-bottom: 10px;
+    }
+
+    .url-copy-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 8px 10px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .url-copy-box:hover { border-color: var(--neon-cyan); }
+
+    .url-text {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--neon-cyan);
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .url-text.placeholder { color: var(--text-dim); }
+
+    .copy-icon {
+      font-size: 14px;
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+
+    .copy-feedback {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: var(--neon-green);
+      display: none;
+      margin-top: 2px;
+    }
+
+    .copy-feedback.visible { display: block; }
+
+    .qr-section {
+      margin-top: 12px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .qr-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+
+    .qr-container {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 8px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+
+    /* ─── Token input ─────────────────────────────────────────────────────────── */
+
+    .token-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .token-input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 8px 12px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+    }
+
+    .token-input:focus { border-color: var(--neon-cyan); }
+
+    .token-status {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    .token-status.ok  { color: var(--neon-green); }
+    .token-status.err { color: var(--neon-red); }
+
+    /* ─── Controls ────────────────────────────────────────────────────────────── */
+
+    .controls-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .broadcast-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .broadcast-input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 8px 12px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+    }
+
+    .broadcast-input:focus { border-color: var(--neon-pink); }
+
+    .sent-feedback {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: var(--neon-green);
+      display: none;
+      margin-top: 4px;
+    }
+
+    .sent-feedback.visible { display: block; }
+
+    .confirm-text {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--neon-orange);
+      display: none;
+    }
+
+    .confirm-text.visible { display: inline; }
+
+    /* ─── Stats ───────────────────────────────────────────────────────────────── */
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .stat-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stat-value {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 13px;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 10px rgba(0,245,255,0.5);
+    }
+
+    .stat-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: var(--text-dim);
+      text-align: center;
+    }
+
+    /* ─── Canvas Preview ──────────────────────────────────────────────────────── */
+
+    .canvas-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 8px;
+    }
+
+    #canvas-preview {
+      display: grid;
+      grid-template-columns: repeat(40, 1fr);
+      grid-template-rows: repeat(40, 1fr);
+      width: 240px;
+      height: 240px;
+      background: #020210;
+    }
+
+    #canvas-preview .pixel-cell {
+      background: #0a0a1a;
+    }
+
+    /* ─── Leaderboard ─────────────────────────────────────────────────────────── */
+
+    .leaderboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .lb-row {
+      display: grid;
+      grid-template-columns: 20px 1fr 40px 80px;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+    }
+
+    .lb-rank {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--text-dim);
+      text-align: right;
+    }
+
+    .lb-rank.top { color: var(--neon-yellow); }
+    .lb-name { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lb-name.top-name { color: var(--neon-cyan); text-shadow: 0 0 6px var(--neon-cyan); }
+    .lb-count { font-family: 'Press Start 2P', monospace; font-size: 8px; color: var(--neon-yellow); text-align: right; }
+    .lb-bar-wrap { height: 6px; background: var(--bg); border-radius: 2px; overflow: hidden; }
+    .lb-bar { height: 100%; background: var(--neon-cyan); border-radius: 2px; transition: width 0.3s; }
+
+    .lb-empty {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--text-dim);
+      text-align: center;
+      padding: 12px 0;
+    }
+
+    /* ─── Event Log ───────────────────────────────────────────────────────────── */
+
+    .event-log {
+      max-height: 300px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .log-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+
+    .color-chip {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+
+    .log-name { color: var(--text); font-weight: 600; }
+    .log-coords { font-size: 11px; }
+    .log-color-name { font-size: 11px; }
+    .log-time { margin-left: auto; font-size: 10px; color: var(--text-dim); flex-shrink: 0; }
+
+    .log-empty {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--text-dim);
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    /* ─── Buttons (admin-specific overrides) ──────────────────────────────────── */
+
+    .btn { white-space: nowrap; }
+
+    .btn-pause { color: var(--neon-green); border-color: var(--neon-green); }
+    .btn-pause:hover { background: rgba(57,255,20,0.12); box-shadow: 0 0 12px var(--neon-green); }
+    .btn-pause.paused { color: var(--neon-red); border-color: var(--neon-red); }
+    .btn-pause.paused:hover { background: rgba(255,68,68,0.12); box-shadow: 0 0 12px var(--neon-red); }
+
+    .btn-clear { color: var(--neon-orange); border-color: var(--neon-orange); }
+    .btn-clear:hover { background: rgba(255,140,0,0.12); box-shadow: 0 0 12px var(--neon-orange); }
+
+    .btn-broadcast { color: var(--neon-pink); border-color: var(--neon-pink); }
+    .btn-broadcast:hover { background: rgba(255,107,157,0.12); box-shadow: 0 0 12px var(--neon-pink); }
+
+    .btn-new-session { color: var(--neon-cyan); border-color: var(--neon-cyan); }
+    .btn-new-session:hover { background: rgba(0,245,255,0.12); box-shadow: 0 0 12px var(--neon-cyan); }
+  </style>
+</head>
+<body>
+
+  <!-- ─── Header ─────────────────────────────────────────────────────────────── -->
+  <div class="admin-header">
+    <h1 class="admin-title">code-mob // admin</h1>
+    <div class="status-bar">
+      <span class="paused-badge" id="paused-badge">PAUSED</span>
+      <div class="conn-indicator">
+        <div class="conn-dot" id="conn-dot"></div>
+        <span id="conn-label">connecting</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Main Grid ──────────────────────────────────────────────────────────── -->
+  <div class="grid-layout">
+
+    <!-- ═══ LEFT COLUMN ═════════════════════════════════════════════════════════ -->
+    <div class="left-col">
+
+      <!-- 1. Share / Token Setup -->
+      <div class="panel">
+        <div class="panel-header">Share &amp; Setup</div>
+
+        <div class="url-label" style="margin-bottom:6px">Admin Token</div>
+        <div class="token-row">
+          <input class="token-input" id="token-input" type="password"
+            placeholder="Enter your ADMIN_TOKEN" autocomplete="off">
+        </div>
+        <div class="token-status" id="token-status">Enter token to enable admin actions</div>
+
+        <div style="margin-top: 16px;">
+          <div class="url-row">
+            <div class="url-label">Student URL</div>
+            <div class="url-copy-box" id="student-url-box">
+              <span class="url-text" id="student-url-text">loading...</span>
+              <span class="copy-icon">&#9113;</span>
+            </div>
+            <div class="copy-feedback" id="student-url-fb">Copied!</div>
+          </div>
+
+          <div class="url-row">
+            <div class="url-label">Room URL</div>
+            <div class="url-copy-box" id="room-url-box">
+              <span class="url-text" id="room-url-text">loading...</span>
+              <span class="copy-icon">&#9113;</span>
+            </div>
+            <div class="copy-feedback" id="room-url-fb">Copied!</div>
+          </div>
+        </div>
+
+        <div class="qr-section">
+          <div>
+            <div class="qr-label">Student QR</div>
+            <div class="qr-container">
+              <div id="qr-student"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Controls -->
+      <div class="panel">
+        <div class="panel-header">Controls</div>
+        <div class="controls-grid">
+
+          <!-- New Session -->
+          <div>
+            <div class="control-row">
+              <button class="btn btn-new-session" id="btn-new-session">New Session</button>
+              <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-dim)" id="session-id-display">—</span>
+            </div>
+          </div>
+
+          <!-- Pause/Resume -->
+          <div>
+            <div class="control-row">
+              <button class="btn btn-pause" id="btn-pause">Pause</button>
+              <span id="pause-status" style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-dim)">Game is running</span>
+            </div>
+          </div>
+
+          <!-- Clear Canvas -->
+          <div>
+            <div class="control-row">
+              <button class="btn btn-clear" id="btn-clear">Clear Canvas</button>
+              <span class="confirm-text" id="clear-confirm">Click again to confirm</span>
+            </div>
+          </div>
+
+          <!-- Broadcast -->
+          <div>
+            <div class="url-label" style="margin-bottom:6px">Broadcast Message</div>
+            <div class="broadcast-row">
+              <input class="broadcast-input" id="broadcast-input" type="text"
+                placeholder="Message to all students..." maxlength="200">
+              <button class="btn btn-broadcast" id="btn-broadcast">Send</button>
+            </div>
+            <div class="sent-feedback" id="sent-feedback">Sent!</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 3. Session Stats -->
+      <div class="panel">
+        <div class="panel-header">Session Stats</div>
+        <div class="stats-grid">
+          <div class="stat-box">
+            <span class="stat-value" id="stat-time">00:00:00</span>
+            <span class="stat-label">Time Elapsed</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-value" id="stat-pixels" style="color:var(--neon-pink);text-shadow:0 0 10px rgba(255,107,157,0.5)">0</span>
+            <span class="stat-label">Pixels Painted</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-value" id="stat-students" style="color:var(--neon-yellow);text-shadow:0 0 10px rgba(255,190,11,0.5)">0</span>
+            <span class="stat-label">Students</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-value" id="stat-game" style="font-size:9px;color:var(--neon-purple);text-shadow:0 0 10px rgba(191,0,255,0.5)">pixel-poke</span>
+            <span class="stat-label">Active Game</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /left-col -->
+
+    <!-- ═══ RIGHT COLUMN ══════════════════════════════════════════════════════════ -->
+    <div class="right-col">
+
+      <!-- 4. Canvas Preview -->
+      <div class="panel">
+        <div class="panel-header">Canvas Preview</div>
+        <div class="canvas-wrap">
+          <div id="canvas-preview"></div>
+        </div>
+      </div>
+
+      <!-- 5. Leaderboard -->
+      <div class="panel">
+        <div class="panel-header">Student Leaderboard</div>
+        <div class="leaderboard-list" id="leaderboard">
+          <div class="lb-empty">No students yet</div>
+        </div>
+      </div>
+
+      <!-- 6. Event Log -->
+      <div class="panel">
+        <div class="panel-header">Event Log</div>
+        <div class="event-log" id="event-log">
+          <div class="log-empty">Waiting for activity...</div>
+        </div>
+      </div>
+
+    </div><!-- /right-col -->
+
+  </div><!-- /grid-layout -->
+
+  <script>
+    // ── Supabase config — replace with your project values ─────────────────────
+    const SUPABASE_URL      = 'https://facwrgpgbffgrriolgcy.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhY3dyZ3BnYmZmZ3JyaW9sZ2N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzkyODYsImV4cCI6MjA4OTcxNTI4Nn0.G8tmDmDmmMa7O6y-CPd16na4RzOjk-nwnkE4HF383js';
+    const EDGE_FN_URL       = 'https://facwrgpgbffgrriolgcy.supabase.co/functions/v1/code-mob-admin';
+
+    const { createClient } = supabase;
+    const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ── State ──────────────────────────────────────────────────────────────────
+
+    let SESSION_ID    = null;
+    let appPaused     = false;
+    let pixelCount    = 0;
+    let studentCount  = 0;
+    let startTime     = Date.now();
+    let clearPending  = false;
+    let clearConfirmTimer = null;
+    let adminToken    = localStorage.getItem('admin_token') || '';
+
+    const COLOR_MAP = {
+      cyan:   '#00f5ff', pink:   '#ff6b9d', yellow: '#ffbe0b',
+      green:  '#39ff14', red:    '#ff4444', purple: '#bf00ff',
+      white:  '#ffffff', orange: '#ff8c00',
+    };
+
+    // ── Token input ────────────────────────────────────────────────────────────
+
+    const tokenInput  = document.getElementById('token-input');
+    const tokenStatus = document.getElementById('token-status');
+
+    tokenInput.value = adminToken;
+    updateTokenStatus();
+
+    tokenInput.addEventListener('input', () => {
+      adminToken = tokenInput.value;
+      localStorage.setItem('admin_token', adminToken);
+      updateTokenStatus();
+    });
+
+    function updateTokenStatus() {
+      if (adminToken) {
+        tokenStatus.textContent = 'Token saved — admin actions enabled';
+        tokenStatus.className   = 'token-status ok';
+      } else {
+        tokenStatus.textContent = 'Enter token to enable admin actions';
+        tokenStatus.className   = 'token-status';
+      }
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+
+    function escHtml(s) {
+      return String(s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function setConnStatus(status) {
+      const dot   = document.getElementById('conn-dot');
+      const label = document.getElementById('conn-label');
+      dot.className = 'conn-dot';
+      if (status === 'connected') {
+        dot.classList.add('green');
+        label.textContent = 'live';
+      } else if (status === 'connecting') {
+        dot.classList.add('yellow');
+        label.textContent = 'connecting';
+      } else {
+        dot.classList.add('red');
+        label.textContent = 'disconnected';
+      }
+    }
+
+    function timeAgo(iso) {
+      const diff = Date.now() - new Date(iso).getTime();
+      if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`;
+      if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+      return `${Math.floor(diff / 3600000)}h ago`;
+    }
+
+    // ── Share panel setup ──────────────────────────────────────────────────────
+
+    function setupSharePanel() {
+      const base = window.location.href.replace(/admin\.html.*$/, '');
+      const studentUrl = base + 'student.html';
+      const roomUrl    = base + 'room.html';
+
+      const studentText = document.getElementById('student-url-text');
+      const roomText    = document.getElementById('room-url-text');
+      studentText.textContent = studentUrl;
+      roomText.textContent    = roomUrl;
+
+      document.getElementById('student-url-box').onclick = () => copyUrl(studentUrl, 'student-url-fb');
+      document.getElementById('room-url-box').onclick    = () => copyUrl(roomUrl, 'room-url-fb');
+
+      // QR code for student URL
+      const qrEl = document.getElementById('qr-student');
+      qrEl.innerHTML = '';
+      try {
+        new QRCode(qrEl, {
+          text: studentUrl,
+          width: 128, height: 128,
+          colorDark: '#00f5ff', colorLight: '#030310',
+          correctLevel: QRCode.CorrectLevel.M,
+        });
+      } catch (_) {
+        qrEl.textContent = 'QR error';
+      }
+    }
+
+    function copyUrl(text, feedbackId) {
+      navigator.clipboard.writeText(text).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.cssText = 'position:fixed;opacity:0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }).finally(() => {
+        const fb = document.getElementById(feedbackId);
+        fb.classList.add('visible');
+        setTimeout(() => fb.classList.remove('visible'), 1500);
+      });
+    }
+
+    // ── Canvas Preview ─────────────────────────────────────────────────────────
+
+    const canvasEl = document.getElementById('canvas-preview');
+    const cells = [];
+
+    (function buildCanvasGrid() {
+      for (let i = 0; i < 1600; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'pixel-cell';
+        canvasEl.appendChild(cell);
+        cells.push(cell);
+      }
+    })();
+
+    function setPixel(x, y, color) {
+      const idx = y * 40 + x;
+      if (idx < 0 || idx >= cells.length) return;
+      cells[idx].style.background = COLOR_MAP[color] || color;
+    }
+
+    function clearCanvas() {
+      cells.forEach(c => c.style.background = '#0a0a1a');
+    }
+
+    // ── Leaderboard ────────────────────────────────────────────────────────────
+
+    let localStudents = {}; // name → { pixelCount }
+
+    function renderLeaderboard(students) {
+      const lb = document.getElementById('leaderboard');
+      const entries = Object.entries(students || {})
+        .map(([name, data]) => ({ name, pixelCount: data.pixelCount }))
+        .sort((a, b) => b.pixelCount - a.pixelCount);
+
+      if (entries.length === 0) {
+        lb.innerHTML = '<div class="lb-empty">No students yet</div>';
+        studentCount = 0;
+        return;
+      }
+
+      studentCount = entries.length;
+      const maxCount = entries[0].pixelCount || 1;
+      lb.innerHTML = entries.map((s, i) => {
+        const pct  = Math.round((s.pixelCount / maxCount) * 100);
+        const rank = i + 1;
+        const isTop = rank === 1;
+        return `
+          <div class="lb-row">
+            <span class="lb-rank ${isTop ? 'top' : ''}">${rank}</span>
+            <span class="lb-name ${isTop ? 'top-name' : ''}">${escHtml(s.name)}</span>
+            <span class="lb-count">${s.pixelCount}</span>
+            <div class="lb-bar-wrap"><div class="lb-bar" style="width:${pct}%"></div></div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Event Log ──────────────────────────────────────────────────────────────
+
+    function prependLogEntry(name, x, y, color, paintedAt) {
+      const logEl = document.getElementById('event-log');
+      const empty = logEl.querySelector('.log-empty');
+      if (empty) empty.remove();
+      const hex = COLOR_MAP[color] || '#ffffff';
+      const ago = paintedAt ? timeAgo(paintedAt) : 'now';
+      const row = document.createElement('div');
+      row.className = 'log-row';
+      row.innerHTML =
+        `<span class="color-chip" style="background:${hex}"></span>` +
+        `<span class="log-name">${escHtml(name)}</span>` +
+        `<span>painted</span>` +
+        `<span class="log-coords">(${x},${y})</span>` +
+        `<span class="log-color-name" style="color:${hex}">${escHtml(color)}</span>` +
+        `<span class="log-time">${ago}</span>`;
+      logEl.insertBefore(row, logEl.firstChild);
+      while (logEl.children.length > 50) logEl.removeChild(logEl.lastChild);
+    }
+
+    // ── Stats ──────────────────────────────────────────────────────────────────
+
+    function updateStats() {
+      const elapsed = Date.now() - startTime;
+      const h = Math.floor(elapsed / 3600000);
+      const m = Math.floor((elapsed % 3600000) / 60000);
+      const s = Math.floor((elapsed % 60000) / 1000);
+      document.getElementById('stat-time').textContent =
+        String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+      document.getElementById('stat-pixels').textContent  = pixelCount;
+      document.getElementById('stat-students').textContent = studentCount;
+    }
+
+    setInterval(updateStats, 1000);
+
+    // ── Pause UI ───────────────────────────────────────────────────────────────
+
+    function updatePausedUI(paused) {
+      appPaused = paused;
+      const btn      = document.getElementById('btn-pause');
+      const badge    = document.getElementById('paused-badge');
+      const statusEl = document.getElementById('pause-status');
+      if (paused) {
+        btn.textContent = 'Resume';
+        btn.classList.add('paused');
+        badge.classList.add('visible');
+        statusEl.textContent = 'Game is PAUSED';
+        statusEl.style.color = 'var(--neon-red)';
+      } else {
+        btn.textContent = 'Pause';
+        btn.classList.remove('paused');
+        badge.classList.remove('visible');
+        statusEl.textContent = 'Game is running';
+        statusEl.style.color = 'var(--text-dim)';
+      }
+    }
+
+    // ── Admin action via Edge Function ─────────────────────────────────────────
+
+    async function adminAction(action, extra = {}) {
+      if (!adminToken) {
+        alert('Enter your admin token first.');
+        return null;
+      }
+      try {
+        const res = await fetch(EDGE_FN_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, token: adminToken, sessionId: SESSION_ID, ...extra }),
+        });
+        const data = await res.json();
+        if (data.error) console.error('Admin action error:', data.error);
+        return data;
+      } catch (err) {
+        console.error('Admin action failed:', err);
+        return null;
+      }
+    }
+
+    // ── Apply full state from Supabase ─────────────────────────────────────────
+
+    function applyState({ pixels, students, session }) {
+      clearCanvas();
+      localStudents = {};
+      pixelCount    = 0;
+
+      for (const row of (students || [])) {
+        localStudents[row.name] = { pixelCount: row.pixel_count };
+        pixelCount += row.pixel_count;
+      }
+
+      for (const row of (pixels || [])) {
+        setPixel(row.x, row.y, row.color);
+      }
+
+      renderLeaderboard(localStudents);
+      updateStats();
+
+      if (session) {
+        updatePausedUI(session.paused);
+        startTime = new Date(session.started_at).getTime();
+      }
+    }
+
+    // ── Load initial state ─────────────────────────────────────────────────────
+
+    async function loadState(sessionId) {
+      const [{ data: pixels }, { data: students }, { data: session }] = await Promise.all([
+        db.schema('code_mob').from('pixels').select('*').eq('session_id', sessionId),
+        db.schema('code_mob').from('students').select('*').eq('session_id', sessionId),
+        db.schema('code_mob').from('sessions').select('*').eq('id', sessionId).single(),
+      ]);
+      applyState({ pixels, students, session });
+    }
+
+    // ── Subscribe to Realtime ──────────────────────────────────────────────────
+
+    function subscribeToSession(sessionId) {
+      // Pixel changes
+      db.channel('admin-pixels-' + sessionId)
+        .on('postgres_changes', {
+          event: 'INSERT', schema: 'code_mob', table: 'pixels',
+          filter: `session_id=eq.${sessionId}`,
+        }, (payload) => {
+          const { x, y, color, student_name, painted_at } = payload.new;
+          setPixel(x, y, color);
+          pixelCount++;
+          if (!localStudents[student_name]) localStudents[student_name] = { pixelCount: 0 };
+          localStudents[student_name].pixelCount++;
+          renderLeaderboard(localStudents);
+          prependLogEntry(student_name, x, y, color, painted_at);
+        })
+        .on('postgres_changes', {
+          event: 'UPDATE', schema: 'code_mob', table: 'pixels',
+          filter: `session_id=eq.${sessionId}`,
+        }, (payload) => {
+          const { x, y, color, student_name, painted_at } = payload.new;
+          setPixel(x, y, color);
+          if (!localStudents[student_name]) localStudents[student_name] = { pixelCount: 0 };
+          localStudents[student_name].pixelCount++;
+          renderLeaderboard(localStudents);
+          prependLogEntry(student_name, x, y, color, painted_at);
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') setConnStatus('connected');
+          else if (status === 'CHANNEL_ERROR') setConnStatus('disconnected');
+        });
+
+      // Session changes (pause, broadcast, clear)
+      db.channel('admin-session-' + sessionId)
+        .on('postgres_changes', {
+          event: 'UPDATE', schema: 'code_mob', table: 'sessions',
+          filter: `id=eq.${sessionId}`,
+        }, (payload) => {
+          const s = payload.new, old = payload.old;
+          if (s.paused !== old.paused) updatePausedUI(s.paused);
+          if (s.cleared_at !== old.cleared_at) {
+            clearCanvas();
+            localStudents = {};
+            pixelCount    = 0;
+            document.getElementById('event-log').innerHTML = '<div class="log-empty">Canvas cleared.</div>';
+            renderLeaderboard({});
+          }
+        })
+        .subscribe();
+    }
+
+    // Watch for teacher creating a brand-new session
+    function watchForNewSessions() {
+      db.channel('admin-new-sessions')
+        .on('postgres_changes', {
+          event: 'INSERT', schema: 'code_mob', table: 'sessions',
+        }, async (payload) => {
+          SESSION_ID = payload.new.id;
+          displaySessionId(SESSION_ID);
+          clearCanvas();
+          localStudents = {};
+          pixelCount    = 0;
+          startTime     = new Date(payload.new.started_at).getTime();
+          document.getElementById('event-log').innerHTML = '<div class="log-empty">New session started.</div>';
+          renderLeaderboard({});
+          updatePausedUI(false);
+          subscribeToSession(SESSION_ID);
+        })
+        .subscribe();
+    }
+
+    function displaySessionId(id) {
+      const el = document.getElementById('session-id-display');
+      el.textContent = id ? id.slice(0, 8) + '...' : '—';
+    }
+
+    // ── Buttons ────────────────────────────────────────────────────────────────
+
+    document.getElementById('btn-new-session').addEventListener('click', async () => {
+      const data = await adminAction('new_session');
+      if (data?.ok) {
+        SESSION_ID = data.sessionId;
+        displaySessionId(SESSION_ID);
+        startTime = Date.now();
+        clearCanvas();
+        localStudents = {};
+        pixelCount    = 0;
+        document.getElementById('event-log').innerHTML = '<div class="log-empty">New session started.</div>';
+        renderLeaderboard({});
+        updatePausedUI(false);
+        subscribeToSession(SESSION_ID);
+      }
+    });
+
+    document.getElementById('btn-pause').addEventListener('click', async () => {
+      if (!SESSION_ID) { alert('Start a session first.'); return; }
+      const data = await adminAction('pause_toggle');
+      if (data?.ok) updatePausedUI(data.paused);
+    });
+
+    document.getElementById('btn-clear').addEventListener('click', async () => {
+      if (!SESSION_ID) { alert('Start a session first.'); return; }
+      if (!clearPending) {
+        clearPending = true;
+        const confirm = document.getElementById('clear-confirm');
+        confirm.classList.add('visible');
+        clearConfirmTimer = setTimeout(() => {
+          clearPending = false;
+          confirm.classList.remove('visible');
+        }, 3000);
+        return;
+      }
+      clearPending = false;
+      clearTimeout(clearConfirmTimer);
+      document.getElementById('clear-confirm').classList.remove('visible');
+      await adminAction('clear');
+    });
+
+    document.getElementById('btn-broadcast').addEventListener('click', async () => {
+      if (!SESSION_ID) { alert('Start a session first.'); return; }
+      const msg = document.getElementById('broadcast-input').value.trim();
+      if (!msg) return;
+      const data = await adminAction('broadcast', { message: msg });
+      if (data?.ok) {
+        document.getElementById('broadcast-input').value = '';
+        const fb = document.getElementById('sent-feedback');
+        fb.classList.add('visible');
+        setTimeout(() => fb.classList.remove('visible'), 2000);
+      }
+    });
+
+    document.getElementById('broadcast-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('btn-broadcast').click();
+    });
+
+    // ── Init ───────────────────────────────────────────────────────────────────
+
+    async function init() {
+      setupSharePanel();
+      setConnStatus('connecting');
+
+      // Load most recent session
+      const { data: session } = await db
+        .schema('code_mob')
+        .from('sessions')
+        .select('id, paused, started_at')
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (session) {
+        SESSION_ID = session.id;
+        displaySessionId(SESSION_ID);
+        startTime = new Date(session.started_at).getTime();
+        updatePausedUI(session.paused);
+        await loadState(SESSION_ID);
+        subscribeToSession(SESSION_ID);
+      } else {
+        setConnStatus('connected');
+        document.getElementById('session-id-display').textContent = 'No session — click New Session';
+      }
+
+      watchForNewSessions();
+    }
+
+    init();
+  </script>
+</body>
+</html>

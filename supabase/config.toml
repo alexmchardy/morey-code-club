@@ -1,0 +1,39 @@
+# Supabase CLI project configuration
+# https://supabase.com/docs/reference/cli/config
+
+[api]
+enabled = true
+port = 54331
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54332
+shadow_port = 54330
+major_version = 15
+
+[studio]
+enabled = true
+port = 54333
+
+[inbucket]
+enabled = true
+port = 54334
+
+[storage]
+enabled = true
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_signup = true
+
+[analytics]
+port = 54337
+
+# Edge Functions directory
+[functions.verify_jwt]
+enabled = false

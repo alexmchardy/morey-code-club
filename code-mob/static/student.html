@@ -388,6 +388,39 @@
       overflow-y: auto;
     }
 
+    .code-col {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .challenges-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    @media (min-width: 1200px) {
+      .main-panel {
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 24px;
+      }
+      .right-col {
+        flex-shrink: 0;
+        position: sticky;
+        width: 264px;
+      }
+    }
+
     /* ── Provided code block ─────────────────────────────────────────────────── */
 
     .provided-code-wrap {
@@ -502,6 +535,11 @@
       font-family: 'Share Tech Mono', monospace;
       font-size: 14px;
       line-height: 1.6;
+    }
+
+    .cm-autocomplete-ghost {
+      color: rgba(180, 180, 220, 0.38);
+      pointer-events: none;
     }
 
     /* ── Run button ──────────────────────────────────────────────────────────── */
@@ -660,44 +698,12 @@
       </div>
     </div>
 
-    <!-- Challenges -->
-    <div>
-      <div class="section-label">Challenges</div>
-      <div class="challenge-list">
-
-        <div class="challenge-card active" id="challenge-1" onclick="selectChallenge(1)">
-          <span class="challenge-num">1</span>
-          <div>
-            <div class="challenge-text">Draw one pixel at any coordinate</div>
-            <div class="challenge-hint">drawPixel(x, y, "color")</div>
-          </div>
-        </div>
-
-        <div class="challenge-card selectable" id="challenge-2" onclick="selectChallenge(2)">
-          <span class="challenge-num">2</span>
-          <div>
-            <div class="challenge-text">Draw a line using a loop</div>
-            <div class="challenge-hint">let i = 0; while (i &lt; 10) { ... }</div>
-            <div class="challenge-link"><a href="https://mcc.alexmchardy.net/code-quest/code-quest.html?v=2&lesson=loop" target="_blank" onclick="event.stopPropagation()">&#128218; Learn loops in Code Quest II &rarr;</a></div>
-          </div>
-        </div>
-
-        <div class="challenge-card selectable" id="challenge-3" onclick="selectChallenge(3)">
-          <span class="challenge-num">3</span>
-          <div>
-            <div class="challenge-text">Write a function that draws a shape</div>
-            <div class="challenge-hint">function drawBox(x, y) { ... }</div>
-            <div class="challenge-link"><a href="https://mcc.alexmchardy.net/code-quest/code-quest.html?v=2&lesson=function" target="_blank" onclick="event.stopPropagation()">&#128218; Learn functions in Code Quest II &rarr;</a></div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
   </aside>
 
   <!-- ═══ RIGHT MAIN PANEL ════════════════════════════════════════════════════ -->
   <main class="main-panel">
+
+    <div class="code-col">
 
     <!-- Provided API block (read-only, decorative) -->
     <div class="provided-code-wrap">
@@ -721,7 +727,10 @@
           <button class="tab-btn" id="tab-2" onclick="selectChallenge(2)">Challenge 2</button>
           <button class="tab-btn" id="tab-3" onclick="selectChallenge(3)">Challenge 3</button>
         </div>
-        <span class="editor-hint">Ctrl+Enter to run</span>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <button class="clear-btn" onclick="resetCode()" title="Reset to starter code">Reset</button>
+          <span class="editor-hint">Ctrl+Enter to run</span>
+        </div>
       </div>
       <textarea id="code-editor"></textarea>
     </div>
@@ -734,16 +743,56 @@
     <!-- Output area -->
     <div class="output-area" id="output-area"></div>
 
-    <!-- My Canvas -->
-    <div class="my-canvas-wrap">
-      <div class="my-canvas-header">
-        <span class="my-canvas-label">My Pixels</span>
-        <button class="clear-btn" onclick="clearMyGrid()">Clear Preview</button>
+    </div><!-- /.code-col -->
+
+    <div class="right-col">
+
+      <!-- My Canvas -->
+      <div class="my-canvas-wrap">
+        <div class="my-canvas-header">
+          <span class="my-canvas-label">My Pixels</span>
+          <button class="clear-btn" onclick="clearMyGrid()">Clear Preview</button>
+        </div>
+        <div class="my-canvas-body">
+          <div id="my-grid"></div>
+        </div>
       </div>
-      <div class="my-canvas-body">
-        <div id="my-grid"></div>
+
+      <!-- Challenges -->
+      <div class="challenges-panel">
+        <div class="section-label">Challenges</div>
+        <div class="challenge-list">
+
+          <div class="challenge-card active" id="challenge-1" onclick="selectChallenge(1)">
+            <span class="challenge-num">1</span>
+            <div>
+              <div class="challenge-text">Draw one pixel at any coordinate</div>
+              <div class="challenge-hint">drawPixel(x, y, "color")</div>
+            </div>
+          </div>
+
+          <div class="challenge-card selectable" id="challenge-2" onclick="selectChallenge(2)">
+            <span class="challenge-num">2</span>
+            <div>
+              <div class="challenge-text">Draw a line using a loop</div>
+              <div class="challenge-hint">let i = 0; while (i &lt; 10) { ... }</div>
+              <div class="challenge-link"><a href="https://mcc.alexmchardy.net/code-quest/code-quest.html?v=2&lesson=loop" target="_blank" onclick="event.stopPropagation()">&#128218; Learn loops in Code Quest II &rarr;</a></div>
+            </div>
+          </div>
+
+          <div class="challenge-card selectable" id="challenge-3" onclick="selectChallenge(3)">
+            <span class="challenge-num">3</span>
+            <div>
+              <div class="challenge-text">Write a function that draws a shape</div>
+              <div class="challenge-hint">function drawBox(x, y) { ... }</div>
+              <div class="challenge-link"><a href="https://mcc.alexmchardy.net/code-quest/code-quest.html?v=2&lesson=function" target="_blank" onclick="event.stopPropagation()">&#128218; Learn functions in Code Quest II &rarr;</a></div>
+            </div>
+          </div>
+
+        </div>
       </div>
-    </div>
+
+    </div><!-- /.right-col -->
 
   </main>
 
@@ -755,7 +804,7 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhY3dyZ3BnYmZmZ3JyaW9sZ2N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzkyODYsImV4cCI6MjA4OTcxNTI4Nn0.G8tmDmDmmMa7O6y-CPd16na4RzOjk-nwnkE4HF383js';
 
   const { createClient } = supabase;
-  const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { db: { schema: 'code_mob' } });
   let SESSION_ID = null;
 
   // ── Name prompt ───────────────────────────────────────────────────────────────
@@ -854,7 +903,9 @@
   const CHALLENGE_STARTERS = {
     1: () => {
       const x = randomCoord(), y = randomCoord();
-      return `// Challenge 1: Draw one pixel!\n// drawPixel(x, y, "color")\n\ndrawPixel(${x}, ${y}, "cyan");`;
+      const colors = ['cyan','pink','yellow','green','red','purple','white','orange'];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      return `// Challenge 1: Draw one pixel!\n// drawPixel(x, y, "color")\n\ndrawPixel(${x}, ${y}, "${color}");`;
     },
     2: () => {
       const x = randomCoord(8), y = randomCoord();
@@ -866,17 +917,61 @@
   };
 
   let currentChallenge = 1;
-  const savedCode = { 1: null, 2: null, 3: null };
+
+  function saveCode(n, code) {
+    try { localStorage.setItem(`pixel-poke-challenge-${n}`, code); } catch {}
+  }
+
+  function loadCode(n) {
+    try { return localStorage.getItem(`pixel-poke-challenge-${n}`); } catch { return null; }
+  }
 
   function selectChallenge(n) {
-    savedCode[currentChallenge] = editor.getValue();
+    saveCode(currentChallenge, editor.getValue());
     currentChallenge = n;
     [1, 2, 3].forEach(i => {
       document.getElementById(`challenge-${i}`).classList.toggle('active', i === n);
       document.getElementById(`tab-${i}`).classList.toggle('active', i === n);
     });
-    editor.setValue(savedCode[n] !== null ? savedCode[n] : CHALLENGE_STARTERS[n]());
+    const saved = loadCode(n);
+    editor.setValue(saved !== null ? saved : CHALLENGE_STARTERS[n]());
     editor.focus();
+  }
+
+  function resetCode() {
+    editor.setValue(CHALLENGE_STARTERS[currentChallenge]());
+    saveCode(currentChallenge, editor.getValue());
+    editor.focus();
+  }
+
+  // ── Autocomplete: ghost suggestion on "dr…", Tab to accept, arg ghost after ───
+
+  const GHOST_COMPLETION = 'drawPixel(x, y, "color")';
+  let ghostMark    = null;  // suggestion ghost: "awPixel(x, y, "color")"
+  let argGhostMark = null;  // arg ghost: "x, y, "color"" shown after Tab accept
+  let _applyingGhost = false;
+
+  function clearGhost()    { if (ghostMark)    { ghostMark.clear();    ghostMark    = null; } }
+  function clearArgGhost() { if (argGhostMark) { argGhostMark.clear(); argGhostMark = null; } }
+
+  function getTokenBefore(cm) {
+    const cur = cm.getCursor();
+    const m = cm.getLine(cur.line).slice(0, cur.ch).match(/[a-zA-Z_$][a-zA-Z0-9_$]*$/);
+    return m ? m[0] : '';
+  }
+
+  function updateGhost(cm) {
+    if (_applyingGhost || argGhostMark) return;
+    const token = getTokenBefore(cm);
+    if (token.length >= 2 && GHOST_COMPLETION.startsWith(token) && token !== GHOST_COMPLETION) {
+      clearGhost();
+      const el = document.createElement('span');
+      el.className = 'cm-autocomplete-ghost';
+      el.textContent = GHOST_COMPLETION.slice(token.length);
+      ghostMark = cm.setBookmark(cm.getCursor(), { widget: el, insertLeft: true });
+    } else {
+      clearGhost();
+    }
   }
 
   // ── CodeMirror ────────────────────────────────────────────────────────────────
@@ -889,7 +984,45 @@
     tabSize: 2,
     indentWithTabs: false,
     autofocus: true,
-    extraKeys: { 'Ctrl-Enter': runCode, 'Cmd-Enter': runCode },
+    extraKeys: {
+      'Ctrl-Enter': runCode,
+      'Cmd-Enter': runCode,
+      'Tab': (cm) => {
+        if (ghostMark) {
+          _applyingGhost = true;
+          const token = getTokenBefore(cm);
+          const cur = cm.getCursor();
+          const from = { line: cur.line, ch: cur.ch - token.length };
+          clearGhost();
+          cm.replaceRange('drawPixel()', from, cur);
+          const insideParen = { line: cur.line, ch: from.ch + 'drawPixel('.length };
+          cm.setCursor(insideParen);
+          // Show arg ghost between the parens
+          const argEl = document.createElement('span');
+          argEl.className = 'cm-autocomplete-ghost';
+          argEl.textContent = 'x, y, "color"';
+          argGhostMark = cm.setBookmark(insideParen, { widget: argEl, insertLeft: false });
+          _applyingGhost = false;
+        } else {
+          cm.execCommand('indentMore');
+        }
+      },
+      'Escape': (cm) => { clearGhost(); clearArgGhost(); },
+    },
+  });
+
+  editor.on('change', (cm, change) => {
+    saveCode(currentChallenge, cm.getValue());
+    if (argGhostMark && change.origin === '+input') {
+      clearArgGhost();
+      return; // don't show suggestion ghost while typing args
+    }
+    if (!argGhostMark) updateGhost(cm);
+  });
+
+  editor.on('cursorActivity', (cm) => {
+    if (!_applyingGhost && argGhostMark) clearArgGhost();
+    if (!argGhostMark && ghostMark) updateGhost(cm);
   });
 
   // ── Output helpers ────────────────────────────────────────────────────────────
@@ -923,9 +1056,11 @@
     clearOutput();
     btn.disabled = true;
     _runPixelCount = 0;
+    const pixelsBefore = pixelCount;
     try {
       await eval(`(async () => { ${editor.getValue()} })()`);
-      showSuccess(`Code ran! You've painted ${pixelCount} pixel${pixelCount !== 1 ? 's' : ''} total.`);
+      const painted = pixelCount - pixelsBefore;
+      showSuccess(`Code ran! Painted ${painted} pixel${painted !== 1 ? 's' : ''}.`);
     } catch (e) {
       showError(e.message);
     } finally {
@@ -937,12 +1072,11 @@
 
   async function loadSession() {
     const { data, error } = await db
-      .schema('code_mob')
       .from('sessions')
       .select('id')
       .order('started_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
       showError('No active session. Ask your teacher to start a new session.');
@@ -957,7 +1091,8 @@
   loadSession().then(ok => {
     if (ok) {
       buildMyGrid();
-      editor.setValue(CHALLENGE_STARTERS[1]());
+      const saved1 = loadCode(1);
+      editor.setValue(saved1 !== null ? saved1 : CHALLENGE_STARTERS[1]());
     }
   });
 </script>

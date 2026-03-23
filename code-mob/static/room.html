@@ -355,6 +355,46 @@
     #conn-dot.connecting   { background: var(--neon-yellow); box-shadow: 0 0 6px var(--neon-yellow); }
     #conn-dot.disconnected { background: var(--neon-red);    box-shadow: 0 0 6px var(--neon-red); }
 
+    /* ─── 10-pixel grid lines overlay ────────────────────────────────────────── */
+
+    #grid-lines-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 3;
+      background-image:
+        linear-gradient(to right,
+          transparent calc(25% - 0.5px), rgba(0,245,255,0.18) calc(25% - 0.5px),
+          rgba(0,245,255,0.18) 25%,      transparent 25%,
+          transparent calc(50% - 0.5px), rgba(0,245,255,0.18) calc(50% - 0.5px),
+          rgba(0,245,255,0.18) 50%,      transparent 50%,
+          transparent calc(75% - 0.5px), rgba(0,245,255,0.18) calc(75% - 0.5px),
+          rgba(0,245,255,0.18) 75%,      transparent 75%
+        ),
+        linear-gradient(to bottom,
+          transparent calc(25% - 0.5px), rgba(0,245,255,0.18) calc(25% - 0.5px),
+          rgba(0,245,255,0.18) 25%,      transparent 25%,
+          transparent calc(50% - 0.5px), rgba(0,245,255,0.18) calc(50% - 0.5px),
+          rgba(0,245,255,0.18) 50%,      transparent 50%,
+          transparent calc(75% - 0.5px), rgba(0,245,255,0.18) calc(75% - 0.5px),
+          rgba(0,245,255,0.18) 75%,      transparent 75%
+        );
+    }
+
+    .grid-num {
+      position: absolute;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: rgba(0,245,255,0.45);
+      pointer-events: none;
+      z-index: 4;
+      line-height: 1;
+    }
+    /* top edge: x labels */
+    .grid-num.top { transform: translateX(-50%); top: 2px; }
+    /* left edge: y labels */
+    .grid-num.left { transform: translateY(-50%); left: 2px; }
+
     /* ─── PAUSED Overlay ──────────────────────────────────────────────────────── */
 
     #paused-overlay {
@@ -432,6 +472,7 @@
     <div id="canvas-area">
       <div id="pixel-grid-wrapper">
         <div id="pixel-grid"></div>
+        <div id="grid-lines-overlay"></div>
         <div id="name-labels-overlay"></div>
         <div id="explosions-container"></div>
       </div>
@@ -472,7 +513,7 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhY3dyZ3BnYmZmZ3JyaW9sZ2N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzkyODYsImV4cCI6MjA4OTcxNTI4Nn0.G8tmDmDmmMa7O6y-CPd16na4RzOjk-nwnkE4HF383js';
 
   const { createClient } = supabase;
-  const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { db: { schema: 'code_mob' } });
 
   // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -488,13 +529,15 @@
 
   // ─── State ────────────────────────────────────────────────────────────────────
 
-  let pixelEls      = [];   // flat [1600] cell divs
-  let pixelOwners   = {};   // "x,y" → student_name currently painting that cell
-  let studentLabels = {};   // name → DOM label el (first-pixel label)
-  let localStudents = {};   // name → { pixelCount }
-  let totalPixels   = 0;
-  let studentSet    = new Set();
-  let broadcastTimer = null;
+  let pixelEls        = [];   // flat [1600] cell divs
+  let pixelOwners     = {};   // "x,y" → student_name currently painting that cell
+  let pixelsByStudent = {};   // name → Set<"x,y">
+  let studentColors   = {};   // name → last color used (for label styling)
+  let studentLabels   = {};   // name → [DOM el, ...] one per grouping
+  let localStudents   = {};   // name → { pixelCount }
+  let totalPixels     = 0;
+  let studentSet      = new Set();
+  let broadcastTimer  = null;
   let currentSessionId = null;
 
   // ─── DOM Refs ─────────────────────────────────────────────────────────────────
@@ -535,6 +578,26 @@
     grid.appendChild(frag);
   }
 
+  function buildGridLabels() {
+    const wrapper = document.getElementById('pixel-grid-wrapper');
+    // x labels along the top at 25%, 50%, 75% → columns 10, 20, 30
+    [10, 20, 30].forEach(n => {
+      const el = document.createElement('span');
+      el.className = 'grid-num top';
+      el.textContent = n;
+      el.style.left = `${(n / GRID_SIZE) * 100}%`;
+      wrapper.appendChild(el);
+    });
+    // y labels along the left at 25%, 50%, 75% → rows 10, 20, 30
+    [10, 20, 30].forEach(n => {
+      const el = document.createElement('span');
+      el.className = 'grid-num left';
+      el.textContent = n;
+      el.style.top = `${(n / GRID_SIZE) * 100}%`;
+      wrapper.appendChild(el);
+    });
+  }
+
   // ─── Paint ────────────────────────────────────────────────────────────────────
 
   function paintCell(x, y, color, animate) {
@@ -556,18 +619,71 @@
     }
   }
 
-  // ─── Name Labels ──────────────────────────────────────────────────────────────
+  // ─── Name Labels (one per connected grouping) ────────────────────────────────
 
-  function addNameLabel(name, x, y, color) {
-    if (studentLabels[name]) return;
-    const label = document.createElement('span');
-    label.className = 'name-label';
-    label.textContent = name;
-    label.style.setProperty('--label-color', COLORS[color] || '#fff');
-    label.style.left = `${(x / GRID_SIZE) * 100}%`;
-    label.style.top  = `${(y / GRID_SIZE) * 100}%`;
-    nameLabelsOverlay.appendChild(label);
-    studentLabels[name] = label;
+  // Returns array of groups; each group is an array of "x,y" keys.
+  // Two pixels are connected if they are 8-neighbors (including diagonals).
+  function findGroupings(pixelSet) {
+    const visited = new Set();
+    const groups  = [];
+    for (const key of pixelSet) {
+      if (visited.has(key)) continue;
+      const group = [];
+      const queue = [key];
+      while (queue.length) {
+        const cur = queue.shift();
+        if (visited.has(cur)) continue;
+        visited.add(cur);
+        group.push(cur);
+        const [cx, cy] = cur.split(',').map(Number);
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dy = -1; dy <= 1; dy++) {
+            if (dx === 0 && dy === 0) continue;
+            const nk = `${cx + dx},${cy + dy}`;
+            if (pixelSet.has(nk) && !visited.has(nk)) queue.push(nk);
+          }
+        }
+      }
+      groups.push(group);
+    }
+    return groups;
+  }
+
+  // Recompute and re-render all name labels for a student.
+  function updateStudentLabels(name) {
+    if (studentLabels[name]) {
+      for (const el of studentLabels[name]) el.remove();
+    }
+    studentLabels[name] = [];
+
+    const pixels = pixelsByStudent[name];
+    if (!pixels || pixels.size === 0) return;
+
+    const color  = studentColors[name] || 'white';
+    const groups = findGroupings(pixels);
+
+    for (const group of groups) {
+      // Find top-left of this group: topmost row, then leftmost x in that row
+      let minY = Infinity;
+      for (const key of group) {
+        const y = +key.split(',')[1];
+        if (y < minY) minY = y;
+      }
+      let minX = Infinity;
+      for (const key of group) {
+        const [x, y] = key.split(',').map(Number);
+        if (y === minY && x < minX) minX = x;
+      }
+
+      const label = document.createElement('span');
+      label.className = 'name-label';
+      label.textContent = name;
+      label.style.setProperty('--label-color', COLORS[color] || '#fff');
+      label.style.left = `${(minX / GRID_SIZE) * 100}%`;
+      label.style.top  = `${(minY / GRID_SIZE) * 100}%`;
+      nameLabelsOverlay.appendChild(label);
+      studentLabels[name].push(label);
+    }
   }
 
   function clearNameLabels() {
@@ -635,16 +751,44 @@
 
   // ─── Ticker ───────────────────────────────────────────────────────────────────
 
-  function clearTicker() {
-    tickerTrack.classList.remove('running');
-    tickerTrack.textContent = '';
-  }
+  let tickerPending = {}; // name → { count, color, x, y, timer }
 
-  function addTickerEvent(name, x, y, color) {
+  function fireTicker(msg) {
     tickerTrack.classList.remove('running');
     void tickerTrack.offsetWidth;
-    tickerTrack.textContent = `${name} painted (${x},${y}) in ${color}`;
+    tickerTrack.textContent = msg;
     tickerTrack.classList.add('running');
+  }
+
+  // Debounced: batches rapid same-student paint events into one message.
+  function addTickerPaint(name, x, y, color) {
+    if (tickerPending[name]) {
+      clearTimeout(tickerPending[name].timer);
+      tickerPending[name].count++;
+      tickerPending[name].color = color;
+    } else {
+      tickerPending[name] = { count: 1, color, x, y };
+    }
+    tickerPending[name].timer = setTimeout(() => {
+      const d = tickerPending[name];
+      delete tickerPending[name];
+      const msg = d.count === 1
+        ? `${name} painted (${d.x},${d.y}) in ${d.color}`
+        : `${name} painted ${d.count} pixels in ${d.color}`;
+      fireTicker(msg);
+    }, 800);
+  }
+
+  // Overwrites fire immediately (they're dramatic — don't debounce).
+  function addTickerOverwrite(overwriter, victim, x, y) {
+    fireTicker(`\u{1F4A5} ${overwriter} stole (${x},${y}) from ${victim}!`);
+  }
+
+  function clearTicker() {
+    for (const name of Object.keys(tickerPending)) clearTimeout(tickerPending[name].timer);
+    tickerPending = {};
+    tickerTrack.classList.remove('running');
+    tickerTrack.textContent = '';
   }
 
   // ─── Overlays ─────────────────────────────────────────────────────────────────
@@ -670,9 +814,11 @@
     clearAllCells();
     clearNameLabels();
     explosionsCont.innerHTML = '';
-    pixelOwners   = {};
-    localStudents = {};
-    totalPixels   = 0;
+    pixelOwners     = {};
+    pixelsByStudent = {};
+    studentColors   = {};
+    localStudents   = {};
+    totalPixels     = 0;
     studentSet.clear();
     clearTicker();
     eventLogList.innerHTML    = '';
@@ -698,13 +844,17 @@
     );
 
     for (const row of sorted) {
+      const key = `${row.x},${row.y}`;
       paintCell(row.x, row.y, row.color, false);
-      pixelOwners[`${row.x},${row.y}`] = row.student_name;
+      pixelOwners[key] = row.student_name;
       studentSet.add(row.student_name);
       totalPixels++;
-      addNameLabel(row.student_name, row.x, row.y, row.color);
+      if (!pixelsByStudent[row.student_name]) pixelsByStudent[row.student_name] = new Set();
+      pixelsByStudent[row.student_name].add(key);
+      studentColors[row.student_name] = row.color;
     }
 
+    for (const name of Object.keys(pixelsByStudent)) updateStudentLabels(name);
     updateCounters();
     updateLeaderboard(localStudents);
   }
@@ -718,11 +868,22 @@
 
     if (previousOwner && previousOwner !== name) {
       showExplosion(name, previousOwner, x, y);
+      addTickerOverwrite(name, previousOwner, x, y);
+      if (pixelsByStudent[previousOwner]) {
+        pixelsByStudent[previousOwner].delete(key);
+        updateStudentLabels(previousOwner);
+      }
+    } else {
+      addTickerPaint(name, x, y, color);
     }
 
     pixelOwners[key] = name;
     paintCell(x, y, color, true);
-    addNameLabel(name, x, y, color);
+
+    if (!pixelsByStudent[name]) pixelsByStudent[name] = new Set();
+    pixelsByStudent[name].add(key);
+    studentColors[name] = color;
+    updateStudentLabels(name);
 
     if (!localStudents[name]) localStudents[name] = { pixelCount: 0 };
     localStudents[name].pixelCount++;
@@ -730,7 +891,6 @@
     totalPixels++;
     updateCounters();
     updateLeaderboard(localStudents);
-    addTickerEvent(name, x, y, color);
     addEventLogEntry(name, x, y, color, true);
   }
 
@@ -764,8 +924,8 @@
 
   async function loadState(sessionId) {
     const [{ data: pixels }, { data: students }] = await Promise.all([
-      db.schema('code_mob').from('pixels').select('*').eq('session_id', sessionId),
-      db.schema('code_mob').from('students').select('*').eq('session_id', sessionId),
+      db.from('pixels').select('*').eq('session_id', sessionId),
+      db.from('students').select('*').eq('session_id', sessionId),
     ]);
     applyState({ pixels, students });
   }
@@ -811,6 +971,7 @@
 
   async function init() {
     buildGrid();
+    buildGridLabels();
     setConnStatus('connecting');
 
     // Load most recent session
@@ -820,7 +981,7 @@
       .select('id, paused')
       .order('started_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (session) {
       currentSessionId = session.id;

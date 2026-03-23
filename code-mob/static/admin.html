@@ -824,7 +824,10 @@
       try {
         const res = await fetch(EDGE_FN_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          },
           body: JSON.stringify({ action, token: adminToken, sessionId: SESSION_ID, ...extra }),
         });
         const data = await res.json();
@@ -1021,7 +1024,7 @@
         .select('id, paused, started_at')
         .order('started_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (session) {
         SESSION_ID = session.id;

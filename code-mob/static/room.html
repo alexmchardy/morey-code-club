@@ -69,13 +69,21 @@
       background: var(--bg);
     }
 
-    /* Wrapper is square and positioned relatively so overlays can use absolute */
+    /* Wrapper is square; padding-top gives headroom for labels above the top row */
     #pixel-grid-wrapper {
-      position: relative;
       --grid-sz: min(calc(100vh - 78px), calc(100vw - 300px - 16px));
       width: var(--grid-sz);
       height: var(--grid-sz);
       flex-shrink: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    /* Inner div fills the content area (below padding); overlays are relative to this */
+    #pixel-grid-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
     }
 
     /* ─── Pixel Grid ──────────────────────────────────────────────────────────── */
@@ -112,7 +120,7 @@
       position: absolute;
       inset: 0;
       pointer-events: none;
-      overflow: hidden;
+      overflow: visible;
       z-index: 5;
     }
 
@@ -121,13 +129,13 @@
       font-family: 'Share Tech Mono', monospace;
       font-size: 11px;
       color: #fff;
-      background: rgba(0, 0, 0, 0.8);
+      background: rgba(0, 0, 0, 0.4);
       padding: 2px 5px;
       border-radius: 2px;
       white-space: nowrap;
       transform: translateY(-100%);
       line-height: 1.3;
-      border-left: 3px solid var(--label-color, #fff);
+      border-left: 2px solid var(--label-color, #fff);
     }
 
     /* ─── Explosions ──────────────────────────────────────────────────────────── */
@@ -193,10 +201,18 @@
       flex: 0 0 auto;
     }
 
-    #leaderboard-list {
+    #lb-painted, #lb-owned {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
+    }
+
+    .lb-section-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      margin-bottom: 6px;
     }
 
     .lb-row {
@@ -385,15 +401,15 @@
       position: absolute;
       font-family: 'Press Start 2P', monospace;
       font-size: 8px;
-      color: rgba(0,245,255,0.45);
+      color: rgba(0, 247, 255, 0.737);
       pointer-events: none;
       z-index: 4;
       line-height: 1;
     }
     /* top edge: x labels */
-    .grid-num.top { transform: translateX(-50%); top: 2px; }
+    .grid-num.top { transform: translateX(-50%); top: -15px; }
     /* left edge: y labels */
-    .grid-num.left { transform: translateY(-50%); left: 2px; }
+    .grid-num.left { transform: translateY(-50%); left: -20px; }
 
     /* ─── PAUSED Overlay ──────────────────────────────────────────────────────── */
 
@@ -471,17 +487,22 @@
 
     <div id="canvas-area">
       <div id="pixel-grid-wrapper">
-        <div id="pixel-grid"></div>
-        <div id="grid-lines-overlay"></div>
-        <div id="name-labels-overlay"></div>
-        <div id="explosions-container"></div>
+        <div id="pixel-grid-inner">
+          <div id="pixel-grid"></div>
+          <div id="grid-lines-overlay"></div>
+          <div id="name-labels-overlay"></div>
+          <div id="explosions-container"></div>
+        </div>
       </div>
     </div>
 
     <div id="sidebar">
       <div class="sidebar-panel" id="leaderboard-panel">
         <div class="sidebar-panel-header">LEADERBOARD</div>
-        <div id="leaderboard-list"></div>
+        <div class="lb-section-label">PIXELS PAINTED</div>
+        <div id="lb-painted"></div>
+        <div class="lb-section-label" style="margin-top:10px;">PIXELS OWNED</div>
+        <div id="lb-owned"></div>
       </div>
       <div id="event-log-panel">
         <div class="sidebar-panel-header">RECENT EVENTS</div>
@@ -551,7 +572,8 @@
   const broadcastMessage  = document.getElementById('broadcast-message');
   const nameLabelsOverlay = document.getElementById('name-labels-overlay');
   const explosionsCont    = document.getElementById('explosions-container');
-  const leaderboardList   = document.getElementById('leaderboard-list');
+  const lbPainted         = document.getElementById('lb-painted');
+  const lbOwned           = document.getElementById('lb-owned');
   const eventLogList      = document.getElementById('event-log-list');
 
   // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -579,9 +601,9 @@
   }
 
   function buildGridLabels() {
-    const wrapper = document.getElementById('pixel-grid-wrapper');
+    const wrapper = document.getElementById('pixel-grid-inner');
     // x labels along the top at 25%, 50%, 75% → columns 10, 20, 30
-    [10, 20, 30].forEach(n => {
+    [0, 10, 20, 30, 40].forEach(n => {
       const el = document.createElement('span');
       el.className = 'grid-num top';
       el.textContent = n;
@@ -589,7 +611,7 @@
       wrapper.appendChild(el);
     });
     // y labels along the left at 25%, 50%, 75% → rows 10, 20, 30
-    [10, 20, 30].forEach(n => {
+    [0, 10, 20, 30, 40].forEach(n => {
       const el = document.createElement('span');
       el.className = 'grid-num left';
       el.textContent = n;
@@ -712,23 +734,37 @@
 
   // ─── Leaderboard ──────────────────────────────────────────────────────────────
 
-  function updateLeaderboard(students) {
-    const sorted = Object.entries(students)
-      .sort(([, a], [, b]) => b.pixelCount - a.pixelCount)
-      .slice(0, LB_MAX);
-    const maxCount = sorted.length > 0 ? sorted[0][1].pixelCount : 1;
-    leaderboardList.innerHTML = '';
-    sorted.forEach(([name, data], i) => {
-      const pct = Math.round((data.pixelCount / maxCount) * 100);
+  function renderLbSection(container, entries) {
+    const max = entries.length > 0 ? entries[0][1] : 1;
+    container.innerHTML = '';
+    entries.forEach(([name, count], i) => {
+      const pct = Math.round((count / max) * 100);
       const row = document.createElement('div');
       row.className = 'lb-row';
       row.innerHTML =
         `<span class="lb-rank">${i + 1}</span>` +
         `<span class="lb-name">${escapeHtml(name)}</span>` +
         `<span class="lb-bar-wrap"><span class="lb-bar" style="width:${pct}%"></span></span>` +
-        `<span class="lb-count">${data.pixelCount}</span>`;
-      leaderboardList.appendChild(row);
+        `<span class="lb-count">${count}</span>`;
+      container.appendChild(row);
     });
+  }
+
+  function updateLeaderboard(students) {
+    const names = Object.keys(students);
+
+    const painted = names
+      .map(n => [n, students[n].pixelCount])
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, LB_MAX);
+
+    const owned = names
+      .map(n => [n, pixelsByStudent[n]?.size ?? 0])
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, LB_MAX);
+
+    renderLbSection(lbPainted, painted);
+    renderLbSection(lbOwned, owned);
   }
 
   // ─── Event Log ────────────────────────────────────────────────────────────────
@@ -805,7 +841,7 @@
     broadcastTimer = setTimeout(() => {
       broadcastOverlay.classList.remove('visible');
       broadcastTimer = null;
-    }, 5000);
+    }, 10000);
   }
 
   // ─── clearAll: reset canvas + leaderboard + log ───────────────────────────────
@@ -822,7 +858,8 @@
     studentSet.clear();
     clearTicker();
     eventLogList.innerHTML    = '';
-    leaderboardList.innerHTML = '';
+    lbPainted.innerHTML = '';
+    lbOwned.innerHTML   = '';
     updateCounters();
     hidePaused();
   }

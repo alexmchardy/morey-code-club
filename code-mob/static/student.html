@@ -609,6 +609,41 @@
       color: var(--neon-red);
     }
 
+    /* ── Broadcast overlay ───────────────────────────────────────────────────── */
+
+    #broadcast-overlay {
+      display: none;
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%) scale(0.8);
+      background: var(--surface);
+      border: 2px solid var(--neon-yellow);
+      padding: 14px 28px;
+      z-index: 600;
+      max-width: 80vw;
+      text-align: center;
+    }
+
+    #broadcast-overlay.visible {
+      display: block;
+      animation: broadcastIn 0.25s ease-out forwards;
+    }
+
+    @keyframes broadcastIn {
+      from { transform: translateX(-50%) scale(0.8); opacity: 0; }
+      to   { transform: translateX(-50%) scale(1);   opacity: 1; }
+    }
+
+    #broadcast-message {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 13px;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 10px var(--neon-yellow);
+      line-height: 1.8;
+      word-break: break-word;
+    }
+
     /* ── Mobile layout ───────────────────────────────────────────────────────── */
 
     @media (max-width: 768px) {
@@ -712,10 +747,11 @@
         <span class="provided-code-badge">READ ONLY</span>
       </div>
       <div class="provided-code-body"><span class="pc-comment">// Your code name is stored in NAME</span>
-<span class="pc-comment">// Call drawPixel to paint the screen!</span>
-
 <span class="pc-keyword">async function</span> <span class="pc-fn">drawPixel</span><span class="pc-punct">(</span><span class="pc-param">x</span><span class="pc-punct">,</span> <span class="pc-param">y</span><span class="pc-punct">,</span> <span class="pc-param">color</span><span class="pc-punct">) {</span>
-  <span class="pc-comment">// sends your pixel to the room screen</span>
+  <span class="pc-comment">// paints a pixel on the room screen</span>
+<span class="pc-punct">}</span>
+<span class="pc-keyword">function</span> <span class="pc-fn">getPixel</span><span class="pc-punct">(</span><span class="pc-param">x</span><span class="pc-punct">,</span> <span class="pc-param">y</span><span class="pc-punct">) {</span>
+  <span class="pc-comment">// returns owner's name, or "" if empty</span>
 <span class="pc-punct">}</span></div>
     </div>
 
@@ -726,6 +762,7 @@
           <button class="tab-btn active" id="tab-1" onclick="selectChallenge(1)">Challenge 1</button>
           <button class="tab-btn" id="tab-2" onclick="selectChallenge(2)">Challenge 2</button>
           <button class="tab-btn" id="tab-3" onclick="selectChallenge(3)">Challenge 3</button>
+          <button class="tab-btn" id="tab-4" onclick="selectChallenge(4)">Challenge 4</button>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
           <button class="clear-btn" onclick="resetCode()" title="Reset to starter code">Reset</button>
@@ -789,6 +826,14 @@
             </div>
           </div>
 
+          <div class="challenge-card selectable" id="challenge-4" onclick="selectChallenge(4)">
+            <span class="challenge-num">4</span>
+            <div>
+              <div class="challenge-text">Steal a friend's pixels using getPixel()</div>
+              <div class="challenge-hint">let owner = getPixel(x, y)</div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -797,6 +842,10 @@
   </main>
 
 </div><!-- .page-wrapper -->
+
+<div id="broadcast-overlay">
+  <div id="broadcast-message"></div>
+</div>
 
 <script>
   // ── Supabase config — replace with your project values ───────────────────────
@@ -863,12 +912,16 @@
     myPixelEls.forEach(el => el.style.background = '#0a0a1a');
   }
 
+  // ── Pixel ownership map (for getPixel) ───────────────────────────────────────
+
+  let _pixelOwners = {}; // "x,y" → student_name
+
   // ── Infinite-loop guard (reset on each Run) ───────────────────────────────────
 
   let _runPixelCount = 0;
   const _MAX_PIXELS_PER_RUN = 500;
 
-  // ── drawPixel (provided — student code calls this) ────────────────────────────
+  // ── drawPixel + getPixel (provided — student code calls these) ────────────────
 
   async function drawPixel(x, y, color) {
     if (++_runPixelCount > _MAX_PIXELS_PER_RUN) {
@@ -891,7 +944,12 @@
       updatePixelCounter();
       throw new Error(data?.error || error?.message || 'Server error');
     }
+    _pixelOwners[`${Math.round(x)},${Math.round(y)}`] = NAME;
     return data;
+  }
+
+  function getPixel(x, y) {
+    return _pixelOwners[`${Math.round(x)},${Math.round(y)}`] || '';
   }
 
   // ── Challenge selection ───────────────────────────────────────────────────────
@@ -909,10 +967,14 @@
     },
     2: () => {
       const x = randomCoord(8), y = randomCoord();
-      return `// Challenge 2: Draw a line using a loop!\n// Use a while loop to draw several pixels in a row.\n\n// let x = ${x};\n// let y = ${y};\n// let i = 0;\n// while (i < 10) {\n//   drawPixel(x + i, y, "pink");\n//   i = i + 1;\n// }`;
+      return `// Challenge 2: Draw a line using a loop!\n// Use a while loop to draw several pixels in a row.\n// Try to draw horizontal, vertical, and diagonal lines.\n\n// let x = ${x};\n// let y = ${y};\n// let i = 0;\n// while (i < 10) {\n//   drawPixel(x + i, y, "pink");\n//   i = i + 1;\n// }`;
     },
     3: () => {
       return `// Challenge 3: Write a function that draws a shape!\n// Define a function, then call it.\n\n// function drawBox(x, y, size, color) {\n//   ...\n// }\n//\n// drawBox(10, 10, 5, "purple");`;
+    },
+    4: () => {
+      const y = randomCoord();
+      return `// Challenge 4: Steal pixels using getPixel()!\n// getPixel(x, y) returns the owner's name, or "" if empty.\n\nlet x = 0;\nwhile (x < 40) {\n  let owner = getPixel(x, ${y});\n  if (owner == "Bob") {\n    // do something  \n  }\n  x = x + 1;\n}`;
     },
   };
 
@@ -929,7 +991,7 @@
   function selectChallenge(n) {
     saveCode(currentChallenge, editor.getValue());
     currentChallenge = n;
-    [1, 2, 3].forEach(i => {
+    [1, 2, 3, 4].forEach(i => {
       document.getElementById(`challenge-${i}`).classList.toggle('active', i === n);
       document.getElementById(`tab-${i}`).classList.toggle('active', i === n);
     });
@@ -1068,6 +1130,24 @@
     }
   }
 
+  // ── Broadcast ─────────────────────────────────────────────────────────────────
+
+  let _broadcastTimer = null;
+  const broadcastOverlay = document.getElementById('broadcast-overlay');
+  const broadcastMessage = document.getElementById('broadcast-message');
+
+  function showBroadcast(msg) {
+    broadcastMessage.textContent = msg;
+    broadcastOverlay.classList.remove('visible');
+    void broadcastOverlay.offsetWidth;
+    broadcastOverlay.classList.add('visible');
+    if (_broadcastTimer) clearTimeout(_broadcastTimer);
+    _broadcastTimer = setTimeout(() => {
+      broadcastOverlay.classList.remove('visible');
+      _broadcastTimer = null;
+    }, 6000);
+  }
+
   // ── Session load ──────────────────────────────────────────────────────────────
 
   async function loadSession() {
@@ -1083,6 +1163,40 @@
       return false;
     }
     SESSION_ID = data.id;
+
+    // Load current pixel ownership for getPixel()
+    const { data: pixels } = await db
+      .from('pixels')
+      .select('x, y, student_name')
+      .eq('session_id', SESSION_ID);
+    if (pixels) {
+      pixels.forEach(p => { _pixelOwners[`${p.x},${p.y}`] = p.student_name; });
+    }
+
+    // Listen for broadcast messages
+    db.channel('student-session-' + SESSION_ID)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'code_mob', table: 'sessions',
+          filter: `id=eq.${SESSION_ID}` },
+          ({ new: s, old: o }) => {
+            if (s.broadcast_at !== o?.broadcast_at && s.broadcast_msg) {
+              showBroadcast(s.broadcast_msg);
+            }
+          })
+      .subscribe();
+
+    // Keep ownership in sync via Realtime
+    db.channel('student-pixel-owners-' + SESSION_ID)
+      .on('postgres_changes', { event: 'INSERT', schema: 'code_mob', table: 'pixels',
+          filter: `session_id=eq.${SESSION_ID}` },
+          ({ new: p }) => { _pixelOwners[`${p.x},${p.y}`] = p.student_name; })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'code_mob', table: 'pixels',
+          filter: `session_id=eq.${SESSION_ID}` },
+          ({ new: p }) => { _pixelOwners[`${p.x},${p.y}`] = p.student_name; })
+      .on('postgres_changes', { event: 'DELETE', schema: 'code_mob', table: 'pixels',
+          filter: `session_id=eq.${SESSION_ID}` },
+          ({ old: p }) => { delete _pixelOwners[`${p.x},${p.y}`]; })
+      .subscribe();
+
     return true;
   }
 

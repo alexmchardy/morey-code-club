@@ -9,6 +9,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <script src="https://skulpt.org/js/skulpt.min.js" type="text/javascript"></script>
+  <script src="https://skulpt.org/js/skulpt-stdlib.js" type="text/javascript"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Fredoka:wght@400;500;600;700&display=swap');
 
@@ -1207,13 +1210,18 @@
 // CONFIGURATION
 // ============================================================
 const QUEST_VERSION = new URLSearchParams(window.location.search).get('v') === '2' ? 2 : 1;
-const CURRENT_LANGUAGE = 'javascript';
+const CURRENT_LANGUAGE = new URLSearchParams(window.location.search).get('lang') === 'python' ? 'python' : 'javascript';
 
 const LANGUAGE_CONFIG = {
   javascript: {
     name: 'JavaScript',
     codemirrorMode: 'javascript',
     printFunction: 'console.log'
+  },
+  python: {
+    name: 'Python',
+    codemirrorMode: 'python',
+    printFunction: 'print'
   }
 };
 
@@ -2098,10 +2106,15 @@ const LESSONS = QUEST_VERSION === 2 ? LESSONS_V2 : LESSONS_V1;
 // ============================================================
 var activeHintPopup = null;
 
-var HINT_WORDS = {
-  'create': 'Use <code>let</code> to create a variable. Example: <code>let name = "value";</code>',
-  'print': 'Use <code>console.log()</code> to print. Example: <code>console.log("Hello");</code>'
-};
+var HINT_WORDS = CURRENT_LANGUAGE === 'python'
+  ? {
+      'create': 'In Python, just assign directly: <code>name = "value"</code>',
+      'print':  'Use <code>print()</code> to print. Example: <code>print("Hello")</code>'
+    }
+  : {
+      'create': 'Use <code>let</code> to create a variable. Example: <code>let name = "value";</code>',
+      'print':  'Use <code>console.log()</code> to print. Example: <code>console.log("Hello");</code>'
+    };
 
 function processHintWords(html) {
   // Replace "create" and "print" (case insensitive, whole word) with clickable spans
@@ -2362,6 +2375,72 @@ const VALIDATORS = {
       if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
       if (result.output.length === 0)
         return { pass: false, message: 'Your code didn\'t print anything. Use console.log() to print!' };
+      return { pass: true };
+    }
+  },
+
+  python: {
+    execute(code) {
+      const capturedOutput = [];
+      let capturedVars = {};
+      try {
+        Sk.configure({
+          output: function(text) {
+            // Skulpt appends '\n' to each print(); strip it, skip blank lines
+            var line = text.replace(/\n$/, '');
+            if (line !== '') capturedOutput.push(line);
+          },
+          read: function(x) {
+            if (Sk.builtinFiles && Sk.builtinFiles.files[x]) return Sk.builtinFiles.files[x];
+            throw "File not found: '" + x + "'";
+          }
+        });
+        Sk.importMainWithBody('<stdin>', false, code, true);
+        // Extract top-level variables from the executed module's globals
+        var globals = Sk.globals || {};
+        Object.keys(globals).forEach(function(k) {
+          if (k.startsWith('__')) return;
+          try { capturedVars[k] = Sk.ffi.remapToJs(globals[k]); } catch(e) {}
+        });
+        return { success: true, vars: capturedVars, output: capturedOutput, error: null };
+      } catch(e) {
+        var msg = e.args ? e.args.v[0].v : String(e);
+        return { success: false, vars: {}, output: capturedOutput, error: msg };
+      }
+    },
+
+    checkVariable(result, varName, varType) {
+      if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
+      if (!(varName in result.vars) || result.vars[varName] === undefined)
+        return { pass: false, message: 'I don\'t see a variable called ' + varName + '. Did you create it?' };
+      if (varType && typeof result.vars[varName] !== varType)
+        return { pass: false, message: varName + ' should be a ' + varType + ', but it\'s a ' + typeof result.vars[varName] + '.' };
+      return { pass: true };
+    },
+
+    checkValue(result, varName, expectedValue) {
+      const varCheck = this.checkVariable(result, varName);
+      if (!varCheck.pass) return varCheck;
+      if (result.vars[varName] !== expectedValue)
+        return { pass: false, message: varName + ' should equal ' + expectedValue + ', but it equals ' + result.vars[varName] + '.' };
+      return { pass: true };
+    },
+
+    checkOutput(result, expectedOutput) {
+      if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
+      const actual = result.output.join('\n').trim();
+      const expected = expectedOutput.trim();
+      if (actual !== expected) {
+        if (actual === '') return { pass: false, message: "Your code didn't print anything. Did you use print()?" };
+        return { pass: false, message: 'Expected output:\n' + expected + '\n\nYour output:\n' + actual };
+      }
+      return { pass: true };
+    },
+
+    checkOutputNotEmpty(result) {
+      if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
+      if (result.output.length === 0)
+        return { pass: false, message: "Your code didn't print anything. Use print() to print!" };
       return { pass: true };
     }
   }

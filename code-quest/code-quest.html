@@ -9,6 +9,11 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <!-- CodeMirror Python syntax mode -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <!-- Skulpt: Python-in-browser -->
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Fredoka:wght@400;500;600;700&display=swap');
 
@@ -85,12 +90,66 @@
     }
     #appHeader h1 .edition-subtitle {
       display: block;
-      font-size: 0.55rem;
+      font-size: 0.65rem;
       color: var(--neon-pink);
       text-shadow: 0 0 8px var(--neon-pink), 0 0 20px rgba(255,0,128,0.35);
       font-weight: 400;
       letter-spacing: 0.1em;
       margin-top: 2px;
+      pointer-events: none;
+    }
+    .edition-dropdown {
+      position: relative;
+      display: block;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .edition-dropdown .edition-caret {
+      position: relative;
+      display: inline-block;
+      bottom: 2px;
+      font-size: 0.8rem;
+      margin-left: 4px;
+      transition: transform 0.2s;
+    }
+    .edition-dropdown.open .edition-caret {
+      transform: rotate(180deg);
+      bottom: 0px;
+    }
+    .edition-dropdown:hover .edition-subtitle {
+      text-decoration: underline;
+    }
+    .edition-menu {
+      position: absolute;
+      top: 100%;
+      margin-top: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 0;
+      min-width: 160px;
+      z-index: 100;
+      display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    .edition-dropdown.open .edition-menu {
+      display: block;
+    }
+    .edition-menu a {
+      display: block;
+      padding: 8px 12px;
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.5rem;
+      font-family: 'Press Start 2P', monospace;
+      transition: background 0.15s, color 0.15s;
+    }
+    .edition-menu a:hover {
+      background: var(--border);
+      color: var(--neon-cyan);
+    }
+    .edition-menu a.active {
+      color: var(--neon-pink);
     }
     #hudBar {
       display: flex;
@@ -1046,6 +1105,8 @@
     @media (max-width: 500px) {
       #appHeader h1 { font-size: 0.75rem; }
       #appHeader h1 .edition-subtitle { font-size: 0.45rem; }
+      .edition-dropdown .edition-caret { font-size: 0.35rem; }
+      .edition-menu a { font-size: 0.4rem; }
       .hud-item { font-size: 0.45rem; }
       .hud-item span { font-size: 0.7rem; }
       .level-node { width: 60px; height: 60px; }
@@ -1095,6 +1156,7 @@
     <div id="questIMapLink" style="text-align:center; margin-top: 16px; display:none;">
       <a href="code-quest.html?v=1" style="color:var(--text-dim); font-size:0.8rem; text-decoration:none; transition: color 0.15s;">← Back to Quest I</a>
     </div>
+    <div id="langSwitchLink" style="text-align:center; margin-top: 8px;"></div>
   </div>
 
   <!-- VIEW: Explanation -->
@@ -1207,13 +1269,18 @@
 // CONFIGURATION
 // ============================================================
 const QUEST_VERSION = new URLSearchParams(window.location.search).get('v') === '2' ? 2 : 1;
-const CURRENT_LANGUAGE = 'javascript';
+const CURRENT_LANGUAGE = new URLSearchParams(window.location.search).get('lang') === 'python' ? 'python' : 'javascript';
 
 const LANGUAGE_CONFIG = {
   javascript: {
     name: 'JavaScript',
     codemirrorMode: 'javascript',
     printFunction: 'console.log'
+  },
+  python: {
+    name: 'Python',
+    codemirrorMode: 'python',
+    printFunction: 'print'
   }
 };
 
@@ -2090,18 +2157,633 @@ const LESSONS_V2 = [
   }
 ];
 
+// ============================================================
+// PYTHON LESSONS V1 (Quest I: Strings, Output, Variables, Operators, Comparisons, Conditionals, Loops)
+// ============================================================
+const LESSONS_PY_V1 = [
+  // ── Lesson 1: Strings ──
+  {
+    id: 'py-string',
+    title: 'Strings & Numbers',
+    icon: '\uD83D\uDCDD',
+    sections: [{
+      explanation: {
+        title: 'Strings and Numbers',
+        body: 'A <strong>string</strong> is a piece of text in your code. You wrap text in quotes to tell the computer "this is text, not code." A <strong>number</strong> is just a number with no quotes. The computer treats them very differently!',
+        realWorld: 'Strings are like labels — text like your name or a message. Numbers are for math — your age, a score, or a price.',
+        monoSays: 'Big difference: "5" is a string (text), but 5 is a number. Quotes change everything!'
+      },
+      example: {
+        code: 'print("Hello!")\nprint(42)\nprint("My age is 10")',
+        output: 'Hello!\n42\nMy age is 10',
+        annotations: [
+          { line: 1, text: '"Hello!" is a string — text in quotes' },
+          { line: 2, text: '42 is a number — no quotes needed' },
+          { line: 3, text: 'You can mix text and numbers inside a string' }
+        ]
+      },
+      challenges: [
+        {
+          id: 'py-string-1',
+          prompt: 'Type a string with your name. Just the string by itself — no variable needed yet!',
+          starterCode: '# Type a string with your name\n',
+          hint: 'Just type: "Your Name" (with quotes)',
+          validate: { type: 'custom', fn: 'validateBareStringPython' },
+          xpReward: 10,
+          monoSuccess: 'Nice! You just wrote your first string!',
+          monoFail: 'Remember to wrap your name in quotes like "Alex"'
+        },
+        {
+          id: 'py-string-mc',
+          prompt: 'Time for a quiz! Answer both questions.',
+          starterCode: '',
+          hint: 'Think about what + does with numbers vs strings...',
+          validate: { type: 'multipleChoice' },
+          xpReward: 15,
+          monoSuccess: 'You got it! Numbers add mathematically, but strings join together!',
+          monoFail: 'Think about what happens when you add numbers vs adding strings...',
+          multipleChoice: [
+            {
+              question: 'What does <code>40 + 2</code> equal?',
+              options: ['42', '"42"', '"402"', '402'],
+              correctIndex: 0,
+              explanation: '40 + 2 = 42 (numbers add mathematically)'
+            },
+            {
+              question: 'What does <code>"40" + "2"</code> equal?',
+              options: ['42', '"42"', '"402"', '402'],
+              correctIndex: 2,
+              explanation: '"40" + "2" = "402" (strings join together)'
+            }
+          ]
+        }
+      ]
+    }],
+    miniGameAfter: null
+  },
+  // ── Lesson 2: Output ──
+  {
+    id: 'py-output',
+    title: 'Output',
+    icon: '\uD83D\uDCE2',
+    sections: [{
+      explanation: {
+        title: 'Showing Things on Screen',
+        body: 'To make your code <strong>show something on the screen</strong>, you use <strong>print()</strong>. Put whatever you want to display inside the parentheses. It can be a string, a number, or even math!',
+        realWorld: 'Think of print() like a megaphone — it takes whatever you give it and announces it to the world. Without it, your code runs silently!',
+        monoSays: 'print() is your best friend for seeing what your code is doing. Use it to check your work!'
+      },
+      example: {
+        code: 'print("Hello, world!")\nprint(42)\nprint(10 + 5)',
+        output: 'Hello, world!\n42\n15',
+        annotations: [
+          { line: 1, text: 'Prints the string "Hello, world!" to the screen' },
+          { line: 2, text: 'Prints the number 42' },
+          { line: 3, text: 'Does the math first (10 + 5 = 15), then prints 15' }
+        ]
+      },
+      challenges: [
+        {
+          id: 'py-output-1',
+          prompt: 'Use <code>print()</code> to print the word "Hi" to the screen.',
+          starterCode: '# Print Hi to the screen\n',
+          hint: 'Type: print("Hi")',
+          validate: { type: 'output', expectedOutput: 'Hi' },
+          xpReward: 10,
+          monoSuccess: 'You did it! You made your code talk!',
+          monoFail: 'Make sure you have print("Hi") with the quotes around Hi.'
+        },
+        {
+          id: 'py-output-2',
+          prompt: 'Use <code>print()</code> to print the number 100.',
+          starterCode: '# Print the number 100\n',
+          hint: 'Type: print(100) — no quotes needed for numbers!',
+          validate: { type: 'output', expectedOutput: '100' },
+          xpReward: 10,
+          monoSuccess: 'Perfect! Numbers don\'t need quotes.',
+          monoFail: 'Use print(100) — remember, numbers don\'t have quotes.'
+        },
+        {
+          id: 'py-output-3',
+          prompt: 'Print two things: first print "Ready?" and then print 3 + 2 (the answer, not the text).',
+          starterCode: '# Print "Ready?" on one line\n\n# Print 3 + 2 on the next line\n',
+          hint: 'Use two print() calls:\nprint("Ready?")\nprint(3 + 2)',
+          validate: { type: 'output', expectedOutput: 'Ready?\n5' },
+          xpReward: 15,
+          monoSuccess: 'Two prints in a row! The math happened inside print().',
+          monoFail: 'Print "Ready?" first, then print 3 + 2 (which equals 5).'
+        }
+      ]
+    }],
+    miniGameAfter: null
+  },
+  // ── Lesson 3: Variables ──
+  {
+    id: 'py-variable',
+    title: 'Variables',
+    icon: '\uD83D\uDCE6',
+    sections: [{
+      explanation: {
+        title: 'Storing Values',
+        body: 'A <strong>variable</strong> is like a labeled box that stores a value. In Python, you create a variable by typing a name, then <code>=</code>, then the value. No special keyword needed!',
+        realWorld: 'Think of variables as labeled containers. You might have a box labeled "score" that holds the number 100, or a box labeled "name" that holds "Alex".',
+        monoSays: 'In Python, creating variables is easy: name = value. That\'s it!'
+      },
+      example: {
+        code: 'name = "Mono"\nage = 5\nprint(name)\nprint(age)',
+        output: 'Mono\n5',
+        annotations: [
+          { line: 1, text: 'Create a variable called name, store "Mono" in it' },
+          { line: 2, text: 'Create a variable called age, store 5 in it' },
+          { line: 3, text: 'Print what\'s stored in name' },
+          { line: 4, text: 'Print what\'s stored in age' }
+        ]
+      },
+      challenges: [
+        {
+          id: 'py-variable-1',
+          prompt: 'Create a variable called <code>greeting</code> and store the string "Hello" in it.',
+          starterCode: '# Create greeting variable\n',
+          hint: 'Type: greeting = "Hello"',
+          validate: { type: 'value', varName: 'greeting', expectedValue: 'Hello' },
+          xpReward: 10,
+          monoSuccess: 'You created your first variable!',
+          monoFail: 'Make sure you type: greeting = "Hello"'
+        },
+        {
+          id: 'py-variable-2',
+          prompt: 'Create a variable called <code>score</code> and store the number 100 in it.',
+          starterCode: '# Create score variable\n',
+          hint: 'Type: score = 100 (no quotes for numbers!)',
+          validate: { type: 'value', varName: 'score', expectedValue: 100 },
+          xpReward: 10,
+          monoSuccess: 'Perfect! You stored a number in a variable.',
+          monoFail: 'Use: score = 100 — remember, numbers don\'t need quotes.'
+        },
+        {
+          id: 'py-variable-3',
+          prompt: 'Create a variable called <code>message</code> with any text you want, then print it.',
+          starterCode: '# Create message and print it\n',
+          hint: 'message = "your text here"\nprint(message)',
+          validate: { type: 'outputNotEmpty' },
+          xpReward: 15,
+          monoSuccess: 'Awesome! You stored a value and printed it!',
+          monoFail: 'Create message first, then use print(message) to show it.'
+        }
+      ]
+    }],
+    miniGameAfter: null
+  },
+  // ── Lesson 4: Operators ──
+  {
+    id: 'py-operator',
+    title: 'Operators',
+    icon: '\u2795',
+    sections: [{
+      explanation: {
+        title: 'Doing Math',
+        body: 'Python can do math! Use <code>+</code> to add, <code>-</code> to subtract, <code>*</code> to multiply, and <code>/</code> to divide. Python also has <code>//</code> for floor division (no decimals), <code>%</code> for remainder, and <code>**</code> for powers!',
+        realWorld: 'Operators let you calculate scores, prices, distances — anything with numbers. Games use math constantly for health, damage, and positions.',
+        monoSays: 'Try 2 ** 3 — that\'s 2 to the power of 3, which equals 8!'
+      },
+      example: {
+        code: 'print(10 + 5)\nprint(10 - 3)\nprint(4 * 2)\nprint(10 / 4)\nprint(10 // 4)\nprint(2 ** 3)',
+        output: '15\n7\n8\n2.5\n2\n8',
+        annotations: [
+          { line: 1, text: 'Addition: 10 + 5 = 15' },
+          { line: 2, text: 'Subtraction: 10 - 3 = 7' },
+          { line: 3, text: 'Multiplication: 4 * 2 = 8' },
+          { line: 4, text: 'Division: 10 / 4 = 2.5 (can have decimals)' },
+          { line: 5, text: 'Floor division: 10 // 4 = 2 (drops decimals)' },
+          { line: 6, text: 'Power: 2 ** 3 = 2×2×2 = 8' }
+        ]
+      },
+      challenges: [
+        {
+          id: 'py-operator-1',
+          prompt: 'Print the result of 7 + 8',
+          starterCode: '# Print 7 + 8\n',
+          hint: 'Type: print(7 + 8)',
+          validate: { type: 'output', expectedOutput: '15' },
+          xpReward: 10,
+          monoSuccess: '7 + 8 = 15. Nice math!',
+          monoFail: 'Use print(7 + 8) to show the result.'
+        },
+        {
+          id: 'py-operator-2',
+          prompt: 'Print the result of 9 // 2 (floor division)',
+          starterCode: '# Print 9 floor divided by 2\n',
+          hint: 'Type: print(9 // 2)',
+          validate: { type: 'output', expectedOutput: '4' },
+          xpReward: 10,
+          monoSuccess: '9 // 2 = 4 (the .5 gets dropped!)',
+          monoFail: 'Use print(9 // 2) — that\'s two forward slashes.'
+        },
+        {
+          id: 'py-operator-3',
+          prompt: 'Print the result of 3 ** 4 (3 to the power of 4)',
+          starterCode: '# Print 3 to the power of 4\n',
+          hint: 'Type: print(3 ** 4)',
+          validate: { type: 'output', expectedOutput: '81' },
+          xpReward: 15,
+          monoSuccess: '3 ** 4 = 3×3×3×3 = 81. Power move!',
+          monoFail: 'Use print(3 ** 4) — that\'s two asterisks for power.'
+        }
+      ]
+    }],
+    miniGameAfter: null
+  },
+  // ── Lesson 5: Comparisons ──
+  {
+    id: 'py-comparison',
+    title: 'Comparisons',
+    icon: '\u2696\uFE0F',
+    sections: [{
+      explanation: {
+        title: 'Comparing Values',
+        body: 'Python can compare things! Use <code>==</code> to check if equal, <code>!=</code> for not equal, <code><</code> for less than, <code>></code> for greater than. The result is always <code>True</code> or <code>False</code>.',
+        realWorld: 'Games use comparisons all the time: Is health > 0? Is score >= highScore? Is level == 10?',
+        monoSays: 'Notice: Python uses True and False with capital letters, not true/false!'
+      },
+      example: {
+        code: 'print(5 == 5)\nprint(5 != 3)\nprint(10 > 5)\nprint(3 < 2)\nprint(5 >= 5)',
+        output: 'True\nTrue\nTrue\nFalse\nTrue',
+        annotations: [
+          { line: 1, text: '5 == 5 is True (they are equal)' },
+          { line: 2, text: '5 != 3 is True (they are not equal)' },
+          { line: 3, text: '10 > 5 is True (10 is greater)' },
+          { line: 4, text: '3 < 2 is False (3 is not less than 2)' },
+          { line: 5, text: '5 >= 5 is True (5 is greater OR equal to 5)' }
+        ]
+      },
+      challenges: [
+        {
+          id: 'py-comparison-1',
+          prompt: 'Print the result of checking if 10 is greater than 5',
+          starterCode: '# Is 10 greater than 5?\n',
+          hint: 'Type: print(10 > 5)',
+          validate: { type: 'output', expectedOutput: 'True' },
+          xpReward: 10,
+          monoSuccess: '10 > 5 is True!',
+          monoFail: 'Use print(10 > 5) to see the result.'
+        },
+        {
+          id: 'py-comparison-2',
+          prompt: 'Print the result of checking if 7 equals 7',
+          starterCode: '# Is 7 equal to 7?\n',
+          hint: 'Use == to check equality: print(7 == 7)',
+          validate: { type: 'output', expectedOutput: 'True' },
+          xpReward: 10,
+          monoSuccess: '7 == 7 is True! Remember: == checks equality.',
+          monoFail: 'Use print(7 == 7) — that\'s two equals signs.'
+        },
+        {
+          id: 'py-comparison-mc',
+          prompt: 'Quiz time! What do these comparisons return?',
+          starterCode: '',
+          hint: 'Think carefully about each comparison...',
+          validate: { type: 'multipleChoice' },
+          xpReward: 15,
+          monoSuccess: 'You\'ve mastered comparisons!',
+          monoFail: 'Think about whether each statement is true or false...',
+          multipleChoice: [
+            {
+              question: 'What does <code>8 < 8</code> return?',
+              options: ['True', 'False'],
+              correctIndex: 1,
+              explanation: '8 is NOT less than 8 (they\'re equal), so it\'s False'
+            },
+            {
+              question: 'What does <code>8 <= 8</code> return?',
+              options: ['True', 'False'],
+              correctIndex: 0,
+              explanation: '8 is less than OR equal to 8, so it\'s True'
+            }
+          ]
+        }
+      ]
+    }],
+    miniGameAfter: null
+  },
+  // ── Lesson 6: Conditionals ──
+  {
+    id: 'py-conditional',
+    title: 'Decisions',
+    icon: '\uD83E\uDD14',
+    sections: [{
+      explanation: {
+        title: 'Making Decisions',
+        body: 'Use <code>if</code> to run code only when a condition is true. Add <code>elif</code> for another condition, and <code>else</code> for everything else. Don\'t forget the colon <code>:</code> and indent the code inside!',
+        realWorld: 'If it\'s raining, bring an umbrella. Elif it\'s sunny, wear sunscreen. Else, just go outside!',
+        monoSays: 'Python uses indentation (spaces) to know what code belongs inside the if. Usually 4 spaces!'
+      },
+      example: {
+        code: 'score = 85\nif score >= 90:\n    print("A")\nelif score >= 80:\n    print("B")\nelse:\n    print("C")',
+        output: 'B',
+        annotations: [
+          { line: 1, text: 'Set score to 85' },
+          { line: 2, text: 'Is score >= 90? (85 >= 90 is False, so skip)' },
+          { line: 4, text: 'Is score >= 80? (85 >= 80 is True!)' },
+          { line: 5, text: 'This runs because the elif was True' }
+        ]
+      },
+      challenges: [
+        {
+          id: 'py-conditional-1',
+          prompt: 'Create a variable <code>x = 10</code>, then use <code>if</code> to print "big" if x is greater than 5.',
+          starterCode: '# Create x and check if it\'s big\n',
+          hint: 'x = 10\nif x > 5:\n    print("big")',
+          validate: { type: 'output', expectedOutput: 'big' },
+          xpReward: 15,
+          monoSuccess: 'Your first if statement! The condition was True.',
+          monoFail: 'Make sure x = 10, then if x > 5: on the next line, then print("big") indented.'
+        },
+        {
+          id: 'py-conditional-2',
+          prompt: 'Create <code>age = 15</code>. If age >= 18, print "adult". Else, print "minor".',
+          starterCode: '# Check age and print result\n',
+          hint: 'age = 15\nif age >= 18:\n    print("adult")\nelse:\n    print("minor")',
+          validate: { type: 'output', expectedOutput: 'minor' },
+          xpReward: 15,
+          monoSuccess: '15 is not >= 18, so else ran!',
+          monoFail: 'Use if age >= 18: then else: for the other case. Make sure to indent!'
+        },
+        {
+          id: 'py-conditional-3',
+          prompt: 'Create <code>temp = 75</code>. If temp > 85, print "hot". Elif temp > 65, print "nice". Else, print "cold".',
+          starterCode: '# Check temperature\n',
+          hint: 'temp = 75\nif temp > 85:\n    print("hot")\nelif temp > 65:\n    print("nice")\nelse:\n    print("cold")',
+          validate: { type: 'output', expectedOutput: 'nice' },
+          xpReward: 20,
+          monoSuccess: '75 > 65 so elif matched! Great job with if-elif-else!',
+          monoFail: 'Check all three conditions: if temp > 85, elif temp > 65, else. Use elif, not else if!'
+        }
+      ]
+    }],
+    miniGameAfter: null
+  },
+  // ── Lesson 7: Loops ──
+  {
+    id: 'py-loop',
+    title: 'Loops',
+    icon: '\uD83D\uDD04',
+    sections: [{
+      explanation: {
+        title: 'Repeating Code',
+        body: 'Use <code>for i in range(n):</code> to repeat code n times. The variable i counts from 0 to n-1. Use <code>while</code> to repeat while a condition is true.',
+        realWorld: 'Loops let you do repetitive tasks: print 1-100, add up scores, or keep a game running until someone wins.',
+        monoSays: 'range(5) gives you 0, 1, 2, 3, 4 — that\'s 5 numbers starting from 0!'
+      },
+      example: {
+        code: 'for i in range(3):\n    print(i)\n\ncount = 0\nwhile count < 2:\n    print("hi")\n    count = count + 1',
+        output: '0\n1\n2\nhi\nhi',
+        annotations: [
+          { line: 1, text: 'Loop 3 times with i = 0, 1, 2' },
+          { line: 2, text: 'Print the current value of i' },
+          { line: 4, text: 'Start count at 0' },
+          { line: 5, text: 'Keep looping while count < 2' },
+          { line: 6, text: 'Print "hi" each time' },
+          { line: 7, text: 'Add 1 to count so the loop eventually stops' }
+        ]
+      },
+      challenges: [
+        {
+          id: 'py-loop-1',
+          prompt: 'Use a for loop to print the numbers 0, 1, 2, 3, 4 (each on its own line).',
+          starterCode: '# Print 0 through 4\n',
+          hint: 'for i in range(5):\n    print(i)',
+          validate: { type: 'output', expectedOutput: '0\n1\n2\n3\n4' },
+          xpReward: 15,
+          monoSuccess: 'range(5) gave you 0-4. That\'s 5 numbers!',
+          monoFail: 'Use for i in range(5): then print(i) indented below.'
+        },
+        {
+          id: 'py-loop-2',
+          prompt: 'Use a for loop to print "hello" 3 times.',
+          starterCode: '# Print hello 3 times\n',
+          hint: 'for i in range(3):\n    print("hello")',
+          validate: { type: 'output', expectedOutput: 'hello\nhello\nhello' },
+          xpReward: 15,
+          monoSuccess: 'You printed hello 3 times with just 2 lines of code!',
+          monoFail: 'Use for i in range(3): then print("hello") indented.'
+        },
+        {
+          id: 'py-loop-3',
+          prompt: 'Create <code>total = 0</code>. Use a for loop to add numbers 1-5 to total, then print total.',
+          starterCode: '# Add up 1 + 2 + 3 + 4 + 5\n',
+          hint: 'total = 0\nfor i in range(1, 6):\n    total = total + i\nprint(total)',
+          validate: { type: 'output', expectedOutput: '15' },
+          xpReward: 20,
+          monoSuccess: '1+2+3+4+5 = 15. You used a loop to do math!',
+          monoFail: 'Use range(1, 6) to get 1-5, add each to total, then print total after the loop.'
+        }
+      ]
+    }],
+    miniGameAfter: null
+  }
+];
+
+// ============================================================
+// PYTHON LESSONS V2 (Quest II: Lists, Loop Patterns, Functions)
+// ============================================================
+const LESSONS_PY_V2 = [
+  // ── Lesson 1: Lists ──
+  {
+    id: 'py-list',
+    title: 'Lists',
+    icon: '\uD83D\uDCCB',
+    sections: [{
+      explanation: {
+        title: 'Storing Multiple Values',
+        body: 'A <strong>list</strong> stores multiple values in order. Create one with square brackets <code>[]</code>. Access items by index (starting at 0). Use <code>.append()</code> to add items and <code>len()</code> to get the count.',
+        realWorld: 'Lists are like a shopping list or a playlist — multiple items in order. Index 0 is the first item!',
+        monoSays: 'Remember: the first item is at index 0, not 1!'
+      },
+      example: {
+        code: 'colors = ["red", "green", "blue"]\nprint(colors[0])\nprint(len(colors))\ncolors.append("yellow")\nprint(colors)',
+        output: 'red\n3\n[\'red\', \'green\', \'blue\', \'yellow\']',
+        annotations: [
+          { line: 1, text: 'Create a list with 3 colors' },
+          { line: 2, text: 'Get the first item (index 0)' },
+          { line: 3, text: 'len() returns how many items: 3' },
+          { line: 4, text: 'Add "yellow" to the end' },
+          { line: 5, text: 'Print the whole list' }
+        ]
+      },
+      challenges: [
+        {
+          id: 'py-list-1',
+          prompt: 'Create a list called <code>fruits</code> with "apple", "banana", "cherry". Print the first fruit.',
+          starterCode: '# Create fruits list and print first item\n',
+          hint: 'fruits = ["apple", "banana", "cherry"]\nprint(fruits[0])',
+          validate: { type: 'output', expectedOutput: 'apple' },
+          xpReward: 15,
+          monoSuccess: 'fruits[0] is the first item — "apple"!',
+          monoFail: 'Create the list, then use print(fruits[0]) to get the first item.'
+        },
+        {
+          id: 'py-list-2',
+          prompt: 'Create a list <code>nums = [10, 20, 30]</code>. Print the length of the list.',
+          starterCode: '# Create nums and print its length\n',
+          hint: 'nums = [10, 20, 30]\nprint(len(nums))',
+          validate: { type: 'output', expectedOutput: '3' },
+          xpReward: 15,
+          monoSuccess: 'len() tells you there are 3 items!',
+          monoFail: 'Use len(nums) to get the count.'
+        },
+        {
+          id: 'py-list-3',
+          prompt: 'Create <code>items = [1, 2]</code>. Append 3 to the list, then print the list.',
+          starterCode: '# Create list, append 3, print it\n',
+          hint: 'items = [1, 2]\nitems.append(3)\nprint(items)',
+          validate: { type: 'output', expectedOutput: '[1, 2, 3]' },
+          xpReward: 20,
+          monoSuccess: '.append() adds to the end of the list!',
+          monoFail: 'Use items.append(3) to add 3, then print(items).'
+        }
+      ]
+    }],
+    miniGameAfter: null
+  },
+  // ── Lesson 2: Loop Patterns ──
+  {
+    id: 'py-loop2',
+    title: 'Loop Patterns',
+    icon: '\uD83D\uDD01',
+    sections: [{
+      explanation: {
+        title: 'Looping Through Lists',
+        body: 'Use <code>for item in list:</code> to go through each item. Use <code>enumerate(list)</code> to get both the index and value. Common patterns: summing, filtering, transforming.',
+        realWorld: 'Loop through a playlist to play each song, through a cart to total prices, through messages to display them.',
+        monoSays: 'for x in list gives you each item. enumerate() adds the index too!'
+      },
+      example: {
+        code: 'names = ["Jo", "Mo", "Bo"]\nfor name in names:\n    print(name)\n\nfor i, name in enumerate(names):\n    print(i, name)',
+        output: 'Jo\nMo\nBo\n0 Jo\n1 Mo\n2 Bo',
+        annotations: [
+          { line: 1, text: 'A list of names' },
+          { line: 2, text: 'Loop through each name' },
+          { line: 3, text: 'Print each name' },
+          { line: 5, text: 'enumerate gives you index i and value name' },
+          { line: 6, text: 'Print both the index and name' }
+        ]
+      },
+      challenges: [
+        {
+          id: 'py-loop2-1',
+          prompt: 'Create <code>pets = ["dog", "cat", "fish"]</code>. Use a for loop to print each pet.',
+          starterCode: '# Print each pet\n',
+          hint: 'pets = ["dog", "cat", "fish"]\nfor pet in pets:\n    print(pet)',
+          validate: { type: 'output', expectedOutput: 'dog\ncat\nfish' },
+          xpReward: 15,
+          monoSuccess: 'You looped through the whole list!',
+          monoFail: 'Use for pet in pets: then print(pet) indented.'
+        },
+        {
+          id: 'py-loop2-2',
+          prompt: 'Create <code>nums = [4, 5, 6]</code>. Use a loop to print each number times 2.',
+          starterCode: '# Print each number doubled\n',
+          hint: 'nums = [4, 5, 6]\nfor n in nums:\n    print(n * 2)',
+          validate: { type: 'output', expectedOutput: '8\n10\n12' },
+          xpReward: 15,
+          monoSuccess: 'You transformed each value in the loop!',
+          monoFail: 'Inside the loop, use print(n * 2) to double each number.'
+        },
+        {
+          id: 'py-loop2-3',
+          prompt: 'Create <code>scores = [10, 20, 30]</code>. Use a loop to add them all up, then print the total.',
+          starterCode: '# Sum all scores\n',
+          hint: 'scores = [10, 20, 30]\ntotal = 0\nfor s in scores:\n    total = total + s\nprint(total)',
+          validate: { type: 'output', expectedOutput: '60' },
+          xpReward: 20,
+          monoSuccess: '10+20+30 = 60. You summed a list!',
+          monoFail: 'Start total at 0, add each score in the loop, print total after.'
+        }
+      ]
+    }],
+    miniGameAfter: null
+  },
+  // ── Lesson 3: Functions ──
+  {
+    id: 'py-function',
+    title: 'Functions',
+    icon: '\uD83C\uDFAF',
+    sections: [{
+      explanation: {
+        title: 'Creating Reusable Code',
+        body: 'A <strong>function</strong> is reusable code with a name. Define with <code>def name():</code>. Use <code>return</code> to send a value back. Add parameters in the parentheses to accept inputs.',
+        realWorld: 'Functions are like recipes — define once, use many times. A "make_sandwich" function could take ingredients as parameters.',
+        monoSays: 'def creates the function. Calling it (with parentheses) runs the code inside!'
+      },
+      example: {
+        code: 'def greet():\n    print("Hello!")\n\ngreet()\n\ndef add(a, b):\n    return a + b\n\nresult = add(3, 4)\nprint(result)',
+        output: 'Hello!\n7',
+        annotations: [
+          { line: 1, text: 'Define a function called greet' },
+          { line: 2, text: 'This runs when greet() is called' },
+          { line: 4, text: 'Call the function — runs the code inside' },
+          { line: 6, text: 'Function with two parameters: a and b' },
+          { line: 7, text: 'return sends a + b back to the caller' },
+          { line: 9, text: 'Call add(3, 4) — result gets 7' }
+        ]
+      },
+      challenges: [
+        {
+          id: 'py-function-1',
+          prompt: 'Create a function <code>say_hi</code> that prints "hi". Then call it.',
+          starterCode: '# Define and call say_hi\n',
+          hint: 'def say_hi():\n    print("hi")\n\nsay_hi()',
+          validate: { type: 'output', expectedOutput: 'hi' },
+          xpReward: 15,
+          monoSuccess: 'You defined and called your first function!',
+          monoFail: 'Define with def say_hi(): then print("hi") indented, then call say_hi().'
+        },
+        {
+          id: 'py-function-2',
+          prompt: 'Create a function <code>double(n)</code> that returns n * 2. Print double(5).',
+          starterCode: '# Create double function\n',
+          hint: 'def double(n):\n    return n * 2\n\nprint(double(5))',
+          validate: { type: 'output', expectedOutput: '10' },
+          xpReward: 20,
+          monoSuccess: 'double(5) returns 10. Functions can return values!',
+          monoFail: 'Use return n * 2 inside the function, then print(double(5)).'
+        },
+        {
+          id: 'py-function-3',
+          prompt: 'Create a function <code>greet(name)</code> that returns "Hello, " + name. Print greet("Mono").',
+          starterCode: '# Create greet function with parameter\n',
+          hint: 'def greet(name):\n    return "Hello, " + name\n\nprint(greet("Mono"))',
+          validate: { type: 'output', expectedOutput: 'Hello, Mono' },
+          xpReward: 25,
+          monoSuccess: 'You made a function that takes input and returns output!',
+          monoFail: 'Use return "Hello, " + name, then print(greet("Mono")).'
+        }
+      ]
+    }],
+    miniGameAfter: null
+  }
+];
+
 // Route to the correct lesson set
-const LESSONS = QUEST_VERSION === 2 ? LESSONS_V2 : LESSONS_V1;
+const LESSONS =
+  CURRENT_LANGUAGE === 'python'
+    ? (QUEST_VERSION === 2 ? LESSONS_PY_V2 : LESSONS_PY_V1)
+    : (QUEST_VERSION === 2 ? LESSONS_V2    : LESSONS_V1);
 
 // ============================================================
 // HINT WORD SYSTEM
 // ============================================================
 var activeHintPopup = null;
 
-var HINT_WORDS = {
-  'create': 'Use <code>let</code> to create a variable. Example: <code>let name = "value";</code>',
-  'print': 'Use <code>console.log()</code> to print. Example: <code>console.log("Hello");</code>'
-};
+var HINT_WORDS = CURRENT_LANGUAGE === 'python'
+  ? {
+      'create': 'In Python, just assign directly: <code>name = "value"</code>',
+      'print':  'Use <code>print()</code> to show output. Example: <code>print("Hello")</code>'
+    }
+  : {
+      'create': 'Use <code>let</code> to create a variable. Example: <code>let name = "value";</code>',
+      'print':  'Use <code>console.log()</code> to print. Example: <code>console.log("Hello");</code>'
+    };
 
 function processHintWords(html) {
   // Replace "create" and "print" (case insensitive, whole word) with clickable spans
@@ -2163,6 +2845,12 @@ const CUSTOM_VALIDATORS = {
     if (stringMatch[1].trim().length === 0) {
       return { pass: false, message: 'Your string is empty! Put your name inside the quotes.' };
     }
+    return { pass: true };
+  },
+
+  validateBareStringPython(result, code) {
+    var stringMatch = code.match(/["']([^"']+)["']/);
+    if (!stringMatch) return { pass: false, message: 'Type a string with quotes, like "Hello"' };
     return { pass: true };
   },
 
@@ -2364,6 +3052,71 @@ const VALIDATORS = {
         return { pass: false, message: 'Your code didn\'t print anything. Use console.log() to print!' };
       return { pass: true };
     }
+  },
+
+  python: {
+    execute(code) {
+      const capturedOutput = [];
+      let capturedVars = {};
+      try {
+        Sk.configure({
+          output: function(text) {
+            var line = text.replace(/\n$/, '');
+            if (line !== '') capturedOutput.push(line);
+          },
+          read: function(x) {
+            if (Sk.builtinFiles && Sk.builtinFiles.files[x]) return Sk.builtinFiles.files[x];
+            throw "File not found: '" + x + "'";
+          },
+          execLimit: 5000
+        });
+        Sk.importMainWithBody('<stdin>', false, code, true);
+        var globals = Sk.globals || {};
+        Object.keys(globals).forEach(function(k) {
+          if (k.startsWith('__')) return;
+          try { capturedVars[k] = Sk.ffi.remapToJs(globals[k]); } catch(e) {}
+        });
+        return { success: true, vars: capturedVars, output: capturedOutput, error: null };
+      } catch(e) {
+        var msg = (e.args && e.args.v && e.args.v[0]) ? e.args.v[0].v : String(e);
+        return { success: false, vars: {}, output: capturedOutput, error: msg };
+      }
+    },
+
+    checkVariable(result, varName, varType) {
+      if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
+      if (!(varName in result.vars) || result.vars[varName] === undefined)
+        return { pass: false, message: 'I don\'t see a variable called ' + varName + '. Did you create it?' };
+      if (varType && typeof result.vars[varName] !== varType)
+        return { pass: false, message: varName + ' should be a ' + varType + ', but it\'s a ' + typeof result.vars[varName] + '.' };
+      return { pass: true };
+    },
+
+    checkValue(result, varName, expectedValue) {
+      const varCheck = this.checkVariable(result, varName);
+      if (!varCheck.pass) return varCheck;
+      if (result.vars[varName] !== expectedValue)
+        return { pass: false, message: varName + ' should equal ' + expectedValue + ', but it equals ' + result.vars[varName] + '.' };
+      return { pass: true };
+    },
+
+    checkOutput(result, expectedOutput) {
+      if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
+      const actual = result.output.join('\n').trim();
+      const expected = expectedOutput.trim();
+      if (actual !== expected) {
+        if (actual === '') return { pass: false, message: 'Your code didn\'t print anything. Did you use print()?' };
+        return { pass: false, message: 'Expected output:\n' + expected + '\n\nYour output:\n' + actual };
+      }
+      return { pass: true };
+    },
+
+    checkOutputNotEmpty(result) {
+      if (!result.success) return { pass: false, message: 'Your code has an error: ' + result.error };
+      if (result.output.length === 0)
+        return { pass: false, message: 'Your code didn\'t print anything. Use print() to show output!' };
+      return { pass: true };
+    }
   }
 };
 
@@ -2397,7 +3150,7 @@ function validateChallenge(code, challengeConfig) {
 // ============================================================
 // STATE MANAGEMENT
 // ============================================================
-const STATE_KEY = QUEST_VERSION === 2 ? 'codequest_v2_progress' : 'codequest_progress';
+const STATE_KEY = `codequest_${CURRENT_LANGUAGE}_v${QUEST_VERSION}_progress`;
 const defaultState = {
   currentLevel: 0,
   currentStep: 'welcome',
@@ -2545,13 +3298,13 @@ function initChallengeEditor(starterCode) {
       mode: LANGUAGE_CONFIG[CURRENT_LANGUAGE].codemirrorMode,
       theme: 'dracula',
       lineNumbers: true,
-      indentUnit: 2,
-      tabSize: 2,
+      indentUnit: CURRENT_LANGUAGE === 'python' ? 4 : 2,
+      tabSize: CURRENT_LANGUAGE === 'python' ? 4 : 2,
       indentWithTabs: false,
       lineWrapping: true,
       extraKeys: { 'Ctrl-Enter': runChallenge, 'Cmd-Enter': runChallenge }
     });
-    setupAutocomplete(challengeEditorInstance);
+    if (CURRENT_LANGUAGE !== 'python') setupAutocomplete(challengeEditorInstance);
     setTimeout(function() { challengeEditorInstance.focus(); }, 50);
   } else {
     var textarea = document.createElement('textarea');
@@ -2590,6 +3343,15 @@ function initExampleEditor(code) {
     pre.textContent = code;
     container.appendChild(pre);
   }
+}
+
+// ============================================================
+// EDITION DROPDOWN
+// ============================================================
+function toggleEditionMenu(e) {
+  e.stopPropagation();
+  var dropdown = e.currentTarget;
+  dropdown.classList.toggle('open');
 }
 
 // ============================================================
@@ -3216,7 +3978,17 @@ function continueQuest() {
   // Check if all levels done
   if (appState.completedLevels.length >= LESSONS.length) {
     document.getElementById('totalXp').textContent = 'Total: ' + appState.xp + ' XP';
-    if (QUEST_VERSION === 1) {
+    if (CURRENT_LANGUAGE === 'python') {
+      if (QUEST_VERSION === 1) {
+        document.getElementById('questCompleteLevelCount').textContent = 'You finished all 7 levels!';
+        document.getElementById('questCompleteMessage').textContent = 'You\'ve learned print, variables, operators, comparisons, conditionals, and loops in Python!';
+        document.getElementById('questIILink').href = 'code-quest.html?v=2&lang=python';
+        document.getElementById('questIILink').style.display = 'inline-block';
+      } else {
+        document.getElementById('questCompleteLevelCount').textContent = 'You finished all 3 levels!';
+        document.getElementById('questCompleteMessage').textContent = 'You\'ve mastered lists, advanced loops, and functions in Python!';
+      }
+    } else if (QUEST_VERSION === 1) {
       document.getElementById('questCompleteLevelCount').textContent = 'You finished all 7 levels!';
       document.getElementById('questCompleteMessage').textContent = 'You\'ve learned strings, variables, assignment, operators, comparisons, and conditionals. You\'re ready to build real things!';
       document.getElementById('questIILink').style.display = 'inline-block';
@@ -3295,14 +4067,59 @@ function init() {
 
   document.getElementById('xpDisplay').textContent = appState.xp;
 
+  // Edition subtitle (language-aware) with dropdown
+  var editionLabel = CURRENT_LANGUAGE === 'python'
+    ? (QUEST_VERSION === 2 ? 'Python Edition Part II' : 'Python Edition')
+    : (QUEST_VERSION === 2 ? 'Javascript Edition Part II' : 'Javascript Edition');
+
+  var jsHref = 'code-quest.html' + (QUEST_VERSION === 2 ? '?v=2' : '');
+  var pyHref = 'code-quest.html?' + (QUEST_VERSION === 2 ? 'v=2&' : '') + 'lang=python';
+  var jsLabel = QUEST_VERSION === 2 ? 'Javascript Edition Part II' : 'Javascript Edition';
+  var pyLabel = QUEST_VERSION === 2 ? 'Python Edition Part II' : 'Python Edition';
+  var jsActive = CURRENT_LANGUAGE !== 'python' ? ' active' : '';
+  var pyActive = CURRENT_LANGUAGE === 'python' ? ' active' : '';
+
+  document.querySelector('#appHeader h1').innerHTML =
+    'Code Club Quest <span class="edition-dropdown" onclick="toggleEditionMenu(event)">' +
+      '<span class="edition-subtitle">' + editionLabel + '<span class="edition-caret">▼</span></span>' +
+      '<div class="edition-menu">' +
+        '<a href="' + jsHref + '" class="' + jsActive + '">' + jsLabel + '</a>' +
+        '<a href="' + pyHref + '" class="' + pyActive + '">' + pyLabel + '</a>' +
+      '</div>' +
+    '</span>';
+
+  // Close edition menu when clicking outside
+  document.addEventListener('click', function(e) {
+    var dropdown = document.querySelector('.edition-dropdown');
+    if (dropdown && !dropdown.contains(e.target)) {
+      dropdown.classList.remove('open');
+    }
+  });
+
   // Version-conditional UI text
-  if (QUEST_VERSION === 2) {
+  if (CURRENT_LANGUAGE === 'python') {
+    if (QUEST_VERSION === 2) {
+      document.getElementById('welcomeTitle').textContent = 'Welcome to Python Quest II!';
+      document.getElementById('welcomeSubtitle').textContent = 'Ready to go deeper — lists, loops, and functions!';
+      document.getElementById('welcomeBtn').textContent = 'Continue the Quest';
+      document.getElementById('mapTitle').textContent = 'Python Quest II Map';
+    } else {
+      document.getElementById('welcomeTitle').textContent = 'Welcome to Python Quest!';
+      document.getElementById('welcomeSubtitle').textContent = 'Learn Python step by step with Mono the Code Monkey!';
+      document.getElementById('mapTitle').textContent = 'Python Quest Map';
+    }
+  } else if (QUEST_VERSION === 2) {
     document.getElementById('welcomeTitle').textContent = 'Welcome to Code Club Quest II!';
-    document.getElementById('welcomeSubtitle').textContent = 'You know the basics \u2014 now level up with arrays, loops, and functions!';
+    document.getElementById('welcomeSubtitle').textContent = 'You know the basics — now level up with arrays, loops, and functions!';
     document.getElementById('welcomeBtn').textContent = 'Continue the Quest';
     document.getElementById('mapTitle').textContent = 'Quest II Map';
-    document.querySelector('#appHeader h1').innerHTML = 'Code Club Quest <span class="edition-subtitle">Javascript Edition Part II</span>';
   }
+
+  // Quest I/II nav links — preserve lang param
+  var langParam = CURRENT_LANGUAGE === 'python' ? '&lang=python' : '';
+  document.querySelector('#questIIMapLink a').href = 'code-quest.html?v=2' + langParam;
+  document.querySelector('#questIMapLink a').href = 'code-quest.html?v=1' + langParam;
+
   // Quest I: show subtle Quest II link on map
   if (QUEST_VERSION === 1) {
     document.getElementById('questIIMapLink').style.display = 'block';
@@ -3311,6 +4128,17 @@ function init() {
   if (QUEST_VERSION === 2) {
     document.getElementById('questIMapLink').style.display = 'block';
   }
+
+  // Language switcher
+  var switchHref = CURRENT_LANGUAGE === 'python'
+    ? 'code-quest.html' + (QUEST_VERSION === 2 ? '?v=2' : '')
+    : 'code-quest.html?' + (QUEST_VERSION === 2 ? 'v=2&' : '') + 'lang=python';
+  var switchLabel = CURRENT_LANGUAGE === 'python'
+    ? '← Switch to JavaScript Edition'
+    : 'Switch to Python Edition →';
+  document.getElementById('langSwitchLink').innerHTML =
+    '<a href="' + switchHref + '" style="color:var(--text-dim);font-size:0.8rem;text-decoration:none;">' + switchLabel + '</a>';
+  document.getElementById('langSwitchLink').style.display = 'block';
 
   // Render welcome Mono
   renderMono('monoWelcome', 'wave', 6);

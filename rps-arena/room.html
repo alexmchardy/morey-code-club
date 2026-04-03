@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPS Arena — Room</title>
+  <link rel="stylesheet" href="shared.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      user-select: none;
+      font-family: 'Press Start 2P', monospace;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Header */
+    #header {
+      flex: 0 0 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 24px;
+      background: var(--surface);
+      border-bottom: 3px solid var(--neon-cyan);
+      position: relative;
+    }
+
+    #header-title {
+      font-size: 28px;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 12px var(--neon-cyan), 0 0 30px var(--neon-cyan), 0 0 60px rgba(0,245,255,0.4);
+      letter-spacing: 4px;
+    }
+
+    #header-tournament {
+      position: absolute;
+      right: 24px;
+      font-size: 10px;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 8px var(--neon-yellow);
+    }
+
+    /* Main area */
+    #main-area {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* Sidebars */
+    .sidebar {
+      width: 280px;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #left-sidebar {
+      border-right: 2px solid var(--border);
+    }
+
+    #right-sidebar {
+      border-left: 2px solid var(--border);
+    }
+
+    .sidebar-header {
+      font-size: 10px;
+      color: var(--neon-cyan);
+      padding: 14px 16px;
+      background: rgba(0, 245, 255, 0.05);
+      border-bottom: 1px solid var(--border);
+      letter-spacing: 2px;
+    }
+
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+
+    /* Functions list */
+    .function-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+    }
+
+    .function-item-name {
+      font-size: 10px;
+      color: var(--neon-yellow);
+      margin-bottom: 4px;
+    }
+
+    .function-item-student {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .function-item-stats {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    .function-item.team-a {
+      border-left: 3px solid var(--team-a);
+    }
+
+    .function-item.team-b {
+      border-left: 3px solid var(--team-b);
+    }
+
+    /* Leaderboard */
+    .lb-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .lb-rank {
+      font-size: 10px;
+      color: var(--text-dim);
+      width: 24px;
+      text-align: right;
+    }
+
+    .lb-row:first-child .lb-rank {
+      color: var(--neon-yellow);
+    }
+
+    .lb-name {
+      flex: 1;
+      font-size: 10px;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .lb-row:first-child .lb-name {
+      color: var(--neon-cyan);
+      text-shadow: 0 0 6px var(--neon-cyan);
+    }
+
+    .lb-score {
+      font-size: 10px;
+      color: var(--neon-green);
+      min-width: 40px;
+      text-align: right;
+    }
+
+    /* Center stage */
+    #center-stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      position: relative;
+      background: radial-gradient(ellipse at center, rgba(0,245,255,0.03) 0%, transparent 70%);
+    }
+
+    /* Battle arena */
+    #battle-arena {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 80px;
+      width: 100%;
+      max-width: 900px;
+    }
+
+    /* Fighter card */
+    .fighter {
+      width: 280px;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      text-align: center;
+      transition: transform 0.3s, opacity 0.3s, filter 0.3s;
+    }
+
+    .fighter.left {
+      border-color: var(--team-a);
+      box-shadow: 0 0 20px rgba(255, 107, 157, 0.2);
+    }
+
+    .fighter.right {
+      border-color: var(--team-b);
+      box-shadow: 0 0 20px rgba(0, 245, 255, 0.2);
+    }
+
+    .fighter-name {
+      font-size: 14px;
+      color: var(--neon-yellow);
+      text-shadow: 0 0 8px var(--neon-yellow);
+      margin-bottom: 8px;
+    }
+
+    .fighter-student {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+    }
+
+    .fighter-throw {
+      font-size: 64px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .fighter-throw.hidden {
+      visibility: hidden;
+    }
+
+    .fighter-score {
+      font-size: 24px;
+      color: var(--neon-green);
+      text-shadow: 0 0 10px var(--neon-green);
+    }
+
+    /* VS text */
+    #vs-text {
+      font-size: 32px;
+      color: var(--neon-orange);
+      text-shadow: 0 0 16px var(--neon-orange);
+    }
+
+    /* Countdown */
+    #countdown {
+      position: absolute;
+      font-size: 72px;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 30px var(--neon-cyan), 0 0 60px var(--neon-cyan);
+      z-index: 100;
+      display: none;
+    }
+
+    #countdown.visible {
+      display: block;
+      animation: countdownPulse 0.5s ease-out;
+    }
+
+    @keyframes countdownPulse {
+      0% { transform: scale(0.5); opacity: 0; }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Round info */
+    #round-info {
+      position: absolute;
+      top: 20px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    #round-info span {
+      color: var(--neon-pink);
+    }
+
+    /* Winner animation */
+    .fighter.round-winner .fighter-throw {
+      animation: throwGlow 0.6s ease-in-out;
+    }
+
+    @keyframes throwGlow {
+      0%, 100% { filter: drop-shadow(0 0 0 transparent); }
+      50% { filter: drop-shadow(0 0 30px var(--neon-green)) drop-shadow(0 0 60px var(--neon-green)); }
+    }
+
+    .fighter.match-winner {
+      animation: winnerCelebrate 0.6s ease-in-out;
+    }
+
+    @keyframes winnerCelebrate {
+      0%, 100% { transform: scale(1) rotate(0deg); }
+      25% { transform: scale(1.15) rotate(-5deg); }
+      50% { transform: scale(1.15) rotate(5deg); }
+      75% { transform: scale(1.15) rotate(-3deg); }
+    }
+
+    .fighter.match-loser {
+      animation: loserFall 0.6s ease-out forwards;
+    }
+
+    @keyframes loserFall {
+      0% { transform: rotate(0deg) translateY(0); opacity: 1; filter: grayscale(0); }
+      100% { transform: rotate(-15deg) translateY(20px); opacity: 0.4; filter: grayscale(1); }
+    }
+
+    .fighter.match-tie {
+      animation: tiePulse 0.6s ease-in-out;
+    }
+
+    @keyframes tiePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    /* Throw reveal animation */
+    .fighter-throw.reveal {
+      animation: throwReveal 0.4s ease-out;
+    }
+
+    @keyframes throwReveal {
+      0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    /* LLM reason display */
+    #llm-reason {
+      position: absolute;
+      bottom: 80px;
+      background: var(--surface);
+      border: 2px solid var(--neon-purple);
+      border-radius: 6px;
+      padding: 12px 20px;
+      max-width: 600px;
+      text-align: center;
+      display: none;
+    }
+
+    #llm-reason.visible {
+      display: block;
+      animation: reasonFadeIn 0.3s ease-out;
+    }
+
+    @keyframes reasonFadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    #llm-reason-text {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    #llm-reason-label {
+      font-size: 8px;
+      color: var(--neon-purple);
+      margin-bottom: 6px;
+      letter-spacing: 1px;
+    }
+
+    /* Match queue (bottom) */
+    #match-queue {
+      flex: 0 0 auto;
+      background: var(--surface);
+      border-top: 2px solid var(--border);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      overflow-x: auto;
+    }
+
+    #match-queue-label {
+      font-size: 8px;
+      color: var(--neon-cyan);
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+
+    .queue-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 6px 12px;
+      font-size: 9px;
+      white-space: nowrap;
+    }
+
+    .queue-item-vs {
+      color: var(--text-dim);
+    }
+
+    .queue-item-name {
+      color: var(--neon-yellow);
+    }
+
+    .queue-item.playing {
+      border-color: var(--neon-green);
+      background: rgba(57, 255, 20, 0.1);
+    }
+
+    /* Idle state */
+    #idle-message {
+      position: absolute;
+      font-size: 16px;
+      color: var(--text-dim);
+      display: none;
+    }
+
+    #idle-message.visible {
+      display: block;
+    }
+
+    /* Paused overlay */
+    #paused-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 3, 16, 0.85);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #paused-overlay.visible {
+      display: flex;
+    }
+
+    #paused-label {
+      font-size: 56px;
+      color: var(--neon-red);
+      text-shadow: 0 0 20px var(--neon-red), 0 0 50px rgba(255,68,68,0.5);
+      animation: pausedBlink 1.2s ease-in-out infinite;
+      letter-spacing: 4px;
+    }
+
+    @keyframes pausedBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    /* Connection indicator */
+    #conn-dot {
+      position: fixed;
+      top: 22px;
+      right: 12px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--neon-red);
+      z-index: 1000;
+      transition: background 0.3s;
+    }
+
+    #conn-dot.connected {
+      background: var(--neon-green);
+      box-shadow: 0 0 8px var(--neon-green);
+    }
+
+    #conn-dot.connecting {
+      background: var(--neon-yellow);
+      box-shadow: 0 0 8px var(--neon-yellow);
+    }
+
+    /* Team scores (team mode) */
+    .team-score-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .team-name {
+      font-size: 12px;
+    }
+
+    .team-a .team-name {
+      color: var(--team-a);
+      text-shadow: 0 0 8px var(--team-a);
+    }
+
+    .team-b .team-name {
+      color: var(--team-b);
+      text-shadow: 0 0 8px var(--team-b);
+    }
+
+    .team-score-value {
+      font-size: 24px;
+      color: var(--neon-green);
+      text-shadow: 0 0 10px var(--neon-green);
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+
+  <div id="header">
+    <span id="header-title">RPS ARENA</span>
+    <span id="header-tournament"></span>
+  </div>
+
+  <div id="main-area">
+
+    <!-- Left sidebar: Functions list (or Team A in team mode) -->
+    <div class="sidebar" id="left-sidebar">
+      <div class="sidebar-header" id="left-sidebar-header">SUBMITTED FUNCTIONS</div>
+      <div class="team-score-header team-a" id="team-a-header" style="display:none;">
+        <span class="team-name" id="team-a-name">TEAM A</span>
+        <span class="team-score-value" id="team-a-score">0</span>
+      </div>
+      <div class="sidebar-content" id="functions-list"></div>
+    </div>
+
+    <!-- Center stage: Battle arena -->
+    <div id="center-stage">
+      <div id="round-info">ROUND <span id="current-round">0</span> / <span id="total-rounds">10</span></div>
+
+      <div id="countdown"></div>
+
+      <div id="idle-message" class="visible">Waiting for match...</div>
+
+      <div id="battle-arena" style="display:none;">
+        <div class="fighter left" id="fighter-a">
+          <div class="fighter-name" id="fighter-a-name">---</div>
+          <div class="fighter-student" id="fighter-a-student">---</div>
+          <div class="fighter-throw hidden" id="fighter-a-throw">🪨</div>
+          <div class="fighter-score" id="fighter-a-score">0</div>
+        </div>
+
+        <div id="vs-text">VS</div>
+
+        <div class="fighter right" id="fighter-b">
+          <div class="fighter-name" id="fighter-b-name">---</div>
+          <div class="fighter-student" id="fighter-b-student">---</div>
+          <div class="fighter-throw hidden" id="fighter-b-throw">🪨</div>
+          <div class="fighter-score" id="fighter-b-score">0</div>
+        </div>
+      </div>
+
+      <div id="llm-reason">
+        <div id="llm-reason-label">LLM JUDGMENT</div>
+        <div id="llm-reason-text"></div>
+      </div>
+    </div>
+
+    <!-- Right sidebar: Leaderboard (or Team B in team mode) -->
+    <div class="sidebar" id="right-sidebar">
+      <div class="sidebar-header" id="right-sidebar-header">LEADERBOARD</div>
+      <div class="team-score-header team-b" id="team-b-header" style="display:none;">
+        <span class="team-name" id="team-b-name">TEAM B</span>
+        <span class="team-score-value" id="team-b-score">0</span>
+      </div>
+      <div class="sidebar-content" id="leaderboard"></div>
+    </div>
+
+  </div>
+
+  <!-- Match queue preview -->
+  <div id="match-queue">
+    <span id="match-queue-label">QUEUE</span>
+    <div id="queue-items"></div>
+  </div>
+
+</div>
+
+<div id="paused-overlay">
+  <div id="paused-label">⏸ PAUSED</div>
+</div>
+
+<div id="conn-dot" class="connecting"></div>
+
+<script>
+  // Supabase config
+  const SUPABASE_URL = 'https://facwrgpgbffgrriolgcy.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhY3dyZ3BnYmZmZ3JyaW9sZ2N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzkyODYsImV4cCI6MjA4OTcxNTI4Nn0.G8tmDmDmmMa7O6y-CPd16na4RzOjk-nwnkE4HF383js';
+
+  // Cerebras API key (leave empty — user adds later)
+  const CEREBRAS_API_KEY = '';
+
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { db: { schema: 'code_mob' } });
+
+  // Throw emojis
+  const THROW_EMOJI = {
+    rock: '🪨',
+    paper: '📄',
+    scissors: '✂️',
+  };
+
+  // State
+  let tournament = null;
+  let functions = [];
+  let matchQueue = [];
+  let currentMatch = null;
+  let isPlaying = false;
+
+  // DOM refs
+  const connDot = document.getElementById('conn-dot');
+  const headerTournament = document.getElementById('header-tournament');
+  const functionsList = document.getElementById('functions-list');
+  const leaderboard = document.getElementById('leaderboard');
+  const queueItems = document.getElementById('queue-items');
+  const battleArena = document.getElementById('battle-arena');
+  const idleMessage = document.getElementById('idle-message');
+  const countdown = document.getElementById('countdown');
+  const pausedOverlay = document.getElementById('paused-overlay');
+  const llmReason = document.getElementById('llm-reason');
+  const llmReasonText = document.getElementById('llm-reason-text');
+
+  // Utility
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function setConnStatus(s) {
+    connDot.className = s;
+  }
+
+  function sleep(ms) {
+    return new Promise(r => setTimeout(r, ms));
+  }
+
+  // Load tournament
+  async function loadTournament() {
+    const { data, error } = await db
+      .from('rps_tournaments')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) {
+      headerTournament.textContent = 'No active tournament';
+      return false;
+    }
+
+    tournament = data;
+    headerTournament.textContent = data.name;
+
+    // Team mode setup
+    if (data.team_mode) {
+      document.getElementById('left-sidebar-header').textContent = data.team_a_name || 'TEAM A';
+      document.getElementById('right-sidebar-header').textContent = data.team_b_name || 'TEAM B';
+      document.getElementById('team-a-header').style.display = 'flex';
+      document.getElementById('team-b-header').style.display = 'flex';
+      document.getElementById('team-a-name').textContent = data.team_a_name || 'TEAM A';
+      document.getElementById('team-b-name').textContent = data.team_b_name || 'TEAM B';
+    }
+
+    document.getElementById('total-rounds').textContent = data.rounds_per_match || 10;
+
+    if (data.paused) {
+      pausedOverlay.classList.add('visible');
+    }
+
+    return true;
+  }
+
+  // Load functions
+  async function loadFunctions() {
+    if (!tournament) return;
+
+    const { data, error } = await db
+      .from('rps_functions')
+      .select('*')
+      .eq('tournament_id', tournament.id)
+      .eq('is_archived', false)
+      .order('match_wins', { ascending: false });
+
+    if (error) return;
+    functions = data || [];
+    renderFunctions();
+    renderLeaderboard();
+  }
+
+  function renderFunctions() {
+    if (tournament?.team_mode) {
+      const teamA = functions.filter(f => f.team === 'a');
+      const teamB = functions.filter(f => f.team === 'b');
+
+      functionsList.innerHTML = teamA.map(f => `
+        <div class="function-item team-a">
+          <div class="function-item-name">${escapeHtml(f.function_name)}</div>
+          <div class="function-item-student">${escapeHtml(f.student_name)}</div>
+          <div class="function-item-stats">W:${f.match_wins} L:${f.match_losses}</div>
+        </div>
+      `).join('') || '<div style="color:var(--text-dim);font-size:10px;padding:10px;">No functions</div>';
+
+      leaderboard.innerHTML = teamB.map(f => `
+        <div class="function-item team-b">
+          <div class="function-item-name">${escapeHtml(f.function_name)}</div>
+          <div class="function-item-student">${escapeHtml(f.student_name)}</div>
+          <div class="function-item-stats">W:${f.match_wins} L:${f.match_losses}</div>
+        </div>
+      `).join('') || '<div style="color:var(--text-dim);font-size:10px;padding:10px;">No functions</div>';
+
+    } else {
+      functionsList.innerHTML = functions.map(f => `
+        <div class="function-item">
+          <div class="function-item-name">${escapeHtml(f.function_name)}</div>
+          <div class="function-item-student">${escapeHtml(f.student_name)}</div>
+          <div class="function-item-stats">W:${f.match_wins} L:${f.match_losses}</div>
+        </div>
+      `).join('') || '<div style="color:var(--text-dim);font-size:10px;padding:10px;">No functions</div>';
+    }
+  }
+
+  function renderLeaderboard() {
+    if (tournament?.team_mode) return;
+
+    const sorted = [...functions].sort((a, b) => b.match_wins - a.match_wins);
+    leaderboard.innerHTML = sorted.slice(0, 15).map((f, i) => `
+      <div class="lb-row">
+        <span class="lb-rank">${i + 1}</span>
+        <span class="lb-name">${escapeHtml(f.function_name)}</span>
+        <span class="lb-score">${f.match_wins}W</span>
+      </div>
+    `).join('') || '<div style="color:var(--text-dim);font-size:10px;">No data</div>';
+  }
+
+  // Load match queue
+  async function loadMatchQueue() {
+    if (!tournament) return;
+
+    const { data, error } = await db
+      .from('rps_match_queue')
+      .select('*, function_a:rps_functions!function_a_id(*), function_b:rps_functions!function_b_id(*)')
+      .eq('tournament_id', tournament.id)
+      .in('status', ['pending', 'playing'])
+      .order('position');
+
+    if (error) return;
+    matchQueue = data || [];
+    renderMatchQueue();
+
+    // Check for playing match
+    const playing = matchQueue.find(m => m.status === 'playing');
+    if (playing && !isPlaying) {
+      startMatch(playing);
+    }
+  }
+
+  function renderMatchQueue() {
+    queueItems.innerHTML = matchQueue.map(m => `
+      <div class="queue-item ${m.status === 'playing' ? 'playing' : ''}">
+        <span class="queue-item-name">${escapeHtml(m.function_a?.function_name || '?')}</span>
+        <span class="queue-item-vs">vs</span>
+        <span class="queue-item-name">${escapeHtml(m.function_b?.function_name || '?')}</span>
+      </div>
+    `).join('') || '<span style="color:var(--text-dim);font-size:9px;">No matches queued</span>';
+  }
+
+  // Execute function
+  async function executeFunction(fn, round, myThrows, theirThrows) {
+    try {
+      if (fn.language === 'python') {
+        return await executePython(fn.code, round, myThrows, theirThrows);
+      } else {
+        return executeJavaScript(fn.code, round, myThrows, theirThrows);
+      }
+    } catch (e) {
+      console.error('Function error:', fn.function_name, e);
+      return 'rock';
+    }
+  }
+
+  function executeJavaScript(code, round, myThrows, theirThrows) {
+    const fullCode = `
+      (function() {
+        function throwRPS(round, myThrows, theirThrows) {
+          ${code}
+        }
+        return throwRPS(${round}, ${JSON.stringify(myThrows)}, ${JSON.stringify(theirThrows)});
+      })()
+    `;
+    const result = eval(fullCode);
+    return normalizeThrow(result);
+  }
+
+  async function executePython(code, round, myThrows, theirThrows) {
+    return new Promise((resolve) => {
+      const fullCode = `
+import json
+
+def throw_rps(round, my_throws, their_throws):
+${code.split('\n').map(line => '  ' + line).join('\n')}
+
+_result = throw_rps(${round}, ${JSON.stringify(myThrows)}, ${JSON.stringify(theirThrows)})
+print(json.dumps(_result))
+`;
+
+      let output = '';
+
+      Sk.configure({
+        output: (text) => { output += text; },
+        read: (filename) => {
+          if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][filename] === undefined) {
+            throw new Error("File not found: '" + filename + "'");
+          }
+          return Sk.builtinFiles["files"][filename];
+        },
+      });
+
+      Sk.misceval.asyncToPromise(() => {
+        return Sk.importMainWithBody("<stdin>", false, fullCode, true);
+      }).then(() => {
+        try {
+          const result = JSON.parse(output.trim());
+          resolve(normalizeThrow(result));
+        } catch {
+          resolve('rock');
+        }
+      }).catch(() => {
+        resolve('rock');
+      });
+    });
+  }
+
+  function normalizeThrow(t) {
+    const s = String(t).toLowerCase().trim();
+    if (['rock', 'paper', 'scissors'].includes(s)) return s;
+    return s;
+  }
+
+  function isStandardThrow(t) {
+    return ['rock', 'paper', 'scissors'].includes(t);
+  }
+
+  // Determine winner
+  function determineWinner(throwA, throwB) {
+    if (throwA === throwB) return 'tie';
+    if (
+      (throwA === 'rock' && throwB === 'scissors') ||
+      (throwA === 'paper' && throwB === 'rock') ||
+      (throwA === 'scissors' && throwB === 'paper')
+    ) {
+      return 'a';
+    }
+    return 'b';
+  }
+
+  // LLM judge for nolimits mode
+  async function llmJudge(throwA, throwB) {
+    if (!CEREBRAS_API_KEY) {
+      return { winner: Math.random() < 0.5 ? 'a' : 'b', reason: 'No API key — random winner' };
+    }
+
+    try {
+      const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${CEREBRAS_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'llama3.1-8b',
+          messages: [{
+            role: 'user',
+            content: `In creative rock-paper-scissors, Player A threw "${throwA}" and Player B threw "${throwB}". Pick a winner and explain why in under 20 words. Be creative and unpredictable. Respond as JSON: {"winner": "A" | "B" | "tie", "reason": "..."}`
+          }],
+          max_tokens: 100,
+        }),
+      });
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || '';
+
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          const w = String(parsed.winner).toLowerCase();
+          return {
+            winner: w === 'a' ? 'a' : w === 'b' ? 'b' : 'tie',
+            reason: parsed.reason || 'No reason given',
+          };
+        }
+      } catch {}
+
+      return { winner: 'tie', reason: 'Could not parse LLM response' };
+    } catch (e) {
+      console.error('LLM error:', e);
+      return { winner: 'tie', reason: 'LLM error' };
+    }
+  }
+
+  // Show countdown
+  async function showCountdown() {
+    const nums = ['3', '2', '1', 'THROW!'];
+    for (const num of nums) {
+      countdown.textContent = num;
+      countdown.classList.remove('visible');
+      void countdown.offsetWidth;
+      countdown.classList.add('visible');
+      await sleep(num === 'THROW!' ? 400 : 700);
+    }
+    countdown.classList.remove('visible');
+  }
+
+  // Battle match
+  async function startMatch(match) {
+    if (isPlaying) return;
+    isPlaying = true;
+    currentMatch = match;
+
+    const fnA = match.function_a;
+    const fnB = match.function_b;
+
+    idleMessage.classList.remove('visible');
+    battleArena.style.display = 'flex';
+    llmReason.classList.remove('visible');
+
+    // Setup fighters
+    document.getElementById('fighter-a-name').textContent = fnA.function_name;
+    document.getElementById('fighter-a-student').textContent = fnA.student_name;
+    document.getElementById('fighter-a-score').textContent = '0';
+    document.getElementById('fighter-a-throw').classList.add('hidden');
+
+    document.getElementById('fighter-b-name').textContent = fnB.function_name;
+    document.getElementById('fighter-b-student').textContent = fnB.student_name;
+    document.getElementById('fighter-b-score').textContent = '0';
+    document.getElementById('fighter-b-throw').classList.add('hidden');
+
+    const fighterAEl = document.getElementById('fighter-a');
+    const fighterBEl = document.getElementById('fighter-b');
+    fighterAEl.className = 'fighter left';
+    fighterBEl.className = 'fighter right';
+
+    let scoreA = 0;
+    let scoreB = 0;
+    const throwsA = [];
+    const throwsB = [];
+    const rounds = tournament?.rounds_per_match || 10;
+    const roundDelay = tournament?.round_delay_ms || 2000;
+
+    for (let round = 0; round < rounds; round++) {
+      if (tournament?.paused) {
+        await waitForUnpause();
+      }
+
+      document.getElementById('current-round').textContent = round + 1;
+
+      // Countdown
+      await showCountdown();
+
+      // Execute functions
+      const [throwA, throwB] = await Promise.all([
+        executeFunction(fnA, round, [...throwsA], [...throwsB]),
+        executeFunction(fnB, round, [...throwsB], [...throwsA]),
+      ]);
+
+      throwsA.unshift(throwA);
+      throwsB.unshift(throwB);
+
+      // Reveal throws
+      const throwAEl = document.getElementById('fighter-a-throw');
+      const throwBEl = document.getElementById('fighter-b-throw');
+
+      throwAEl.textContent = THROW_EMOJI[throwA] || throwA;
+      throwBEl.textContent = THROW_EMOJI[throwB] || throwB;
+
+      throwAEl.classList.remove('hidden', 'reveal');
+      throwBEl.classList.remove('hidden', 'reveal');
+      void throwAEl.offsetWidth;
+      throwAEl.classList.add('reveal');
+      throwBEl.classList.add('reveal');
+
+      await sleep(400);
+
+      // Determine winner
+      let winner;
+      if (tournament?.mode === 'nolimits' && (!isStandardThrow(throwA) || !isStandardThrow(throwB))) {
+        const result = await llmJudge(throwA, throwB);
+        winner = result.winner;
+        llmReasonText.textContent = result.reason;
+        llmReason.classList.add('visible');
+      } else {
+        winner = determineWinner(throwA, throwB);
+        llmReason.classList.remove('visible');
+      }
+
+      // Update score and show winner
+      fighterAEl.classList.remove('round-winner');
+      fighterBEl.classList.remove('round-winner');
+
+      if (winner === 'a') {
+        scoreA++;
+        fighterAEl.classList.add('round-winner');
+      } else if (winner === 'b') {
+        scoreB++;
+        fighterBEl.classList.add('round-winner');
+      }
+
+      document.getElementById('fighter-a-score').textContent = scoreA;
+      document.getElementById('fighter-b-score').textContent = scoreB;
+
+      await sleep(roundDelay);
+    }
+
+    // Match end
+    const matchDelay = tournament?.match_delay_ms || 5000;
+
+    fighterAEl.classList.remove('round-winner');
+    fighterBEl.classList.remove('round-winner');
+
+    let winnerId = null;
+    if (scoreA > scoreB) {
+      fighterAEl.classList.add('match-winner');
+      fighterBEl.classList.add('match-loser');
+      winnerId = fnA.id;
+    } else if (scoreB > scoreA) {
+      fighterAEl.classList.add('match-loser');
+      fighterBEl.classList.add('match-winner');
+      winnerId = fnB.id;
+    } else {
+      fighterAEl.classList.add('match-tie');
+      fighterBEl.classList.add('match-tie');
+    }
+
+    // Update stats via Edge Function
+    await updateMatchStats(match.id, winnerId, scoreA, scoreB);
+
+    await sleep(matchDelay);
+
+    // Reset
+    isPlaying = false;
+    currentMatch = null;
+    battleArena.style.display = 'none';
+    idleMessage.classList.add('visible');
+    llmReason.classList.remove('visible');
+
+    // Reload data
+    await loadFunctions();
+    await loadMatchQueue();
+
+    // Auto-start next if continuous
+    if (tournament?.continuous && matchQueue.length > 0) {
+      const next = matchQueue.find(m => m.status === 'pending');
+      if (next) {
+        await db.from('rps_match_queue').update({ status: 'playing' }).eq('id', next.id);
+      }
+    }
+  }
+
+  async function updateMatchStats(matchId, winnerId, scoreA, scoreB) {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/rps-arena-admin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          action: 'complete_match',
+          matchId,
+          winnerId,
+          scoreA,
+          scoreB,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.error) console.error('Update stats error:', data.error);
+    } catch (e) {
+      console.error('Update stats error:', e);
+    }
+  }
+
+  async function waitForUnpause() {
+    while (tournament?.paused) {
+      await sleep(500);
+    }
+  }
+
+  // Realtime subscriptions
+  function subscribeToRealtime() {
+    if (!tournament) return;
+
+    // Match queue changes
+    db.channel('rps-match-queue')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'code_mob',
+        table: 'rps_match_queue',
+        filter: `tournament_id=eq.${tournament.id}`,
+      }, async (payload) => {
+        await loadMatchQueue();
+
+        if (payload.new?.status === 'playing' && !isPlaying) {
+          const match = matchQueue.find(m => m.id === payload.new.id);
+          if (match) startMatch(match);
+        }
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') setConnStatus('connected');
+        else if (status === 'CHANNEL_ERROR') setConnStatus('');
+      });
+
+    // Tournament changes (pause state)
+    db.channel('rps-tournament')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'code_mob',
+        table: 'rps_tournaments',
+        filter: `id=eq.${tournament.id}`,
+      }, (payload) => {
+        tournament = payload.new;
+
+        if (payload.new.paused) {
+          pausedOverlay.classList.add('visible');
+        } else {
+          pausedOverlay.classList.remove('visible');
+        }
+      })
+      .subscribe();
+
+    // Functions changes
+    db.channel('rps-functions')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'code_mob',
+        table: 'rps_functions',
+        filter: `tournament_id=eq.${tournament.id}`,
+      }, () => {
+        loadFunctions();
+      })
+      .subscribe();
+  }
+
+  // Team scores (team mode)
+  function updateTeamScores() {
+    if (!tournament?.team_mode) return;
+
+    const teamAWins = functions.filter(f => f.team === 'a').reduce((sum, f) => sum + f.match_wins, 0);
+    const teamBWins = functions.filter(f => f.team === 'b').reduce((sum, f) => sum + f.match_wins, 0);
+
+    document.getElementById('team-a-score').textContent = teamAWins;
+    document.getElementById('team-b-score').textContent = teamBWins;
+  }
+
+  // Init
+  async function init() {
+    setConnStatus('connecting');
+
+    const ok = await loadTournament();
+    if (!ok) {
+      setConnStatus('');
+      return;
+    }
+
+    await loadFunctions();
+    await loadMatchQueue();
+    updateTeamScores();
+    subscribeToRealtime();
+  }
+
+  init();
+</script>
+</body>
+</html>

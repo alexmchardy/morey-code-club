@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPS Arena — Admin</title>
+  <link rel="stylesheet" href="shared.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    body {
+      padding: 16px;
+      min-height: 100vh;
+    }
+
+    .admin-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .admin-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 14px;
+      color: var(--neon-pink);
+      text-shadow: 0 0 16px var(--neon-pink);
+      letter-spacing: 2px;
+      margin: 0;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      margin-left: auto;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .conn-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--text-dim);
+    }
+
+    .conn-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--neon-red);
+      flex-shrink: 0;
+    }
+
+    .conn-dot.green { background: var(--neon-green); box-shadow: 0 0 6px var(--neon-green); }
+    .conn-dot.yellow { background: var(--neon-yellow); box-shadow: 0 0 6px var(--neon-yellow); }
+    .conn-dot.red { background: var(--neon-red); box-shadow: 0 0 6px var(--neon-red); }
+
+    .tournament-badge {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--neon-cyan);
+      border: 1px solid var(--neon-cyan);
+      padding: 4px 10px;
+      border-radius: 3px;
+    }
+
+    .paused-badge {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--neon-red);
+      border: 1px solid var(--neon-red);
+      padding: 4px 8px;
+      border-radius: 2px;
+      display: none;
+    }
+
+    .paused-badge.visible { display: inline-block; }
+
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 1000px) {
+      .grid-layout { grid-template-columns: 1fr; }
+    }
+
+    .left-col, .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .form-row {
+      margin-bottom: 14px;
+    }
+
+    .form-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .inline-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+    }
+
+    .inline-row > div {
+      flex: 1;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--neon-cyan);
+    }
+
+    .checkbox-label {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .team-names-row {
+      display: none;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .team-names-row.visible {
+      display: flex;
+    }
+
+    .team-names-row > div {
+      flex: 1;
+    }
+
+    .team-label-a {
+      color: var(--team-a);
+    }
+
+    .team-label-b {
+      color: var(--team-b);
+    }
+
+    input, select, textarea {
+      width: 100%;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .token-input {
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    .token-status {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: var(--text-dim);
+      margin-top: 6px;
+    }
+
+    .token-status.ok { color: var(--neon-green); }
+    .token-status.err { color: var(--neon-red); }
+
+    .team-groups {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .team-group {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 12px;
+    }
+
+    .team-group-header {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .team-group-header.team-a { color: var(--team-a); }
+    .team-group-header.team-b { color: var(--team-b); }
+    .team-group-header.unassigned { color: var(--text-dim); }
+
+    .team-group-count {
+      font-size: 7px;
+      color: var(--text-dim);
+    }
+
+    .student-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-height: 32px;
+    }
+
+    .student-chip {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      padding: 6px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .student-chip:hover {
+      border-color: var(--neon-cyan);
+    }
+
+    .student-chip.team-a {
+      border-color: var(--team-a);
+      background: rgba(255, 107, 157, 0.1);
+    }
+
+    .student-chip.team-b {
+      border-color: var(--team-b);
+      background: rgba(0, 245, 255, 0.1);
+    }
+
+    .no-students {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      padding: 8px 0;
+    }
+
+    .functions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .function-card.selected {
+      border-color: var(--neon-green);
+      background: rgba(57, 255, 20, 0.08);
+    }
+
+    .function-card.selected .function-card-name {
+      color: var(--neon-green);
+    }
+
+    .match-controls-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .match-queue {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    .match-queue-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 12px;
+    }
+
+    .match-queue-item.playing {
+      border-color: var(--neon-yellow);
+      background: rgba(255, 190, 11, 0.08);
+    }
+
+    .match-queue-item.completed {
+      opacity: 0.5;
+    }
+
+    .match-vs {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--text-dim);
+    }
+
+    .match-fn {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .match-status {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      margin-left: auto;
+    }
+
+    .match-status.pending { color: var(--text-dim); }
+    .match-status.playing { color: var(--neon-yellow); }
+    .match-status.completed { color: var(--neon-green); }
+
+    .no-queue {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      text-align: center;
+      padding: 20px;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .toggle-switch.active {
+      background: rgba(57, 255, 20, 0.2);
+      border-color: var(--neon-green);
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      background: var(--text-dim);
+      border-radius: 50%;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .toggle-switch.active::after {
+      transform: translateX(20px);
+      background: var(--neon-green);
+    }
+
+    .toggle-label {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .slider-row {
+      margin-bottom: 16px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .slider-value {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+      color: var(--neon-cyan);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      background: var(--surface2);
+      border-radius: 3px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      background: var(--neon-cyan);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 8px var(--neon-cyan);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: var(--neon-cyan);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 8px var(--neon-cyan);
+    }
+
+    .feedback {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      margin-top: 8px;
+      display: none;
+    }
+
+    .feedback.visible { display: block; }
+    .feedback.success { color: var(--neon-green); }
+    .feedback.error { color: var(--neon-red); }
+
+    .btn-pause { color: var(--neon-green); border-color: var(--neon-green); }
+    .btn-pause:hover { background: rgba(57, 255, 20, 0.12); box-shadow: 0 0 12px var(--neon-green); }
+    .btn-pause.paused { color: var(--neon-red); border-color: var(--neon-red); }
+    .btn-pause.paused:hover { background: rgba(255, 68, 68, 0.12); box-shadow: 0 0 12px var(--neon-red); }
+  </style>
+</head>
+<body>
+
+  <div class="admin-header">
+    <h1 class="admin-title">RPS ARENA // ADMIN</h1>
+    <div class="status-bar">
+      <span class="tournament-badge" id="tournament-badge">No Tournament</span>
+      <span class="paused-badge" id="paused-badge">PAUSED</span>
+      <div class="conn-indicator">
+        <div class="conn-dot" id="conn-dot"></div>
+        <span id="conn-label">connecting</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-layout">
+
+    <div class="left-col">
+
+      <div class="panel">
+        <div class="panel-header">Admin Token</div>
+        <div class="panel-body">
+          <label class="label">Enter Token</label>
+          <input type="password" class="token-input" id="token-input" placeholder="ADMIN_TOKEN" autocomplete="off">
+          <div class="token-status" id="token-status">Enter token to enable admin actions</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">Tournament Setup</div>
+        <div class="panel-body">
+          <div class="form-row">
+            <label class="label">Tournament Name</label>
+            <input type="text" id="tournament-name" placeholder="e.g. Battle Royale" maxlength="50">
+          </div>
+          <div class="inline-row">
+            <div>
+              <label class="label">Mode</label>
+              <select id="tournament-mode">
+                <option value="strict">Strict (rock/paper/scissors only)</option>
+                <option value="nolimits">No Limits (LLM judges)</option>
+              </select>
+            </div>
+          </div>
+          <div class="checkbox-row">
+            <input type="checkbox" id="team-mode-check">
+            <span class="checkbox-label">Enable Team Mode</span>
+          </div>
+          <div class="team-names-row" id="team-names-row">
+            <div>
+              <label class="label team-label-a">Team A Name</label>
+              <input type="text" id="team-a-name" placeholder="e.g. Red Dragons" maxlength="30">
+            </div>
+            <div>
+              <label class="label team-label-b">Team B Name</label>
+              <input type="text" id="team-b-name" placeholder="e.g. Blue Knights" maxlength="30">
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-green" id="btn-create-tournament">CREATE TOURNAMENT</button>
+          </div>
+          <div class="feedback" id="tournament-feedback"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">Approved Names</div>
+        <div class="panel-body">
+          <label class="label">Student Names (one per line)</label>
+          <textarea id="approved-names" placeholder="Alice&#10;Bob&#10;Charlie"></textarea>
+          <div class="btn-row">
+            <button class="btn" id="btn-save-names">SAVE NAMES</button>
+          </div>
+          <div class="feedback" id="names-feedback"></div>
+        </div>
+      </div>
+
+      <div class="panel" id="team-assignment-panel" style="display:none;">
+        <div class="panel-header">Team Assignment</div>
+        <div class="panel-body">
+          <p style="font-size:12px;color:var(--text-dim);margin:0 0 12px 0;">Click a name to cycle: unassigned → Team A → Team B → unassigned</p>
+          <div class="team-groups" id="team-groups">
+            <div class="team-group">
+              <div class="team-group-header team-a">
+                <span id="team-a-label">Team A</span>
+                <span class="team-group-count">(<span id="team-a-count">0</span>)</span>
+              </div>
+              <div class="student-chips" id="team-a-chips"></div>
+            </div>
+            <div class="team-group">
+              <div class="team-group-header team-b">
+                <span id="team-b-label">Team B</span>
+                <span class="team-group-count">(<span id="team-b-count">0</span>)</span>
+              </div>
+              <div class="student-chips" id="team-b-chips"></div>
+            </div>
+            <div class="team-group">
+              <div class="team-group-header unassigned">Unassigned</div>
+              <div class="student-chips" id="unassigned-chips"></div>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-orange" id="btn-randomize-teams">RANDOMIZE</button>
+          </div>
+          <div class="feedback" id="team-feedback"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">Settings</div>
+        <div class="panel-body">
+          <div class="slider-row">
+            <div class="slider-header">
+              <label class="label">Rounds Per Match</label>
+              <span class="slider-value" id="rounds-value">10</span>
+            </div>
+            <input type="range" id="rounds-slider" min="3" max="20" value="10">
+          </div>
+          <div class="slider-row">
+            <div class="slider-header">
+              <label class="label">Round Delay (ms)</label>
+              <span class="slider-value" id="round-delay-value">2000</span>
+            </div>
+            <input type="range" id="round-delay-slider" min="500" max="3000" step="100" value="2000">
+          </div>
+          <div class="slider-row">
+            <div class="slider-header">
+              <label class="label">Match Delay (ms)</label>
+              <span class="slider-value" id="match-delay-value">5000</span>
+            </div>
+            <input type="range" id="match-delay-slider" min="1000" max="5000" step="100" value="5000">
+          </div>
+          <div class="btn-row">
+            <button class="btn" id="btn-save-settings">SAVE SETTINGS</button>
+          </div>
+          <div class="feedback" id="settings-feedback"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="right-col">
+
+      <div class="panel">
+        <div class="panel-header">Match Controls</div>
+        <div class="panel-body">
+          <div class="match-controls-row">
+            <button class="btn btn-green" id="btn-next-match">NEXT MATCH</button>
+            <button class="btn btn-pause" id="btn-pause">PAUSE</button>
+            <div class="toggle-row">
+              <div class="toggle-switch" id="toggle-continuous"></div>
+              <span class="toggle-label">Continuous</span>
+            </div>
+          </div>
+          <label class="label">Match Queue</label>
+          <div class="match-queue" id="match-queue">
+            <div class="no-queue">No matches queued</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">Submitted Functions</div>
+        <div class="panel-body">
+          <p style="font-size:12px;color:var(--text-dim);margin:0 0 12px 0;">Select two functions and click "Add to Queue"</p>
+          <div class="functions-grid" id="functions-grid">
+            <div class="no-students">No functions submitted yet</div>
+          </div>
+          <div class="btn-row" style="margin-top:14px;">
+            <button class="btn" id="btn-add-queue" disabled>ADD TO QUEUE</button>
+            <button class="btn btn-pink" id="btn-clear-selection">CLEAR SELECTION</button>
+          </div>
+          <div class="feedback" id="queue-feedback"></div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+<script>
+  const SUPABASE_URL = 'https://facwrgpgbffgrriolgcy.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhY3dyZ3BnYmZmZ3JyaW9sZ2N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzkyODYsImV4cCI6MjA4OTcxNTI4Nn0.G8tmDmDmmMa7O6y-CPd16na4RzOjk-nwnkE4HF383js';
+  const EDGE_FN_URL = 'https://facwrgpgbffgrriolgcy.supabase.co/functions/v1/rps-arena-admin';
+
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { db: { schema: 'code_mob' } });
+
+  let TOURNAMENT_ID = null;
+  let adminToken = localStorage.getItem('rps_admin_token') || '';
+  let selectedFunctions = [];
+  let students = [];
+  let functions = [];
+  let matchQueue = [];
+
+  // Token input
+  const tokenInput = document.getElementById('token-input');
+  const tokenStatus = document.getElementById('token-status');
+  tokenInput.value = adminToken;
+  updateTokenStatus();
+
+  tokenInput.addEventListener('input', () => {
+    adminToken = tokenInput.value;
+    localStorage.setItem('rps_admin_token', adminToken);
+    updateTokenStatus();
+  });
+
+  function updateTokenStatus() {
+    if (adminToken) {
+      tokenStatus.textContent = 'Token saved — admin actions enabled';
+      tokenStatus.className = 'token-status ok';
+    } else {
+      tokenStatus.textContent = 'Enter token to enable admin actions';
+      tokenStatus.className = 'token-status';
+    }
+  }
+
+  // Connection status
+  function setConnStatus(status) {
+    const dot = document.getElementById('conn-dot');
+    const label = document.getElementById('conn-label');
+    dot.className = 'conn-dot';
+    if (status === 'connected') {
+      dot.classList.add('green');
+      label.textContent = 'live';
+    } else if (status === 'connecting') {
+      dot.classList.add('yellow');
+      label.textContent = 'connecting';
+    } else {
+      dot.classList.add('red');
+      label.textContent = 'disconnected';
+    }
+  }
+
+  // Helpers
+  function escapeHtml(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function showFeedback(elId, msg, success) {
+    const el = document.getElementById(elId);
+    el.textContent = msg;
+    el.className = 'feedback visible ' + (success ? 'success' : 'error');
+    setTimeout(() => el.classList.remove('visible'), 3000);
+  }
+
+  // Admin action via Edge Function
+  async function adminAction(action, payload = {}) {
+    if (!adminToken) {
+      alert('Enter your admin token first.');
+      return null;
+    }
+    try {
+      const res = await fetch(EDGE_FN_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ action, token: adminToken, tournamentId: TOURNAMENT_ID, ...payload }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        console.error('Admin action error:', data.error);
+        return { error: data.error };
+      }
+      return data;
+    } catch (err) {
+      console.error('Admin action failed:', err);
+      return { error: err.message };
+    }
+  }
+
+  // Team mode toggle
+  document.getElementById('team-mode-check').addEventListener('change', (e) => {
+    document.getElementById('team-names-row').classList.toggle('visible', e.target.checked);
+  });
+
+  // Create tournament
+  document.getElementById('btn-create-tournament').addEventListener('click', async () => {
+    const name = document.getElementById('tournament-name').value.trim();
+    const mode = document.getElementById('tournament-mode').value;
+    const teamMode = document.getElementById('team-mode-check').checked;
+    const teamAName = document.getElementById('team-a-name').value.trim();
+    const teamBName = document.getElementById('team-b-name').value.trim();
+
+    if (!name) {
+      showFeedback('tournament-feedback', 'Enter a tournament name', false);
+      return;
+    }
+
+    const data = await adminAction('create_tournament', {
+      name,
+      mode,
+      team_mode: teamMode,
+      team_a_name: teamMode ? teamAName : null,
+      team_b_name: teamMode ? teamBName : null,
+    });
+
+    if (data?.error) {
+      showFeedback('tournament-feedback', data.error, false);
+    } else if (data?.ok) {
+      TOURNAMENT_ID = data.tournamentId;
+      showFeedback('tournament-feedback', 'Tournament created!', true);
+      loadTournament();
+    }
+  });
+
+  // Save approved names
+  document.getElementById('btn-save-names').addEventListener('click', async () => {
+    if (!TOURNAMENT_ID) {
+      showFeedback('names-feedback', 'Create a tournament first', false);
+      return;
+    }
+
+    const text = document.getElementById('approved-names').value;
+    const names = text.split('\n').map(n => n.trim()).filter(n => n.length > 0);
+
+    if (names.length === 0) {
+      showFeedback('names-feedback', 'Enter at least one name', false);
+      return;
+    }
+
+    const data = await adminAction('set_approved_names', { names });
+
+    if (data?.error) {
+      showFeedback('names-feedback', data.error, false);
+    } else if (data?.ok) {
+      showFeedback('names-feedback', `Saved ${names.length} names`, true);
+      loadStudents();
+    }
+  });
+
+  // Team assignment
+  function renderTeamGroups() {
+    const teamA = students.filter(s => s.team === 'a');
+    const teamB = students.filter(s => s.team === 'b');
+    const unassigned = students.filter(s => !s.team);
+
+    document.getElementById('team-a-count').textContent = teamA.length;
+    document.getElementById('team-b-count').textContent = teamB.length;
+
+    document.getElementById('team-a-chips').innerHTML = teamA.length === 0
+      ? '<span class="no-students">None</span>'
+      : teamA.map(s => `<div class="student-chip team-a" data-name="${escapeHtml(s.name)}">${escapeHtml(s.name)}</div>`).join('');
+
+    document.getElementById('team-b-chips').innerHTML = teamB.length === 0
+      ? '<span class="no-students">None</span>'
+      : teamB.map(s => `<div class="student-chip team-b" data-name="${escapeHtml(s.name)}">${escapeHtml(s.name)}</div>`).join('');
+
+    document.getElementById('unassigned-chips').innerHTML = unassigned.length === 0
+      ? '<span class="no-students">None</span>'
+      : unassigned.map(s => `<div class="student-chip" data-name="${escapeHtml(s.name)}">${escapeHtml(s.name)}</div>`).join('');
+
+    // Add click handlers
+    document.querySelectorAll('.student-chip').forEach(chip => {
+      chip.addEventListener('click', () => cycleTeam(chip.dataset.name));
+    });
+  }
+
+  async function cycleTeam(studentName) {
+    const student = students.find(s => s.name === studentName);
+    if (!student) return;
+
+    let newTeam;
+    if (!student.team) newTeam = 'a';
+    else if (student.team === 'a') newTeam = 'b';
+    else newTeam = null;
+
+    const data = await adminAction('assign_team', { studentName, team: newTeam });
+    if (data?.ok) {
+      student.team = newTeam;
+      renderTeamGroups();
+    } else if (data?.error) {
+      showFeedback('team-feedback', data.error, false);
+    }
+  }
+
+  document.getElementById('btn-randomize-teams').addEventListener('click', async () => {
+    const data = await adminAction('randomize_teams');
+    if (data?.ok) {
+      showFeedback('team-feedback', 'Teams randomized!', true);
+      loadStudents();
+    } else if (data?.error) {
+      showFeedback('team-feedback', data.error, false);
+    }
+  });
+
+  // Functions grid
+  function renderFunctions() {
+    const grid = document.getElementById('functions-grid');
+    if (functions.length === 0) {
+      grid.innerHTML = '<div class="no-students">No functions submitted yet</div>';
+      return;
+    }
+
+    grid.innerHTML = functions.map(fn => `
+      <div class="function-card ${selectedFunctions.includes(fn.id) ? 'selected' : ''}" data-id="${fn.id}">
+        <div class="function-card-name">${escapeHtml(fn.function_name)}</div>
+        <div class="function-card-student">${escapeHtml(fn.student_name)}</div>
+        <div class="function-card-version">v${fn.version} · ${fn.language.toUpperCase()}</div>
+      </div>
+    `).join('');
+
+    document.querySelectorAll('.function-card').forEach(card => {
+      card.addEventListener('click', () => toggleFunctionSelection(card.dataset.id));
+    });
+
+    updateAddQueueButton();
+  }
+
+  function toggleFunctionSelection(fnId) {
+    const idx = selectedFunctions.indexOf(fnId);
+    if (idx === -1) {
+      if (selectedFunctions.length < 2) {
+        selectedFunctions.push(fnId);
+      }
+    } else {
+      selectedFunctions.splice(idx, 1);
+    }
+    renderFunctions();
+  }
+
+  function updateAddQueueButton() {
+    document.getElementById('btn-add-queue').disabled = selectedFunctions.length !== 2;
+  }
+
+  document.getElementById('btn-clear-selection').addEventListener('click', () => {
+    selectedFunctions = [];
+    renderFunctions();
+  });
+
+  document.getElementById('btn-add-queue').addEventListener('click', async () => {
+    if (selectedFunctions.length !== 2) return;
+
+    const data = await adminAction('add_to_queue', {
+      functionAId: selectedFunctions[0],
+      functionBId: selectedFunctions[1],
+    });
+
+    if (data?.ok) {
+      showFeedback('queue-feedback', 'Match added to queue!', true);
+      selectedFunctions = [];
+      renderFunctions();
+      loadMatchQueue();
+    } else if (data?.error) {
+      showFeedback('queue-feedback', data.error, false);
+    }
+  });
+
+  // Match queue
+  function renderMatchQueue() {
+    const el = document.getElementById('match-queue');
+    if (matchQueue.length === 0) {
+      el.innerHTML = '<div class="no-queue">No matches queued</div>';
+      return;
+    }
+
+    el.innerHTML = matchQueue.map(m => {
+      const fnA = functions.find(f => f.id === m.function_a_id);
+      const fnB = functions.find(f => f.id === m.function_b_id);
+      const nameA = fnA ? fnA.function_name : '???';
+      const nameB = fnB ? fnB.function_name : '???';
+      return `
+        <div class="match-queue-item ${m.status}">
+          <span class="match-fn">${escapeHtml(nameA)}</span>
+          <span class="match-vs">VS</span>
+          <span class="match-fn">${escapeHtml(nameB)}</span>
+          <span class="match-status ${m.status}">${m.status.toUpperCase()}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Match controls
+  document.getElementById('btn-next-match').addEventListener('click', async () => {
+    const data = await adminAction('next_match');
+    if (data?.error) {
+      alert(data.error);
+    }
+  });
+
+  document.getElementById('btn-pause').addEventListener('click', async () => {
+    const data = await adminAction('pause_toggle');
+    if (data?.ok) {
+      updatePausedUI(data.paused);
+    }
+  });
+
+  function updatePausedUI(paused) {
+    const btn = document.getElementById('btn-pause');
+    const badge = document.getElementById('paused-badge');
+    if (paused) {
+      btn.textContent = 'RESUME';
+      btn.classList.add('paused');
+      badge.classList.add('visible');
+    } else {
+      btn.textContent = 'PAUSE';
+      btn.classList.remove('paused');
+      badge.classList.remove('visible');
+    }
+  }
+
+  // Continuous toggle
+  const continuousToggle = document.getElementById('toggle-continuous');
+  continuousToggle.addEventListener('click', async () => {
+    const newVal = !continuousToggle.classList.contains('active');
+    const data = await adminAction('update_tournament', { continuous: newVal });
+    if (data?.ok) {
+      continuousToggle.classList.toggle('active', newVal);
+    }
+  });
+
+  // Settings sliders
+  const roundsSlider = document.getElementById('rounds-slider');
+  const roundDelaySlider = document.getElementById('round-delay-slider');
+  const matchDelaySlider = document.getElementById('match-delay-slider');
+
+  roundsSlider.addEventListener('input', () => {
+    document.getElementById('rounds-value').textContent = roundsSlider.value;
+  });
+  roundDelaySlider.addEventListener('input', () => {
+    document.getElementById('round-delay-value').textContent = roundDelaySlider.value;
+  });
+  matchDelaySlider.addEventListener('input', () => {
+    document.getElementById('match-delay-value').textContent = matchDelaySlider.value;
+  });
+
+  document.getElementById('btn-save-settings').addEventListener('click', async () => {
+    const data = await adminAction('update_tournament', {
+      rounds_per_match: parseInt(roundsSlider.value, 10),
+      round_delay_ms: parseInt(roundDelaySlider.value, 10),
+      match_delay_ms: parseInt(matchDelaySlider.value, 10),
+    });
+
+    if (data?.ok) {
+      showFeedback('settings-feedback', 'Settings saved!', true);
+    } else if (data?.error) {
+      showFeedback('settings-feedback', data.error, false);
+    }
+  });
+
+  // Load data
+  async function loadTournament() {
+    const { data, error } = await db
+      .from('rps_tournaments')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) {
+      document.getElementById('tournament-badge').textContent = 'No Tournament';
+      TOURNAMENT_ID = null;
+      return;
+    }
+
+    TOURNAMENT_ID = data.id;
+    document.getElementById('tournament-badge').textContent = data.name;
+    updatePausedUI(data.paused);
+    continuousToggle.classList.toggle('active', data.continuous);
+
+    roundsSlider.value = data.rounds_per_match;
+    roundDelaySlider.value = data.round_delay_ms;
+    matchDelaySlider.value = data.match_delay_ms;
+    document.getElementById('rounds-value').textContent = data.rounds_per_match;
+    document.getElementById('round-delay-value').textContent = data.round_delay_ms;
+    document.getElementById('match-delay-value').textContent = data.match_delay_ms;
+
+    // Show team assignment panel if team mode
+    if (data.team_mode) {
+      document.getElementById('team-assignment-panel').style.display = 'block';
+      document.getElementById('team-a-label').textContent = data.team_a_name || 'Team A';
+      document.getElementById('team-b-label').textContent = data.team_b_name || 'Team B';
+    } else {
+      document.getElementById('team-assignment-panel').style.display = 'none';
+    }
+
+    loadStudents();
+    loadFunctions();
+    loadMatchQueue();
+    loadApprovedNames();
+    subscribeToRealtime();
+  }
+
+  async function loadApprovedNames() {
+    if (!TOURNAMENT_ID) return;
+
+    const { data } = await db
+      .from('rps_approved_names')
+      .select('name')
+      .eq('tournament_id', TOURNAMENT_ID)
+      .order('name');
+
+    if (data) {
+      document.getElementById('approved-names').value = data.map(n => n.name).join('\n');
+    }
+  }
+
+  async function loadStudents() {
+    if (!TOURNAMENT_ID) return;
+
+    const { data } = await db
+      .from('rps_students')
+      .select('name, team')
+      .eq('tournament_id', TOURNAMENT_ID)
+      .order('name');
+
+    students = data || [];
+    renderTeamGroups();
+  }
+
+  async function loadFunctions() {
+    if (!TOURNAMENT_ID) return;
+
+    const { data } = await db
+      .from('rps_functions')
+      .select('id, function_name, student_name, version, language, submitted_at')
+      .eq('tournament_id', TOURNAMENT_ID)
+      .eq('is_archived', false)
+      .order('submitted_at', { ascending: false });
+
+    functions = data || [];
+    renderFunctions();
+    renderMatchQueue();
+  }
+
+  async function loadMatchQueue() {
+    if (!TOURNAMENT_ID) return;
+
+    const { data } = await db
+      .from('rps_match_queue')
+      .select('id, function_a_id, function_b_id, position, status')
+      .eq('tournament_id', TOURNAMENT_ID)
+      .order('position', { ascending: true });
+
+    matchQueue = data || [];
+    renderMatchQueue();
+  }
+
+  // Realtime subscriptions
+  function subscribeToRealtime() {
+    if (!TOURNAMENT_ID) return;
+
+    db.channel('admin-functions-' + TOURNAMENT_ID)
+      .on('postgres_changes', {
+        event: '*', schema: 'code_mob', table: 'rps_functions',
+        filter: `tournament_id=eq.${TOURNAMENT_ID}`,
+      }, () => loadFunctions())
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') setConnStatus('connected');
+        else if (status === 'CHANNEL_ERROR') setConnStatus('disconnected');
+      });
+
+    db.channel('admin-queue-' + TOURNAMENT_ID)
+      .on('postgres_changes', {
+        event: '*', schema: 'code_mob', table: 'rps_match_queue',
+        filter: `tournament_id=eq.${TOURNAMENT_ID}`,
+      }, () => loadMatchQueue())
+      .subscribe();
+
+    db.channel('admin-students-' + TOURNAMENT_ID)
+      .on('postgres_changes', {
+        event: '*', schema: 'code_mob', table: 'rps_students',
+        filter: `tournament_id=eq.${TOURNAMENT_ID}`,
+      }, () => loadStudents())
+      .subscribe();
+
+    db.channel('admin-tournament-' + TOURNAMENT_ID)
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'code_mob', table: 'rps_tournaments',
+        filter: `id=eq.${TOURNAMENT_ID}`,
+      }, (payload) => {
+        const t = payload.new;
+        updatePausedUI(t.paused);
+        continuousToggle.classList.toggle('active', t.continuous);
+      })
+      .subscribe();
+  }
+
+  // Init
+  async function init() {
+    setConnStatus('connecting');
+    await loadTournament();
+  }
+
+  init();
+</script>
+</body>
+</html>

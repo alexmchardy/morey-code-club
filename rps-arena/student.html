@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPS Arena — Student</title>
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+
+  <style>
+    body {
+      min-height: 100vh;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    .page-wrapper {
+      display: flex;
+      flex-direction: row;
+      min-height: 100vh;
+      gap: 0;
+    }
+
+    /* Name selection overlay */
+    .name-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 3, 16, 0.95);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .name-overlay.hidden {
+      display: none;
+    }
+
+    .name-modal {
+      background: var(--surface);
+      border: 2px solid var(--neon-cyan);
+      border-radius: 8px;
+      padding: 32px 40px;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(0, 245, 255, 0.3);
+    }
+
+    .name-modal-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 18px;
+      color: var(--neon-cyan);
+      text-shadow: 0 0 16px var(--neon-cyan);
+      margin-bottom: 24px;
+    }
+
+    .name-modal-subtitle {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 14px;
+      color: var(--text-dim);
+      margin-bottom: 20px;
+    }
+
+    .name-select {
+      width: 100%;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 16px;
+      padding: 12px 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+
+    .name-select:focus {
+      border-color: var(--neon-cyan);
+      outline: none;
+    }
+
+    .name-submit-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+      padding: 14px 32px;
+      background: rgba(0, 245, 255, 0.1);
+      border: 2px solid var(--neon-cyan);
+      color: var(--neon-cyan);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+
+    .name-submit-btn:hover {
+      background: rgba(0, 245, 255, 0.2);
+      box-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
+    }
+
+    .name-submit-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Left sidebar */
+    .sidebar {
+      width: 320px;
+      min-width: 280px;
+      max-width: 360px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    .sidebar-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 16px;
+      color: var(--neon-pink);
+      text-shadow: 0 0 16px var(--neon-pink);
+      line-height: 1.4;
+      letter-spacing: 1px;
+    }
+
+    .sidebar-subtitle {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 14px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    /* Name badge */
+    .name-badge {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--neon-yellow);
+      border-radius: 4px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .name-badge-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--neon-yellow);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+
+    .name-badge-value {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 15px;
+      color: var(--neon-yellow);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Section labels */
+    .section-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--neon-cyan);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Hints panel */
+    .hints-panel {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 14px;
+    }
+
+    .hint-item {
+      margin-bottom: 14px;
+    }
+
+    .hint-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .hint-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--neon-green);
+      margin-bottom: 6px;
+    }
+
+    .hint-code {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--text);
+      background: var(--bg);
+      padding: 8px 10px;
+      border-radius: 3px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* My submissions panel */
+    .submissions-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .submissions-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .submission-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .submission-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .submission-name {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      color: var(--neon-yellow);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .submission-meta {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-top: 3px;
+    }
+
+    .archive-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: var(--text-dim);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 4px 8px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+      flex-shrink: 0;
+    }
+
+    .archive-btn:hover {
+      color: var(--neon-orange);
+      border-color: var(--neon-orange);
+    }
+
+    .no-submissions {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      text-align: center;
+      padding: 20px;
+    }
+
+    /* Main panel */
+    .main-panel {
+      flex: 1;
+      min-width: 0;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      overflow-y: auto;
+    }
+
+    /* Function name input */
+    .function-name-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .function-name-input {
+      flex: 1;
+      max-width: 300px;
+    }
+
+    /* Language toggle */
+    .lang-toggle {
+      display: flex;
+      gap: 4px;
+    }
+
+    .lang-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--text-dim);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    .lang-btn:hover {
+      color: var(--neon-cyan);
+      border-color: rgba(0, 245, 255, 0.4);
+    }
+
+    .lang-btn.active {
+      color: var(--neon-cyan);
+      border-color: var(--neon-cyan);
+      background: rgba(0, 245, 255, 0.08);
+    }
+
+    /* Provided code (read-only signature) */
+    .signature-wrap {
+      background: #0a0a1e;
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--neon-purple);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .signature-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      background: rgba(191, 0, 255, 0.1);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .signature-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--neon-purple);
+      letter-spacing: 1px;
+    }
+
+    .signature-badge {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: var(--text-dim);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 2px 6px;
+    }
+
+    .signature-body {
+      padding: 12px 16px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #c8d8ff;
+      white-space: pre;
+    }
+
+    .pc-keyword { color: #c792ea; }
+    .pc-fn { color: #82aaff; }
+    .pc-param { color: #f78c6c; }
+    .pc-comment { color: #546e7a; }
+    .pc-punct { color: #89ddff; }
+
+    /* Editor section */
+    .editor-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--neon-cyan);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .editor-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: rgba(0, 245, 255, 0.06);
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+
+    .editor-hint {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .CodeMirror {
+      height: 280px;
+    }
+
+    /* Buttons row */
+    .btn-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .test-btn, .submit-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 24px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+      border: 2px solid;
+      border-radius: 4px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+    }
+
+    .test-btn {
+      color: var(--neon-yellow);
+      border-color: var(--neon-yellow);
+      background: rgba(255, 190, 11, 0.07);
+    }
+
+    .test-btn:hover {
+      background: rgba(255, 190, 11, 0.15);
+      box-shadow: 0 0 18px rgba(255, 190, 11, 0.5);
+    }
+
+    .submit-btn {
+      color: var(--neon-green);
+      border-color: var(--neon-green);
+      background: rgba(57, 255, 20, 0.07);
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      background: rgba(57, 255, 20, 0.15);
+      box-shadow: 0 0 18px rgba(57, 255, 20, 0.5);
+    }
+
+    .test-btn:active, .submit-btn:active {
+      transform: translateY(1px);
+    }
+
+    .test-btn:disabled, .submit-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Output area */
+    .output-area {
+      min-height: 48px;
+      background: #050516;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 12px 16px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      display: none;
+    }
+
+    .output-area.visible {
+      display: block;
+    }
+
+    .output-success {
+      color: var(--neon-green);
+    }
+
+    .output-error {
+      color: var(--neon-red);
+    }
+
+    .output-info {
+      color: var(--neon-cyan);
+    }
+
+    /* Mobile layout */
+    @media (max-width: 768px) {
+      .page-wrapper {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        max-width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .main-panel {
+        padding: 16px;
+      }
+
+      .btn-row {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Name selection overlay -->
+<div class="name-overlay" id="name-overlay">
+  <div class="name-modal">
+    <div class="name-modal-title">RPS ARENA</div>
+    <div class="name-modal-subtitle">Select your name to start coding</div>
+    <select class="name-select" id="name-select">
+      <option value="">Loading names...</option>
+    </select>
+    <button class="name-submit-btn" id="name-submit-btn" disabled>START CODING</button>
+  </div>
+</div>
+
+<div class="page-wrapper">
+
+  <!-- Left sidebar -->
+  <aside class="sidebar">
+
+    <div>
+      <div class="sidebar-title">RPS ARENA</div>
+      <div class="sidebar-subtitle">Write a function to battle!</div>
+    </div>
+
+    <div class="name-badge">
+      <span class="name-badge-label">Coder</span>
+      <span class="name-badge-value" id="display-name">...</span>
+    </div>
+
+    <!-- Hints -->
+    <div>
+      <div class="section-label">Strategy Hints</div>
+      <div class="hints-panel">
+        <div class="hint-item">
+          <div class="hint-title">Always Rock</div>
+          <div class="hint-code">return "rock";</div>
+        </div>
+        <div class="hint-item">
+          <div class="hint-title">Random</div>
+          <div class="hint-code" id="hint-random">const choices = ["rock", "paper", "scissors"];
+return choices[Math.floor(Math.random() * 3)];</div>
+        </div>
+        <div class="hint-item">
+          <div class="hint-title">Copy Opponent</div>
+          <div class="hint-code" id="hint-copy">if (theirThrows.length > 0) {
+  return theirThrows[0];
+}
+return "rock";</div>
+        </div>
+        <div class="hint-item">
+          <div class="hint-title">Counter Opponent</div>
+          <div class="hint-code" id="hint-counter">if (theirThrows[0] === "rock") return "paper";
+if (theirThrows[0] === "paper") return "scissors";
+if (theirThrows[0] === "scissors") return "rock";
+return "rock";</div>
+        </div>
+        <div class="hint-item">
+          <div class="hint-title">Pattern</div>
+          <div class="hint-code" id="hint-pattern">const pattern = ["rock", "paper", "scissors"];
+return pattern[round % 3];</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- My Submissions -->
+    <div class="submissions-panel">
+      <div class="section-label">My Submissions</div>
+      <div class="submissions-list" id="submissions-list">
+        <div class="no-submissions">No submissions yet</div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- Main panel -->
+  <main class="main-panel">
+
+    <!-- Function name + language toggle -->
+    <div class="function-name-wrap">
+      <div style="flex:1;max-width:300px;">
+        <label class="label">Function Name</label>
+        <input type="text" class="function-name-input" id="function-name" placeholder="e.g. ChaosBot" maxlength="30">
+      </div>
+      <div style="margin-top:20px;">
+        <div class="lang-toggle">
+          <button class="lang-btn active" id="lang-js" onclick="setLanguage('js')">JS</button>
+          <button class="lang-btn" id="lang-python" onclick="setLanguage('python')">PYTHON</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Function signature (read-only) -->
+    <div class="signature-wrap">
+      <div class="signature-header">
+        <span class="signature-label">FUNCTION SIGNATURE</span>
+        <span class="signature-badge">READ ONLY</span>
+      </div>
+      <div class="signature-body" id="signature-body"><span class="pc-keyword">function</span> <span class="pc-fn">throwRPS</span><span class="pc-punct">(</span><span class="pc-param">round</span><span class="pc-punct">,</span> <span class="pc-param">myThrows</span><span class="pc-punct">,</span> <span class="pc-param">theirThrows</span><span class="pc-punct">) {</span>
+  <span class="pc-comment">// round: number (0-indexed)</span>
+  <span class="pc-comment">// myThrows: your previous throws ["rock", "paper", ...]</span>
+  <span class="pc-comment">// theirThrows: opponent's previous throws</span>
+  <span class="pc-comment">// Return: "rock", "paper", or "scissors"</span></div>
+    </div>
+
+    <!-- Editor -->
+    <div class="editor-wrap">
+      <div class="editor-header">
+        <span class="editor-hint">Write your strategy inside the function</span>
+        <span class="editor-hint">Ctrl+Enter to test</span>
+      </div>
+      <textarea id="code-editor"></textarea>
+    </div>
+
+    <!-- Buttons -->
+    <div class="btn-row">
+      <button class="test-btn" id="test-btn" onclick="testCode()">
+        <span>&#9654;</span> TEST
+      </button>
+      <button class="submit-btn" id="submit-btn" onclick="submitCode()" disabled>
+        <span>&#10003;</span> SUBMIT
+      </button>
+    </div>
+
+    <!-- Output -->
+    <div class="output-area" id="output-area"></div>
+
+  </main>
+
+</div>
+
+<script>
+  // Supabase config
+  const SUPABASE_URL = 'https://facwrgpgbffgrriolgcy.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhY3dyZ3BnYmZmZ3JyaW9sZ2N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzkyODYsImV4cCI6MjA4OTcxNTI4Nn0.G8tmDmDmmMa7O6y-CPd16na4RzOjk-nwnkE4HF383js';
+
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { db: { schema: 'code_mob' } });
+
+  let TOURNAMENT_ID = null;
+  let STUDENT_NAME = null;
+  let currentLanguage = 'js';
+  let testPassed = false;
+
+  // Starter code templates
+  const STARTER_CODE = {
+    js: `  // Write your strategy here!
+  // Available: round, myThrows, theirThrows
+
+  return "rock";
+}`,
+    python: `  # Write your strategy here!
+  # Available: round, my_throws, their_throws
+
+  return "rock"`
+  };
+
+  // Function signatures
+  const SIGNATURES = {
+    js: `<span class="pc-keyword">function</span> <span class="pc-fn">throwRPS</span><span class="pc-punct">(</span><span class="pc-param">round</span><span class="pc-punct">,</span> <span class="pc-param">myThrows</span><span class="pc-punct">,</span> <span class="pc-param">theirThrows</span><span class="pc-punct">) {</span>
+  <span class="pc-comment">// round: number (0-indexed)</span>
+  <span class="pc-comment">// myThrows: your previous throws ["rock", "paper", ...]</span>
+  <span class="pc-comment">// theirThrows: opponent's previous throws</span>
+  <span class="pc-comment">// Return: "rock", "paper", or "scissors"</span>`,
+    python: `<span class="pc-keyword">def</span> <span class="pc-fn">throw_rps</span><span class="pc-punct">(</span><span class="pc-param">round</span><span class="pc-punct">,</span> <span class="pc-param">my_throws</span><span class="pc-punct">,</span> <span class="pc-param">their_throws</span><span class="pc-punct">):</span>
+  <span class="pc-comment"># round: number (0-indexed)</span>
+  <span class="pc-comment"># my_throws: your previous throws ["rock", "paper", ...]</span>
+  <span class="pc-comment"># their_throws: opponent's previous throws</span>
+  <span class="pc-comment"># Return: "rock", "paper", or "scissors"</span>`
+  };
+
+  // Hints for Python
+  const HINTS_PYTHON = {
+    random: `import random
+choices = ["rock", "paper", "scissors"]
+return random.choice(choices)`,
+    copy: `if len(their_throws) > 0:
+  return their_throws[0]
+return "rock"`,
+    counter: `if their_throws[0] == "rock": return "paper"
+if their_throws[0] == "paper": return "scissors"
+if their_throws[0] == "scissors": return "rock"
+return "rock"`,
+    pattern: `pattern = ["rock", "paper", "scissors"]
+return pattern[round % 3]`
+  };
+
+  const HINTS_JS = {
+    random: `const choices = ["rock", "paper", "scissors"];
+return choices[Math.floor(Math.random() * 3)];`,
+    copy: `if (theirThrows.length > 0) {
+  return theirThrows[0];
+}
+return "rock";`,
+    counter: `if (theirThrows[0] === "rock") return "paper";
+if (theirThrows[0] === "paper") return "scissors";
+if (theirThrows[0] === "scissors") return "rock";
+return "rock";`,
+    pattern: `const pattern = ["rock", "paper", "scissors"];
+return pattern[round % 3];`
+  };
+
+  // CodeMirror editor
+  const editor = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
+    mode: 'javascript',
+    theme: 'material-darker',
+    lineNumbers: true,
+    indentUnit: 2,
+    tabSize: 2,
+    indentWithTabs: false,
+    autofocus: false,
+    extraKeys: {
+      'Ctrl-Enter': testCode,
+      'Cmd-Enter': testCode,
+    },
+  });
+
+  editor.on('change', () => {
+    saveCodeToStorage();
+    testPassed = false;
+    updateSubmitButton();
+  });
+
+  // Language toggle
+  function setLanguage(lang) {
+    if (lang === currentLanguage) return;
+
+    saveCodeToStorage();
+    currentLanguage = lang;
+
+    document.getElementById('lang-js').classList.toggle('active', lang === 'js');
+    document.getElementById('lang-python').classList.toggle('active', lang === 'python');
+
+    editor.setOption('mode', lang === 'js' ? 'javascript' : 'python');
+    document.getElementById('signature-body').innerHTML = SIGNATURES[lang];
+
+    // Update hints
+    const hints = lang === 'js' ? HINTS_JS : HINTS_PYTHON;
+    document.getElementById('hint-random').textContent = hints.random;
+    document.getElementById('hint-copy').textContent = hints.copy;
+    document.getElementById('hint-counter').textContent = hints.counter;
+    document.getElementById('hint-pattern').textContent = hints.pattern;
+
+    // Load saved code or starter
+    const saved = loadCodeFromStorage();
+    editor.setValue(saved !== null ? saved : STARTER_CODE[lang]);
+
+    testPassed = false;
+    updateSubmitButton();
+    localStorage.setItem('rps-arena-language', lang);
+  }
+
+  // localStorage persistence
+  function getStorageKey() {
+    return `rps-arena-code-${STUDENT_NAME}-${currentLanguage}`;
+  }
+
+  function saveCodeToStorage() {
+    if (!STUDENT_NAME) return;
+    try {
+      localStorage.setItem(getStorageKey(), editor.getValue());
+    } catch {}
+  }
+
+  function loadCodeFromStorage() {
+    if (!STUDENT_NAME) return null;
+    try {
+      return localStorage.getItem(getStorageKey());
+    } catch {
+      return null;
+    }
+  }
+
+  // Output helpers
+  function clearOutput() {
+    const el = document.getElementById('output-area');
+    el.className = 'output-area';
+    el.innerHTML = '';
+  }
+
+  function showSuccess(msg) {
+    const el = document.getElementById('output-area');
+    el.className = 'output-area visible';
+    el.innerHTML = `<span class="output-success">&#10003; ${escapeHtml(msg)}</span>`;
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('output-area');
+    el.className = 'output-area visible';
+    el.innerHTML = `<span class="output-error">&#10007; Error: ${escapeHtml(msg)}</span>`;
+  }
+
+  function showInfo(msg) {
+    const el = document.getElementById('output-area');
+    el.className = 'output-area visible';
+    el.innerHTML = `<span class="output-info">${escapeHtml(msg)}</span>`;
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function updateSubmitButton() {
+    document.getElementById('submit-btn').disabled = !testPassed;
+  }
+
+  // Test code
+  async function testCode() {
+    const btn = document.getElementById('test-btn');
+    btn.disabled = true;
+    clearOutput();
+    testPassed = false;
+    updateSubmitButton();
+
+    const code = editor.getValue();
+    const round = 0;
+    const myThrows = [];
+    const theirThrows = [];
+
+    try {
+      let result;
+
+      if (currentLanguage === 'js') {
+        result = await testJavaScript(code, round, myThrows, theirThrows);
+      } else {
+        result = await testPython(code, round, myThrows, theirThrows);
+      }
+
+      // Validate result
+      const validThrows = ['rock', 'paper', 'scissors'];
+      if (!validThrows.includes(result)) {
+        throw new Error(`Function must return "rock", "paper", or "scissors". Got: "${result}"`);
+      }
+
+      testPassed = true;
+      updateSubmitButton();
+      showSuccess(`Test passed! Your function returned "${result}"`);
+    } catch (e) {
+      showError(e.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // JavaScript execution
+  async function testJavaScript(code, round, myThrows, theirThrows) {
+    const fullCode = `
+      (function() {
+        function throwRPS(round, myThrows, theirThrows) {
+          ${code}
+        }
+        return throwRPS(${round}, ${JSON.stringify(myThrows)}, ${JSON.stringify(theirThrows)});
+      })()
+    `;
+    return eval(fullCode);
+  }
+
+  // Python execution via Skulpt
+  async function testPython(code, round, myThrows, theirThrows) {
+    return new Promise((resolve, reject) => {
+      const fullCode = `
+import json
+
+def throw_rps(round, my_throws, their_throws):
+${code.split('\n').map(line => '  ' + line).join('\n')}
+
+_result = throw_rps(${round}, ${JSON.stringify(myThrows)}, ${JSON.stringify(theirThrows)})
+print(json.dumps(_result))
+`;
+
+      let output = '';
+
+      Sk.configure({
+        output: (text) => { output += text; },
+        read: (filename) => {
+          if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][filename] === undefined) {
+            throw new Error("File not found: '" + filename + "'");
+          }
+          return Sk.builtinFiles["files"][filename];
+        },
+      });
+
+      Sk.misceval.asyncToPromise(() => {
+        return Sk.importMainWithBody("<stdin>", false, fullCode, true);
+      }).then(() => {
+        try {
+          const result = JSON.parse(output.trim());
+          resolve(result);
+        } catch {
+          reject(new Error('Function did not return a valid value'));
+        }
+      }).catch((err) => {
+        reject(new Error(err.toString()));
+      });
+    });
+  }
+
+  // Submit code
+  async function submitCode() {
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    clearOutput();
+
+    const functionName = document.getElementById('function-name').value.trim();
+    if (!functionName) {
+      showError('Please enter a function name');
+      btn.disabled = false;
+      return;
+    }
+
+    const code = editor.getValue();
+
+    try {
+      const { data, error } = await db.rpc('submit_rps_function', {
+        p_tournament_id: TOURNAMENT_ID,
+        p_student_name: STUDENT_NAME,
+        p_function_name: functionName,
+        p_code: code,
+        p_language: currentLanguage,
+      });
+
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+
+      showSuccess(`Submitted "${functionName}" v${data.version}!`);
+      testPassed = false;
+      updateSubmitButton();
+      loadMySubmissions();
+    } catch (e) {
+      showError(e.message);
+      btn.disabled = false;
+    }
+  }
+
+  // Load my submissions
+  async function loadMySubmissions() {
+    if (!TOURNAMENT_ID || !STUDENT_NAME) return;
+
+    const { data, error } = await db
+      .from('rps_functions')
+      .select('id, function_name, version, language, submitted_at')
+      .eq('tournament_id', TOURNAMENT_ID)
+      .eq('student_name', STUDENT_NAME)
+      .eq('is_archived', false)
+      .order('submitted_at', { ascending: false });
+
+    const list = document.getElementById('submissions-list');
+
+    if (error || !data || data.length === 0) {
+      list.innerHTML = '<div class="no-submissions">No submissions yet</div>';
+      return;
+    }
+
+    list.innerHTML = data.map(fn => `
+      <div class="submission-card">
+        <div class="submission-info">
+          <div class="submission-name">${escapeHtml(fn.function_name)}</div>
+          <div class="submission-meta">v${fn.version} · ${fn.language.toUpperCase()}</div>
+        </div>
+        <button class="archive-btn" onclick="archiveFunction('${fn.id}')">ARCHIVE</button>
+      </div>
+    `).join('');
+  }
+
+  // Archive function
+  async function archiveFunction(functionId) {
+    try {
+      const { error } = await db.rpc('archive_rps_function', {
+        p_function_id: functionId,
+      });
+
+      if (error) throw new Error(error.message);
+      loadMySubmissions();
+    } catch (e) {
+      showError('Failed to archive: ' + e.message);
+    }
+  }
+
+  // Load tournament and approved names
+  async function loadTournament() {
+    const { data, error } = await db
+      .from('rps_tournaments')
+      .select('id, name')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) {
+      const select = document.getElementById('name-select');
+      select.innerHTML = '<option value="">No active tournament</option>';
+      return false;
+    }
+
+    TOURNAMENT_ID = data.id;
+    return true;
+  }
+
+  async function loadApprovedNames() {
+    if (!TOURNAMENT_ID) return;
+
+    const { data, error } = await db
+      .from('rps_approved_names')
+      .select('name')
+      .eq('tournament_id', TOURNAMENT_ID)
+      .order('name');
+
+    const select = document.getElementById('name-select');
+
+    if (error || !data || data.length === 0) {
+      select.innerHTML = '<option value="">No approved names</option>';
+      return;
+    }
+
+    select.innerHTML = '<option value="">Select your name...</option>' +
+      data.map(n => `<option value="${escapeHtml(n.name)}">${escapeHtml(n.name)}</option>`).join('');
+
+    // Check if name was previously selected
+    const savedName = localStorage.getItem('rps-arena-student-name');
+    if (savedName && data.some(n => n.name === savedName)) {
+      select.value = savedName;
+      document.getElementById('name-submit-btn').disabled = false;
+    }
+  }
+
+  // Name selection
+  document.getElementById('name-select').addEventListener('change', (e) => {
+    document.getElementById('name-submit-btn').disabled = !e.target.value;
+  });
+
+  document.getElementById('name-submit-btn').addEventListener('click', () => {
+    const name = document.getElementById('name-select').value;
+    if (!name) return;
+
+    STUDENT_NAME = name;
+    localStorage.setItem('rps-arena-student-name', name);
+    document.getElementById('display-name').textContent = name;
+    document.getElementById('name-overlay').classList.add('hidden');
+
+    // Load saved language preference
+    const savedLang = localStorage.getItem('rps-arena-language');
+    if (savedLang === 'python') {
+      setLanguage('python');
+    } else {
+      // Initialize with saved code or starter
+      const saved = loadCodeFromStorage();
+      editor.setValue(saved !== null ? saved : STARTER_CODE.js);
+    }
+
+    editor.focus();
+    loadMySubmissions();
+  });
+
+  // Initialize
+  async function init() {
+    const ok = await loadTournament();
+    if (ok) {
+      await loadApprovedNames();
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>

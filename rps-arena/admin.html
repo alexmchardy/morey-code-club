@@ -746,7 +746,7 @@
     if (data?.error) {
       showFeedback('tournament-feedback', data.error, false);
     } else if (data?.ok) {
-      TOURNAMENT_ID = data.tournamentId;
+      TOURNAMENT_ID = data.tournament?.id;
       showFeedback('tournament-feedback', 'Tournament created!', true);
       loadTournament();
     }
@@ -879,7 +879,7 @@
   document.getElementById('btn-add-queue').addEventListener('click', async () => {
     if (selectedFunctions.length !== 2) return;
 
-    const data = await adminAction('add_to_queue', {
+    const data = await adminAction('queue_match', {
       functionAId: selectedFunctions[0],
       functionBId: selectedFunctions[1],
     });

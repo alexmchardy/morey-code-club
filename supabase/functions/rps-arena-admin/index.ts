@@ -61,6 +61,27 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case 'randomize_teams': {
+        const { tournamentId } = params;
+        const { data: students } = await supabase
+          .from('rps_students')
+          .select('name')
+          .eq('tournament_id', tournamentId);
+        if (students && students.length > 0) {
+          const shuffled = [...students].sort(() => Math.random() - 0.5);
+          const half = Math.ceil(shuffled.length / 2);
+          for (let i = 0; i < shuffled.length; i++) {
+            const team = i < half ? 'a' : 'b';
+            await supabase.from('rps_students')
+              .update({ team })
+              .eq('tournament_id', tournamentId)
+              .eq('name', shuffled[i].name);
+          }
+        }
+        result = { ok: true };
+        break;
+      }
+
       case 'archive_function': {
         const { functionId } = params;
         const { error } = await supabase
@@ -107,6 +128,58 @@ Deno.serve(async (req) => {
           .update(updates)
           .eq('id', matchId);
         if (error) throw error;
+        result = { ok: true };
+        break;
+      }
+
+      case 'next_match': {
+        const { tournamentId, matchId } = params;
+        if (matchId) {
+          await supabase.from('rps_match_queue')
+            .update({ status: 'playing' })
+            .eq('id', matchId);
+        } else {
+          const { data } = await supabase.from('rps_match_queue')
+            .select('id')
+            .eq('tournament_id', tournamentId)
+            .eq('status', 'pending')
+            .order('position')
+            .limit(1);
+          if (data?.[0]) {
+            await supabase.from('rps_match_queue')
+              .update({ status: 'playing' })
+              .eq('id', data[0].id);
+          }
+        }
+        result = { ok: true };
+        break;
+      }
+
+      case 'complete_match': {
+        const { matchId, winnerFunctionId, isTie, functionAId, functionBId, functionARoundWins, functionBRoundWins } = params;
+        await supabase.from('rps_match_queue')
+          .update({ status: 'completed', winner_function_id: isTie ? null : winnerFunctionId, is_tie: isTie || false })
+          .eq('id', matchId);
+        // Update function A stats
+        const { data: fnA } = await supabase.from('rps_functions').select('match_wins, match_losses, round_wins').eq('id', functionAId).single();
+        if (fnA) {
+          const aWon = !isTie && winnerFunctionId === functionAId;
+          await supabase.from('rps_functions').update({
+            match_wins: fnA.match_wins + (aWon || isTie ? 1 : 0),
+            match_losses: fnA.match_losses + (!aWon && !isTie ? 1 : 0),
+            round_wins: fnA.round_wins + (functionARoundWins || 0),
+          }).eq('id', functionAId);
+        }
+        // Update function B stats
+        const { data: fnB } = await supabase.from('rps_functions').select('match_wins, match_losses, round_wins').eq('id', functionBId).single();
+        if (fnB) {
+          const bWon = !isTie && winnerFunctionId === functionBId;
+          await supabase.from('rps_functions').update({
+            match_wins: fnB.match_wins + (bWon || isTie ? 1 : 0),
+            match_losses: fnB.match_losses + (!bWon && !isTie ? 1 : 0),
+            round_wins: fnB.round_wins + (functionBRoundWins || 0),
+          }).eq('id', functionBId);
+        }
         result = { ok: true };
         break;
       }

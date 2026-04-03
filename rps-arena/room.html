@@ -596,9 +596,28 @@
   // Supabase config
   const SUPABASE_URL = 'https://facwrgpgbffgrriolgcy.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhY3dyZ3BnYmZmZ3JyaW9sZ2N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzkyODYsImV4cCI6MjA4OTcxNTI4Nn0.G8tmDmDmmMa7O6y-CPd16na4RzOjk-nwnkE4HF383js';
+  const EDGE_FN_URL = 'https://facwrgpgbffgrriolgcy.supabase.co/functions/v1/rps-arena-admin';
 
   // Cerebras API key (leave empty — user adds later)
   const CEREBRAS_API_KEY = '';
+
+  // Admin token: check query param first, then localStorage, then prompt
+  function getAdminToken() {
+    const params = new URLSearchParams(window.location.search);
+    const paramToken = params.get('token');
+    if (paramToken) {
+      localStorage.setItem('rps_admin_token', paramToken);
+      return paramToken;
+    }
+    let token = localStorage.getItem('rps_admin_token');
+    if (!token) {
+      token = prompt('Enter admin token for match control:');
+      if (token) localStorage.setItem('rps_admin_token', token);
+    }
+    return token || '';
+  }
+
+  const ADMIN_TOKEN = getAdminToken();
 
   const { createClient } = supabase;
   const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { db: { schema: 'code_mob' } });
@@ -1042,7 +1061,7 @@ print(json.dumps(_result))
     }
 
     // Update stats via Edge Function
-    await updateMatchStats(match.id, winnerId, scoreA, scoreB);
+    await updateMatchStats(match.id, winnerId, scoreA, scoreB, fnA.id, fnB.id);
 
     await sleep(matchDelay);
 
@@ -1066,9 +1085,10 @@ print(json.dumps(_result))
     }
   }
 
-  async function updateMatchStats(matchId, winnerId, scoreA, scoreB) {
+  async function updateMatchStats(matchId, winnerId, scoreA, scoreB, fnAId, fnBId) {
     try {
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/rps-arena-admin`, {
+      const isTie = winnerId === null;
+      const response = await fetch(EDGE_FN_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1076,10 +1096,14 @@ print(json.dumps(_result))
         },
         body: JSON.stringify({
           action: 'complete_match',
+          token: ADMIN_TOKEN,
           matchId,
-          winnerId,
-          scoreA,
-          scoreB,
+          winnerFunctionId: winnerId,
+          isTie,
+          functionAId: fnAId,
+          functionBId: fnBId,
+          functionARoundWins: scoreA,
+          functionBRoundWins: scoreB,
         }),
       });
 

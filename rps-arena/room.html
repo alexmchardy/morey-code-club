@@ -193,6 +193,7 @@
       gap: 80px;
       width: 100%;
       max-width: 900px;
+      perspective: 1000px;
     }
 
     /* Fighter card */
@@ -204,6 +205,7 @@
       padding: 24px;
       text-align: center;
       transition: transform 0.3s, opacity 0.3s, filter 0.3s;
+      transform-style: preserve-3d;
     }
 
     .fighter.left {
@@ -311,12 +313,25 @@
     }
 
     .fighter.match-loser {
-      animation: loserFall 0.6s ease-out forwards;
+      animation: loserFall 0.8s ease-out forwards;
+      transform-origin: center bottom;
     }
 
     @keyframes loserFall {
-      0% { transform: rotate(0deg) translateY(0); opacity: 1; filter: grayscale(0); }
-      100% { transform: rotate(-15deg) translateY(20px); opacity: 0.4; filter: grayscale(1); }
+      0% {
+        transform: rotateX(0deg) translateY(0) translateZ(0);
+        opacity: 1;
+        filter: grayscale(0);
+      }
+      30% {
+        transform: rotateX(15deg) translateY(-10px) translateZ(0);
+        opacity: 1;
+      }
+      100% {
+        transform: rotateX(85deg) translateY(40px) translateZ(0);
+        opacity: 0.3;
+        filter: grayscale(1);
+      }
     }
 
     .fighter.match-tie {
@@ -382,9 +397,10 @@
       border-top: 2px solid var(--border);
       padding: 10px 20px;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 16px;
-      overflow-x: auto;
+      max-height: 140px;
+      overflow-y: auto;
     }
 
     #match-queue-label {
@@ -392,6 +408,14 @@
       color: var(--neon-cyan);
       letter-spacing: 1px;
       white-space: nowrap;
+      padding-top: 4px;
+    }
+
+    #queue-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      flex: 1;
     }
 
     .queue-item {
@@ -404,6 +428,9 @@
       padding: 6px 12px;
       font-size: 9px;
       white-space: nowrap;
+      flex: 0 0 calc(25% - 6px);
+      min-width: 150px;
+      max-width: 220px;
     }
 
     .queue-item-vs {
@@ -599,7 +626,7 @@
   const EDGE_FN_URL = 'https://facwrgpgbffgrriolgcy.supabase.co/functions/v1/rps-arena-admin';
 
   // Cerebras API key (leave empty — user adds later)
-  const CEREBRAS_API_KEY = '';
+  const CEREBRAS_API_KEY = 'csk-ty3j49jp482cv58v3yeyy3nr6fdrfn2x3463x8mvnyx2dkhr';
 
   // Admin token: check query param first, then localStorage, then prompt
   function getAdminToken() {
@@ -635,6 +662,18 @@
   let matchQueue = [];
   let currentMatch = null;
   let isPlaying = false;
+
+  function getLatestVersions(funcs) {
+    const latest = new Map();
+    for (const fn of funcs) {
+      const key = `${fn.student_name}|${fn.function_name}`;
+      const existing = latest.get(key);
+      if (!existing || fn.version > existing.version) {
+        latest.set(key, fn);
+      }
+    }
+    return Array.from(latest.values());
+  }
 
   // DOM refs
   const connDot = document.getElementById('conn-dot');
@@ -717,30 +756,32 @@
   }
 
   function renderFunctions() {
-    if (tournament?.team_mode) {
-      const teamA = functions.filter(f => f.team === 'a');
-      const teamB = functions.filter(f => f.team === 'b');
+    const latestFunctions = getLatestVersions(functions);
 
-      functionsList.innerHTML = teamA.map(f => `
+    if (tournament?.team_mode) {
+      const teamALatest = latestFunctions.filter(f => f.team === 'a');
+      const teamBLatest = latestFunctions.filter(f => f.team === 'b');
+
+      functionsList.innerHTML = teamALatest.map(f => `
         <div class="function-item team-a">
-          <div class="function-item-name">${escapeHtml(f.function_name)}</div>
+          <div class="function-item-name">${escapeHtml(f.function_name)} <span style="color:var(--text-dim);font-size:8px;">v${f.version}</span></div>
           <div class="function-item-student">${escapeHtml(f.student_name)}</div>
           <div class="function-item-stats">W:${f.match_wins} L:${f.match_losses}</div>
         </div>
       `).join('') || '<div style="color:var(--text-dim);font-size:10px;padding:10px;">No functions</div>';
 
-      leaderboard.innerHTML = teamB.map(f => `
+      leaderboard.innerHTML = teamBLatest.map(f => `
         <div class="function-item team-b">
-          <div class="function-item-name">${escapeHtml(f.function_name)}</div>
+          <div class="function-item-name">${escapeHtml(f.function_name)} <span style="color:var(--text-dim);font-size:8px;">v${f.version}</span></div>
           <div class="function-item-student">${escapeHtml(f.student_name)}</div>
           <div class="function-item-stats">W:${f.match_wins} L:${f.match_losses}</div>
         </div>
       `).join('') || '<div style="color:var(--text-dim);font-size:10px;padding:10px;">No functions</div>';
 
     } else {
-      functionsList.innerHTML = functions.map(f => `
+      functionsList.innerHTML = latestFunctions.map(f => `
         <div class="function-item">
-          <div class="function-item-name">${escapeHtml(f.function_name)}</div>
+          <div class="function-item-name">${escapeHtml(f.function_name)} <span style="color:var(--text-dim);font-size:8px;">v${f.version}</span></div>
           <div class="function-item-student">${escapeHtml(f.student_name)}</div>
           <div class="function-item-stats">W:${f.match_wins} L:${f.match_losses}</div>
         </div>
@@ -810,9 +851,7 @@
   function executeJavaScript(code, round, myThrows, theirThrows) {
     const fullCode = `
       (function() {
-        function throwRPS(round, myThrows, theirThrows) {
-          ${code}
-        }
+        ${code}
         return throwRPS(${round}, ${JSON.stringify(myThrows)}, ${JSON.stringify(theirThrows)});
       })()
     `;
@@ -822,14 +861,10 @@
 
   async function executePython(code, round, myThrows, theirThrows) {
     return new Promise((resolve) => {
-      const fullCode = `
-import json
-
-def throw_rps(round, my_throws, their_throws):
-${code.split('\n').map(line => '  ' + line).join('\n')}
+      const fullCode = `${code}
 
 _result = throw_rps(${round}, ${JSON.stringify(myThrows)}, ${JSON.stringify(theirThrows)})
-print(json.dumps(_result))
+print(repr(_result))
 `;
 
       let output = '';
@@ -848,7 +883,13 @@ print(json.dumps(_result))
         return Sk.importMainWithBody("<stdin>", false, fullCode, true);
       }).then(() => {
         try {
-          const result = JSON.parse(output.trim());
+          // Python repr() uses single quotes for strings, e.g. 'rock'
+          // Strip quotes to get the raw string value
+          let result = output.trim();
+          if ((result.startsWith("'") && result.endsWith("'")) ||
+              (result.startsWith('"') && result.endsWith('"'))) {
+            result = result.slice(1, -1);
+          }
           resolve(normalizeThrow(result));
         } catch {
           resolve('rock');
@@ -866,16 +907,18 @@ print(json.dumps(_result))
   }
 
   function isStandardThrow(t) {
-    return ['rock', 'paper', 'scissors'].includes(t);
+    return ['rock', 'paper', 'scissors'].includes(String(t).toLowerCase().trim());
   }
 
   // Determine winner
   function determineWinner(throwA, throwB) {
-    if (throwA === throwB) return 'tie';
+    const a = String(throwA).toLowerCase().trim();
+    const b = String(throwB).toLowerCase().trim();
+    if (a === b) return 'tie';
     if (
-      (throwA === 'rock' && throwB === 'scissors') ||
-      (throwA === 'paper' && throwB === 'rock') ||
-      (throwA === 'scissors' && throwB === 'paper')
+      (a === 'rock' && b === 'scissors') ||
+      (a === 'paper' && b === 'rock') ||
+      (a === 'scissors' && b === 'paper')
     ) {
       return 'a';
     }
@@ -1081,6 +1124,8 @@ print(json.dumps(_result))
       const next = matchQueue.find(m => m.status === 'pending');
       if (next) {
         await db.from('rps_match_queue').update({ status: 'playing' }).eq('id', next.id);
+        // Reload and start directly instead of relying on subscription
+        await loadMatchQueue();
       }
     }
   }

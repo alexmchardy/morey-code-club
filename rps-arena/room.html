@@ -796,7 +796,7 @@
     leaderboard.innerHTML = sorted.slice(0, 15).map((f, i) => `
       <div class="lb-row">
         <span class="lb-rank">${i + 1}</span>
-        <span class="lb-name">${escapeHtml(f.function_name)}</span>
+        <span class="lb-name">${escapeHtml(f.function_name)} <span style="color:var(--text-dim);font-size:8px;">v${f.version}</span></span>
         <span class="lb-score">${f.match_wins}W</span>
       </div>
     `).join('') || '<div style="color:var(--text-dim);font-size:10px;">No data</div>';

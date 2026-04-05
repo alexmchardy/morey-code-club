@@ -827,9 +827,9 @@
   function renderMatchQueue() {
     queueItems.innerHTML = matchQueue.map(m => `
       <div class="queue-item ${m.status === 'playing' ? 'playing' : ''}">
-        <span class="queue-item-name">${escapeHtml(m.function_a?.function_name || '?')}</span>
+        <span class="queue-item-name">${escapeHtml(m.function_a?.function_name || '?')} v${m.function_a?.version || '?'}</span>
         <span class="queue-item-vs">vs</span>
-        <span class="queue-item-name">${escapeHtml(m.function_b?.function_name || '?')}</span>
+        <span class="queue-item-name">${escapeHtml(m.function_b?.function_name || '?')} v${m.function_b?.version || '?'}</span>
       </div>
     `).join('') || '<span style="color:var(--text-dim);font-size:9px;">No matches queued</span>';
   }
@@ -997,12 +997,12 @@ print(repr(_result))
     llmReason.classList.remove('visible');
 
     // Setup fighters
-    document.getElementById('fighter-a-name').textContent = fnA.function_name;
+    document.getElementById('fighter-a-name').textContent = `${fnA.function_name} v${fnA.version}`;
     document.getElementById('fighter-a-student').textContent = fnA.student_name;
     document.getElementById('fighter-a-score').textContent = '0';
     document.getElementById('fighter-a-throw').classList.add('hidden');
 
-    document.getElementById('fighter-b-name').textContent = fnB.function_name;
+    document.getElementById('fighter-b-name').textContent = `${fnB.function_name} v${fnB.version}`;
     document.getElementById('fighter-b-student').textContent = fnB.student_name;
     document.getElementById('fighter-b-score').textContent = '0';
     document.getElementById('fighter-b-throw').classList.add('hidden');

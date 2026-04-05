@@ -337,6 +337,33 @@
       padding: 20px;
     }
 
+    .queue-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .queue-header .label {
+      margin-bottom: 0;
+    }
+
+    .checkbox-inline {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+      cursor: pointer;
+    }
+
+    .checkbox-inline input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--neon-cyan);
+    }
+
     .toggle-row {
       display: flex;
       align-items: center;
@@ -605,7 +632,13 @@
               <span class="toggle-label">Continuous</span>
             </div>
           </div>
-          <label class="label">Match Queue</label>
+          <div class="queue-header">
+            <label class="label">Match Queue</label>
+            <label class="checkbox-inline">
+              <input type="checkbox" id="show-completed-check">
+              <span>Show completed</span>
+            </label>
+          </div>
           <div class="match-queue" id="match-queue">
             <div class="no-queue">No matches queued</div>
           </div>
@@ -645,6 +678,18 @@
   let students = [];
   let functions = [];
   let matchQueue = [];
+
+  function getLatestVersions(funcs) {
+    const latest = new Map();
+    for (const fn of funcs) {
+      const key = `${fn.student_name}|${fn.function_name}`;
+      const existing = latest.get(key);
+      if (!existing || fn.version > existing.version) {
+        latest.set(key, fn);
+      }
+    }
+    return Array.from(latest.values());
+  }
 
   // Token input
   const tokenInput = document.getElementById('token-input');
@@ -842,12 +887,14 @@
   // Functions grid
   function renderFunctions() {
     const grid = document.getElementById('functions-grid');
-    if (functions.length === 0) {
+    const latestFunctions = getLatestVersions(functions);
+
+    if (latestFunctions.length === 0) {
       grid.innerHTML = '<div class="no-students">No functions submitted yet</div>';
       return;
     }
 
-    grid.innerHTML = functions.map(fn => `
+    grid.innerHTML = latestFunctions.map(fn => `
       <div class="function-card ${selectedFunctions.includes(fn.id) ? 'selected' : ''}" data-id="${fn.id}">
         <div class="function-card-name">${escapeHtml(fn.function_name)}</div>
         <div class="function-card-student">${escapeHtml(fn.student_name)}</div>
@@ -904,12 +951,15 @@
   // Match queue
   function renderMatchQueue() {
     const el = document.getElementById('match-queue');
-    if (matchQueue.length === 0) {
+    const showCompleted = document.getElementById('show-completed-check').checked;
+    const filtered = showCompleted ? matchQueue : matchQueue.filter(m => m.status !== 'completed');
+
+    if (filtered.length === 0) {
       el.innerHTML = '<div class="no-queue">No matches queued</div>';
       return;
     }
 
-    el.innerHTML = matchQueue.map(m => {
+    el.innerHTML = filtered.map(m => {
       const fnA = functions.find(f => f.id === m.function_a_id);
       const fnB = functions.find(f => f.id === m.function_b_id);
       const nameA = fnA ? fnA.function_name : '???';
@@ -924,6 +974,8 @@
       `;
     }).join('');
   }
+
+  document.getElementById('show-completed-check').addEventListener('change', renderMatchQueue);
 
   // Match controls
   document.getElementById('btn-next-match').addEventListener('click', async () => {

@@ -576,6 +576,13 @@
             </div>
             <input type="range" id="match-delay-slider" min="1000" max="5000" step="100" value="5000">
           </div>
+          <div class="slider-row">
+            <div class="slider-header">
+              <label class="label">Max Functions Per Student</label>
+              <span class="slider-value" id="max-functions-value">5</span>
+            </div>
+            <input type="range" id="max-functions-slider" min="1" max="10" value="5">
+          </div>
           <div class="btn-row">
             <button class="btn" id="btn-save-settings">SAVE SETTINGS</button>
           </div>
@@ -961,6 +968,7 @@
   const roundsSlider = document.getElementById('rounds-slider');
   const roundDelaySlider = document.getElementById('round-delay-slider');
   const matchDelaySlider = document.getElementById('match-delay-slider');
+  const maxFunctionsSlider = document.getElementById('max-functions-slider');
 
   roundsSlider.addEventListener('input', () => {
     document.getElementById('rounds-value').textContent = roundsSlider.value;
@@ -972,11 +980,16 @@
     document.getElementById('match-delay-value').textContent = matchDelaySlider.value;
   });
 
+  maxFunctionsSlider.addEventListener('input', () => {
+    document.getElementById('max-functions-value').textContent = maxFunctionsSlider.value;
+  });
+
   document.getElementById('btn-save-settings').addEventListener('click', async () => {
     const data = await adminAction('update_tournament', {
       rounds_per_match: parseInt(roundsSlider.value, 10),
       round_delay_ms: parseInt(roundDelaySlider.value, 10),
       match_delay_ms: parseInt(matchDelaySlider.value, 10),
+      max_functions_per_student: parseInt(maxFunctionsSlider.value, 10),
     });
 
     if (data?.ok) {
@@ -1013,6 +1026,8 @@
     document.getElementById('rounds-value').textContent = data.rounds_per_match;
     document.getElementById('round-delay-value').textContent = data.round_delay_ms;
     document.getElementById('match-delay-value').textContent = data.match_delay_ms;
+    maxFunctionsSlider.value = data.max_functions_per_student || 5;
+    document.getElementById('max-functions-value').textContent = data.max_functions_per_student || 5;
 
     // Show team assignment panel if team mode
     if (data.team_mode) {

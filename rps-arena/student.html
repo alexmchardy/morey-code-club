@@ -730,33 +730,33 @@ return pattern[round % 3];</div>
 
   // Hints for Python (full function examples)
   const HINTS_PYTHON = {
-    random: `import random
-choices = ["rock", "paper", "scissors"]
-return random.choice(choices)`,
-    copy: `if len(their_throws) > 0:
-  return their_throws[0]
-return "rock"`,
-    counter: `if their_throws[0] == "rock": return "paper"
-if their_throws[0] == "paper": return "scissors"
-if their_throws[0] == "scissors": return "rock"
-return "rock"`,
-    pattern: `pattern = ["rock", "paper", "scissors"]
-return pattern[round % 3]`
+    random: `  import random
+  choices = ["rock", "paper", "scissors"]
+  return random.choice(choices)`,
+    copy: `  if len(their_throws) > 0:
+    return their_throws[0]
+  return "rock"`,
+    counter: `  if their_throws[0] == "rock": return "paper"
+  if their_throws[0] == "paper": return "scissors"
+  if their_throws[0] == "scissors": return "rock"
+  return "rock"`,
+    pattern: `  pattern = ["rock", "paper", "scissors"]
+  return pattern[round % 3]`
   };
 
   const HINTS_JS = {
-    random: `const choices = ["rock", "paper", "scissors"];
-return choices[Math.floor(Math.random() * 3)];`,
-    copy: `if (theirThrows.length > 0) {
-  return theirThrows[0];
-}
-return "rock";`,
-    counter: `if (theirThrows[0] === "rock") return "paper";
-if (theirThrows[0] === "paper") return "scissors";
-if (theirThrows[0] === "scissors") return "rock";
-return "rock";`,
-    pattern: `const pattern = ["rock", "paper", "scissors"];
-return pattern[round % 3];`
+    random: `  const choices = ["rock", "paper", "scissors"];
+  return choices[Math.floor(Math.random() * 3)];`,
+    copy: `  if (theirThrows.length > 0) {
+    return theirThrows[0];
+  }
+  return "rock";`,
+    counter: `  if (theirThrows[0] === "rock") return "paper";
+  if (theirThrows[0] === "paper") return "scissors";
+  if (theirThrows[0] === "scissors") return "rock";
+  return "rock";`,
+    pattern: `  const pattern = ["rock", "paper", "scissors"];
+  return pattern[round % 3];`
   };
 
   // Validate function declaration
@@ -970,6 +970,7 @@ return pattern[round % 3];`
       result = normalizeThrow(result);
 
       // Validate result - strict mode requires rock/paper/scissors, nolimits allows any string
+      console.log('TOURNAMENT_MODE:', TOURNAMENT_MODE);
       if (TOURNAMENT_MODE === 'nolimits') {
         if (!result || result.length === 0) {
           throw new Error('Function must return a non-empty string');

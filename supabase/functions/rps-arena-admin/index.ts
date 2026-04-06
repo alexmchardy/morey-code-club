@@ -232,6 +232,8 @@ Deno.serve(async (req) => {
 
     return Response.json(result, { headers: corsHeaders });
   } catch (err) {
-    return Response.json({ error: String(err) }, { headers: corsHeaders, status: 500 });
+    console.error('rps-arena-admin error:', err);
+    const errorMessage = err instanceof Error ? err.message : JSON.stringify(err);
+    return Response.json({ error: errorMessage }, { headers: corsHeaders, status: 500 });
   }
 });

@@ -1350,6 +1350,10 @@ print(repr(_result))
     } else {
       fighterAEl.classList.add('match-tie');
       fighterBEl.classList.add('match-tie');
+      countdown.textContent = 'TIE!';
+      countdown.classList.remove('visible');
+      void countdown.offsetWidth;
+      countdown.classList.add('visible');
     }
 
     // Update stats via Edge Function
@@ -1363,6 +1367,7 @@ print(repr(_result))
     battleArena.style.display = 'none';
     idleMessage.classList.add('visible');
     llmReason.classList.remove('visible');
+    countdown.classList.remove('visible');
 
     // Reload data
     await loadFunctions();

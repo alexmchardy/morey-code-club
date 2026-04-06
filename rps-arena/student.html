@@ -614,7 +614,7 @@ return pattern[round % 3];</div>
     <div class="function-name-wrap">
       <div style="flex:1;max-width:300px;">
         <label class="label">Function Name</label>
-        <input type="text" class="function-name-input" id="function-name" placeholder="e.g. ChaosBot" maxlength="30">
+        <input type="text" class="function-name-input" id="function-name" placeholder="e.g. ChaosBot" maxlength="20">
       </div>
       <div style="margin-top:20px;">
         <div class="lang-toggle">
@@ -970,7 +970,6 @@ return pattern[round % 3];</div>
       result = normalizeThrow(result);
 
       // Validate result - strict mode requires rock/paper/scissors, nolimits allows any string
-      console.log('TOURNAMENT_MODE:', TOURNAMENT_MODE);
       if (TOURNAMENT_MODE === 'nolimits') {
         if (!result || result.length === 0) {
           throw new Error('Function must return a non-empty string');
@@ -1256,8 +1255,6 @@ print(repr(_result))
       setLanguage('js');
       // Initialize with saved code or starter
       const saved = loadCodeFromStorage();
-      console.log('saved:', JSON.stringify(saved));
-      console.log('saved.length:', saved.length);
       editor.setValue(saved && saved.trim() !== '' ? saved : STARTER_CODE.js);
     }
 

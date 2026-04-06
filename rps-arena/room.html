@@ -190,7 +190,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 80px;
+      gap: 50px;
       width: 100%;
       max-width: 900px;
       perspective: 1000px;
@@ -198,7 +198,7 @@
 
     /* Fighter card */
     .fighter {
-      width: 280px;
+      width: 300px;
       background: var(--surface);
       border: 2px solid var(--border);
       border-radius: 8px;
@@ -382,13 +382,13 @@
 
     #llm-reason-text {
       font-family: 'Fredoka', sans-serif;
-      font-size: 16px;
+      font-size: 20px;
       color: var(--text);
       line-height: 1.5;
     }
 
     #llm-reason-label {
-      font-size: 8px;
+      font-size: 10px;
       color: var(--neon-purple);
       margin-bottom: 6px;
       letter-spacing: 1px;
@@ -434,7 +434,7 @@
       white-space: nowrap;
       flex: 0 0 calc(25% - 6px);
       min-width: 150px;
-      max-width: 220px;
+      max-width: 300px;
     }
 
     .queue-item-vs {
@@ -1127,11 +1127,15 @@ print(repr(_result))
       return '64px';
     }
     const len = String(throwValue).length;
-    if (len <= 4) return '48px';
-    if (len <= 8) return '36px';
-    if (len <= 12) return '28px';
-    if (len <= 16) return '22px';
-    return '16px';
+    if (len <= 4) return '54px';
+    if (len <= 5) return '45px';
+    if (len <= 6) return '38px';
+    if (len <= 7) return '32px';
+    if (len <= 8) return '29px';
+    if (len <= 10) return '23px';
+    if (len <= 12) return '19px';
+    if (len <= 14) return '16px';
+    return '14px';
   }
 
   // Determine winner

@@ -1113,7 +1113,10 @@ print(repr(_result))
   }
 
   function normalizeThrow(t) {
+    // Treat null/None/undefined as invalid — default to rock
+    if (t === null || t === undefined) return 'rock';
     const s = String(t).toLowerCase().trim();
+    if (s === 'none' || s === 'null' || s === 'undefined' || s === '') return 'rock';
     if (['rock', 'paper', 'scissors'].includes(s)) return s;
     return s;
   }

@@ -297,7 +297,7 @@
 
     /* Winner animation */
     .fighter.round-winner .fighter-throw {
-      animation: throwGlow 1.2s ease-in-out;
+      animation: throwGlow 1.5s ease-in-out;
     }
 
     @keyframes throwGlow {
@@ -754,6 +754,29 @@
     paper: '📄',
     scissors: '✂️',
   };
+
+  // Sound effects for standard throws
+  const THROW_SOUNDS = {
+    rock: new Audio('../assets/sounds/rock.mp3'),
+    paper: new Audio('../assets/sounds/paper.mp3'),
+    scissors: new Audio('../assets/sounds/scissors.mp3'),
+    tie: new Audio('../assets/sounds/tie.mp3'),
+  };
+
+  function playWinnerSound(winner, throwA, throwB) {
+    let sound;
+    if (winner === 'tie') {
+      sound = THROW_SOUNDS.tie;
+    } else if (winner === 'a') {
+      sound = THROW_SOUNDS[throwA.toLowerCase()];
+    } else {
+      sound = THROW_SOUNDS[throwB.toLowerCase()];
+    }
+    if (sound) {
+      sound.currentTime = 0;
+      sound.play().catch(() => {});
+    }
+  }
 
   // State
   let tournament = null;
@@ -1283,6 +1306,7 @@ print(repr(_result))
       } else {
         winner = determineWinner(throwA, throwB);
         llmReason.classList.remove('visible');
+        playWinnerSound(winner, throwA, throwB);
       }
 
       // Update score and show winner

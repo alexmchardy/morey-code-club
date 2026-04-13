@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Character Clash — Student</title>
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+
+  <style>
+    body {
+      min-height: 100vh;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    .page-wrapper {
+      display: flex;
+      flex-direction: row;
+      min-height: 100vh;
+      gap: 0;
+    }
+
+    /* Name selection overlay */
+    .name-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 3, 16, 0.95);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .name-overlay.hidden {
+      display: none;
+    }
+
+    .name-modal {
+      background: var(--surface);
+      border: 2px solid var(--neon-purple);
+      border-radius: 8px;
+      padding: 32px 40px;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(191, 0, 255, 0.3);
+    }
+
+    .name-modal-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 16px;
+      color: var(--neon-purple);
+      text-shadow: 0 0 16px var(--neon-purple);
+      margin-bottom: 24px;
+    }
+
+    .name-modal-subtitle {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 14px;
+      color: var(--text-dim);
+      margin-bottom: 20px;
+    }
+
+    .name-select {
+      width: 100%;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 16px;
+      padding: 12px 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+
+    .name-select:focus {
+      border-color: var(--neon-purple);
+      outline: none;
+    }
+
+    .name-submit-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+      padding: 14px 32px;
+      background: rgba(191, 0, 255, 0.1);
+      border: 2px solid var(--neon-purple);
+      color: var(--neon-purple);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s;
+    }
+
+    .name-submit-btn:hover {
+      background: rgba(191, 0, 255, 0.2);
+      box-shadow: 0 0 20px rgba(191, 0, 255, 0.5);
+    }
+
+    .name-submit-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Left sidebar */
+    .sidebar {
+      width: 320px;
+      min-width: 280px;
+      max-width: 360px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    .sidebar-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 14px;
+      color: var(--neon-purple);
+      text-shadow: 0 0 16px var(--neon-purple);
+      line-height: 1.4;
+      letter-spacing: 1px;
+    }
+
+    .sidebar-subtitle {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 14px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    /* Name badge */
+    .name-badge {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--neon-yellow);
+      border-radius: 4px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .name-badge-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--neon-yellow);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+
+    .name-badge-value {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 15px;
+      color: var(--neon-yellow);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Section labels */
+    .section-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--neon-purple);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Hints panel */
+    .hints-panel {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 14px;
+    }
+
+    .hint-item {
+      margin-bottom: 14px;
+    }
+
+    .hint-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .hint-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--neon-green);
+      margin-bottom: 6px;
+    }
+
+    .hint-code {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--text);
+      background: var(--bg);
+      padding: 8px 10px;
+      border-radius: 3px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* My submissions panel */
+    .submissions-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .submissions-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .submission-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .submission-info {
+      flex: 1;
+      min-width: 0;
+      cursor: pointer;
+      padding: 4px;
+      margin: -4px;
+      border-radius: 3px;
+      transition: background 0.15s;
+    }
+
+    .submission-info:hover {
+      background: rgba(191, 0, 255, 0.1);
+    }
+
+    .submission-name {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      color: var(--neon-purple);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .submission-meta {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-top: 3px;
+    }
+
+    .submission-xp {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .submission-xp.positive {
+      color: var(--neon-green);
+      background: rgba(57, 255, 20, 0.1);
+    }
+
+    .submission-xp.negative {
+      color: var(--neon-red);
+      background: rgba(255, 68, 68, 0.1);
+    }
+
+    .submission-xp.neutral {
+      color: var(--text-dim);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .archive-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: var(--text-dim);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 4px 8px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+      flex-shrink: 0;
+    }
+
+    .archive-btn:hover {
+      color: var(--neon-orange);
+      border-color: var(--neon-orange);
+    }
+
+    .no-submissions {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      text-align: center;
+      padding: 20px;
+    }
+
+    /* Main panel */
+    .main-panel {
+      flex: 1;
+      min-width: 0;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      overflow-y: auto;
+    }
+
+    /* Character name input */
+    .character-name-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .character-name-input {
+      flex: 1;
+      max-width: 300px;
+    }
+
+    /* Language toggle */
+    .lang-toggle {
+      display: flex;
+      gap: 4px;
+    }
+
+    .lang-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--text-dim);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    .lang-btn:hover {
+      color: var(--neon-purple);
+      border-color: rgba(191, 0, 255, 0.4);
+    }
+
+    .lang-btn.active {
+      color: var(--neon-purple);
+      border-color: var(--neon-purple);
+      background: rgba(191, 0, 255, 0.08);
+    }
+
+    /* Provided code (read-only signature) */
+    .signature-wrap {
+      background: #0a0a1e;
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--neon-pink);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .signature-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      background: rgba(255, 107, 157, 0.1);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .signature-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--neon-pink);
+      letter-spacing: 1px;
+    }
+
+    .signature-badge {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: var(--text-dim);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 2px 6px;
+    }
+
+    .signature-body {
+      padding: 12px 16px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #c8d8ff;
+      white-space: pre;
+    }
+
+    .pc-keyword { color: #c792ea; }
+    .pc-fn { color: #82aaff; }
+    .pc-param { color: #f78c6c; }
+    .pc-comment { color: #546e7a; }
+    .pc-punct { color: #89ddff; }
+    .pc-string { color: #c3e88d; }
+
+    /* Editor section */
+    .editor-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--neon-purple);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .editor-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: rgba(191, 0, 255, 0.06);
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+
+    .editor-hint {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .CodeMirror {
+      height: 280px;
+    }
+
+    /* Buttons row */
+    .btn-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .test-btn, .submit-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 24px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+      border: 2px solid;
+      border-radius: 4px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+    }
+
+    .test-btn {
+      color: var(--neon-yellow);
+      border-color: var(--neon-yellow);
+      background: rgba(255, 190, 11, 0.07);
+    }
+
+    .test-btn:hover {
+      background: rgba(255, 190, 11, 0.15);
+      box-shadow: 0 0 18px rgba(255, 190, 11, 0.5);
+    }
+
+    .submit-btn {
+      color: var(--neon-green);
+      border-color: var(--neon-green);
+      background: rgba(57, 255, 20, 0.07);
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      background: rgba(57, 255, 20, 0.15);
+      box-shadow: 0 0 18px rgba(57, 255, 20, 0.5);
+    }
+
+    .test-btn:active, .submit-btn:active {
+      transform: translateY(1px);
+    }
+
+    .test-btn:disabled, .submit-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Output area */
+    .output-area {
+      min-height: 48px;
+      background: #050516;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 12px 16px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      display: none;
+    }
+
+    .output-area.visible {
+      display: block;
+    }
+
+    .output-success {
+      color: var(--neon-green);
+    }
+
+    .output-error {
+      color: var(--neon-red);
+    }
+
+    .output-info {
+      color: var(--neon-purple);
+    }
+
+    .output-location {
+      margin: 4px 0;
+    }
+
+    .output-location.pass {
+      color: var(--neon-green);
+    }
+
+    .output-location.fail {
+      color: var(--neon-red);
+    }
+
+    /* Mobile layout */
+    @media (max-width: 768px) {
+      .page-wrapper {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        max-width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .main-panel {
+        padding: 16px;
+      }
+
+      .btn-row {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Name selection overlay -->
+<div class="name-overlay" id="name-overlay">
+  <div class="name-modal">
+    <div class="name-modal-title">CHARACTER CLASH</div>
+    <div class="name-modal-subtitle">Select your name to start creating</div>
+    <select class="name-select" id="name-select">
+      <option value="">Loading names...</option>
+    </select>
+    <button class="name-submit-btn" id="name-submit-btn" disabled>START CREATING</button>
+  </div>
+</div>
+
+<div class="page-wrapper">
+
+  <!-- Left sidebar -->
+  <aside class="sidebar">
+
+    <div>
+      <div class="sidebar-title">CHARACTER CLASH</div>
+      <div class="sidebar-subtitle">Create characters to battle!</div>
+    </div>
+
+    <div class="name-badge">
+      <span class="name-badge-label">Creator</span>
+      <span class="name-badge-value" id="display-name">...</span>
+    </div>
+
+    <!-- Hints -->
+    <div>
+      <div class="section-label">Available Functions</div>
+      <div class="hints-panel">
+        <div class="hint-item">
+          <div class="hint-title">Required</div>
+          <div class="hint-code" id="hint-required">setFullName("The Mighty Hero")</div>
+        </div>
+        <div class="hint-item">
+          <div class="hint-title">Optional</div>
+          <div class="hint-code" id="hint-optional">setMood("confident")
+setDescription("A brave warrior")
+setBackstory("Grew up in mountains")
+setItems(["sword", "shield"])</div>
+        </div>
+        <div class="hint-item">
+          <div class="hint-title">Location-Based</div>
+          <div class="hint-code" id="hint-location">if (location === "cliff") {
+  setMood("nervous");
+} else {
+  setMood("confident");
+}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- My Submissions -->
+    <div class="submissions-panel">
+      <div class="section-label">My Characters <span id="character-count"></span></div>
+      <div class="submissions-list" id="submissions-list">
+        <div class="no-submissions">No characters yet</div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- Main panel -->
+  <main class="main-panel">
+
+    <!-- Character name + language toggle -->
+    <div class="character-name-wrap">
+      <div style="flex:1;max-width:300px;">
+        <label class="label">Character Name</label>
+        <input type="text" class="character-name-input" id="character-name" placeholder="e.g. DragonSlayer" maxlength="20">
+      </div>
+      <div style="margin-top:20px;">
+        <div class="lang-toggle">
+          <button class="lang-btn active" id="lang-js" onclick="setLanguage('js')">JS</button>
+          <button class="lang-btn" id="lang-python" onclick="setLanguage('python')">PYTHON</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Function signature (reference) -->
+    <div class="signature-wrap">
+      <div class="signature-header">
+        <span class="signature-label">AVAILABLE FUNCTIONS</span>
+        <span class="signature-badge">REFERENCE</span>
+      </div>
+      <div class="signature-body" id="signature-body">
+      </div>
+    </div>
+
+    <!-- Editor -->
+    <div class="editor-wrap">
+      <div class="editor-header">
+        <span class="editor-hint">Write the body of initializeCharacter(location)</span>
+        <span class="editor-hint">Ctrl+Enter to test</span>
+      </div>
+      <textarea id="code-editor"></textarea>
+    </div>
+
+    <!-- Buttons -->
+    <div class="btn-row">
+      <button class="test-btn" id="test-btn" onclick="testCode()">
+        <span>&#9654;</span> TEST
+      </button>
+      <button class="submit-btn" id="submit-btn" onclick="submitCode()" disabled>
+        <span>&#10003;</span> SUBMIT
+      </button>
+    </div>
+
+    <!-- Output -->
+    <div class="output-area" id="output-area"></div>
+
+  </main>
+
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://facwrgpgbffgrriolgcy.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhY3dyZ3BnYmZmZ3JyaW9sZ2N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzkyODYsImV4cCI6MjA4OTcxNTI4Nn0.G8tmDmDmmMa7O6y-CPd16na4RzOjk-nwnkE4HF383js';
+
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { db: { schema: 'code_mob' } });
+
+  let TOURNAMENT_ID = null;
+  let TOURNAMENT_LOCATIONS = ['bathroom', 'cafeteria', 'cliff', 'city', 'airplane'];
+  let MAX_CHARACTERS_PER_STUDENT = 3;
+  let STUDENT_NAME = null;
+  let currentLanguage = 'js';
+  let testPassed = false;
+  let lastTestResults = null;
+
+  const SUBMIT_THROTTLE_MS = 20000;
+  let lastSubmitTime = 0;
+  let throttleIntervalId = null;
+
+  const STARTER_CODE = {
+    js: `// location is one of: "bathroom", "cafeteria", "cliff", "city", "airplane"
+
+setFullName("The Mighty Hero");
+
+// Optional - customize your character:
+// setMood("confident");
+// setDescription("A brave warrior");
+// setBackstory("Grew up in the mountains");
+// setItems(["sword", "map"]);`,
+    python: `# location is one of: "bathroom", "cafeteria", "cliff", "city", "airplane"
+
+set_full_name("The Mighty Hero")
+
+# Optional - customize your character:
+# set_mood("confident")
+# set_description("A brave warrior")
+# set_backstory("Grew up in the mountains")
+# set_items(["sword", "map"])`
+  };
+
+  const SIGNATURES = {
+    js: `<span class="pc-comment">// Your code runs inside:</span>
+<span class="pc-keyword">function</span> <span class="pc-fn">initializeCharacter</span><span class="pc-punct">(</span><span class="pc-param">location</span><span class="pc-punct">) {</span>
+  <span class="pc-comment">// your code here...</span>
+<span class="pc-punct">}</span>
+
+<span class="pc-comment">// Available functions:</span>
+<span class="pc-fn">setFullName</span><span class="pc-punct">(</span><span class="pc-string">"string"</span><span class="pc-punct">)</span>     <span class="pc-comment">← REQUIRED</span>
+<span class="pc-fn">setMood</span><span class="pc-punct">(</span><span class="pc-string">"string"</span><span class="pc-punct">)</span>         <span class="pc-comment">← optional</span>
+<span class="pc-fn">setDescription</span><span class="pc-punct">(</span><span class="pc-string">"string"</span><span class="pc-punct">)</span>  <span class="pc-comment">← optional</span>
+<span class="pc-fn">setBackstory</span><span class="pc-punct">(</span><span class="pc-string">"string"</span><span class="pc-punct">)</span>    <span class="pc-comment">← optional</span>
+<span class="pc-fn">setItems</span><span class="pc-punct">(</span><span class="pc-string">"item"</span> or <span class="pc-punct">[</span><span class="pc-string">"a"</span>, <span class="pc-string">"b"</span><span class="pc-punct">]</span><span class="pc-punct">)</span> <span class="pc-comment">← optional</span>`,
+    python: `<span class="pc-comment"># Your code runs inside:</span>
+<span class="pc-keyword">def</span> <span class="pc-fn">initialize_character</span><span class="pc-punct">(</span><span class="pc-param">location</span><span class="pc-punct">):</span>
+  <span class="pc-comment"># your code here...</span>
+
+<span class="pc-comment"># Available functions:</span>
+<span class="pc-fn">set_full_name</span><span class="pc-punct">(</span><span class="pc-string">"string"</span><span class="pc-punct">)</span>     <span class="pc-comment">← REQUIRED</span>
+<span class="pc-fn">set_mood</span><span class="pc-punct">(</span><span class="pc-string">"string"</span><span class="pc-punct">)</span>         <span class="pc-comment">← optional</span>
+<span class="pc-fn">set_description</span><span class="pc-punct">(</span><span class="pc-string">"string"</span><span class="pc-punct">)</span>  <span class="pc-comment">← optional</span>
+<span class="pc-fn">set_backstory</span><span class="pc-punct">(</span><span class="pc-string">"string"</span><span class="pc-punct">)</span>    <span class="pc-comment">← optional</span>
+<span class="pc-fn">set_items</span><span class="pc-punct">(</span><span class="pc-string">"item"</span> or <span class="pc-punct">[</span><span class="pc-string">"a"</span>, <span class="pc-string">"b"</span><span class="pc-punct">]</span><span class="pc-punct">)</span> <span class="pc-comment">← optional</span>`
+  };
+
+  const HINTS_PYTHON = {
+    required: `set_full_name("The Mighty Hero")`,
+    optional: `set_mood("confident")
+set_description("A brave warrior")
+set_backstory("Grew up in mountains")
+set_items(["sword", "shield"])`,
+    location: `if location == "cliff":
+  set_mood("nervous")
+else:
+  set_mood("confident")`
+  };
+
+  const HINTS_JS = {
+    required: `setFullName("The Mighty Hero")`,
+    optional: `setMood("confident")
+setDescription("A brave warrior")
+setBackstory("Grew up in mountains")
+setItems(["sword", "shield"])`,
+    location: `if (location === "cliff") {
+  setMood("nervous");
+} else {
+  setMood("confident");
+}`
+  };
+
+  const editor = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
+    mode: 'javascript',
+    theme: 'material-darker',
+    lineNumbers: true,
+    indentUnit: 2,
+    tabSize: 2,
+    indentWithTabs: false,
+    autofocus: false,
+    extraKeys: {
+      'Ctrl-Enter': testCode,
+      'Cmd-Enter': testCode,
+    },
+  });
+
+  editor.on('change', () => {
+    saveCodeToStorage();
+    testPassed = false;
+    lastTestResults = null;
+    updateSubmitButton();
+  });
+
+  function setLanguage(lang) {
+    saveCodeToStorage();
+    currentLanguage = lang;
+
+    document.getElementById('lang-js').classList.toggle('active', lang === 'js');
+    document.getElementById('lang-python').classList.toggle('active', lang === 'python');
+
+    editor.setOption('mode', lang === 'js' ? 'javascript' : 'python');
+    document.getElementById('signature-body').innerHTML = SIGNATURES[lang];
+
+    const hints = lang === 'js' ? HINTS_JS : HINTS_PYTHON;
+    document.getElementById('hint-required').textContent = hints.required;
+    document.getElementById('hint-optional').textContent = hints.optional;
+    document.getElementById('hint-location').textContent = hints.location;
+
+    const saved = loadCodeFromStorage();
+    editor.setValue(saved && saved.trim() !== '' ? saved : STARTER_CODE[lang]);
+
+    testPassed = false;
+    lastTestResults = null;
+    updateSubmitButton();
+    localStorage.setItem('cc-language', lang);
+  }
+
+  function getStorageKey() {
+    return `cc-code-${STUDENT_NAME}-${currentLanguage}`;
+  }
+
+  function saveCodeToStorage() {
+    if (!STUDENT_NAME) return;
+    try {
+      localStorage.setItem(getStorageKey(), editor.getValue());
+    } catch {}
+  }
+
+  function loadCodeFromStorage() {
+    if (!STUDENT_NAME) return null;
+    try {
+      return localStorage.getItem(getStorageKey());
+    } catch {
+      return null;
+    }
+  }
+
+  function clearOutput() {
+    const el = document.getElementById('output-area');
+    el.className = 'output-area';
+    el.innerHTML = '';
+  }
+
+  function showSuccess(msg) {
+    const el = document.getElementById('output-area');
+    el.className = 'output-area visible';
+    el.innerHTML = `<span class="output-success">&#10003; ${escapeHtml(msg)}</span>`;
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('output-area');
+    el.className = 'output-area visible';
+    el.innerHTML = `<span class="output-error">&#10007; Error: ${escapeHtml(msg)}</span>`;
+  }
+
+  function showInfo(msg) {
+    const el = document.getElementById('output-area');
+    el.className = 'output-area visible';
+    el.innerHTML = `<span class="output-info">${escapeHtml(msg)}</span>`;
+  }
+
+  function showTestResults(results) {
+    const el = document.getElementById('output-area');
+    el.className = 'output-area visible';
+
+    const allPassed = results.every(r => r.success);
+    const header = allPassed
+      ? '<span class="output-success">&#10003; ALL LOCATIONS PASSED</span>'
+      : '<span class="output-error">&#10007; SOME LOCATIONS FAILED</span>';
+
+    const lines = results.map(r => {
+      if (r.success) {
+        const mood = r.data.mood ? ` (${r.data.mood})` : '';
+        return `<div class="output-location pass">&#10003; ${r.location}: ${r.data.fullName}${mood}</div>`;
+      } else {
+        return `<div class="output-location fail">&#10007; ${r.location}: ${r.error}</div>`;
+      }
+    }).join('');
+
+    el.innerHTML = header + lines;
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function updateSubmitButton() {
+    const btn = document.getElementById('submit-btn');
+    const now = Date.now();
+    const elapsed = now - lastSubmitTime;
+    const remaining = SUBMIT_THROTTLE_MS - elapsed;
+
+    if (throttleIntervalId) {
+      clearInterval(throttleIntervalId);
+      throttleIntervalId = null;
+    }
+
+    if (!testPassed) {
+      btn.disabled = true;
+      btn.innerHTML = '<span>&#10003;</span> SUBMIT';
+      return;
+    }
+
+    if (remaining > 0) {
+      btn.disabled = true;
+      const updateCountdown = () => {
+        const secsLeft = Math.ceil((SUBMIT_THROTTLE_MS - (Date.now() - lastSubmitTime)) / 1000);
+        if (secsLeft <= 0) {
+          clearInterval(throttleIntervalId);
+          throttleIntervalId = null;
+          btn.disabled = false;
+          btn.innerHTML = '<span>&#10003;</span> SUBMIT';
+        } else {
+          btn.innerHTML = `<span>&#10003;</span> SUBMIT — ${secsLeft}`;
+        }
+      };
+      updateCountdown();
+      throttleIntervalId = setInterval(updateCountdown, 1000);
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = '<span>&#10003;</span> SUBMIT';
+    }
+  }
+
+  async function testCode() {
+    const btn = document.getElementById('test-btn');
+    btn.disabled = true;
+    clearOutput();
+    testPassed = false;
+    lastTestResults = null;
+    updateSubmitButton();
+
+    const code = editor.getValue();
+    const results = [];
+
+    try {
+      for (const location of TOURNAMENT_LOCATIONS) {
+        try {
+          let data;
+          if (currentLanguage === 'js') {
+            data = await testJavaScript(code, location);
+          } else {
+            data = await testPython(code, location);
+          }
+
+          if (!data.fullName) {
+            results.push({ location, success: false, error: 'setFullName() was not called' });
+          } else {
+            results.push({ location, success: true, data });
+          }
+        } catch (e) {
+          results.push({ location, success: false, error: e.message });
+        }
+      }
+
+      showTestResults(results);
+
+      const allPassed = results.every(r => r.success);
+      if (allPassed) {
+        testPassed = true;
+        lastTestResults = results;
+      }
+      updateSubmitButton();
+    } catch (e) {
+      showError(e.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function testJavaScript(code, location) {
+    const characterData = {
+      fullName: null,
+      mood: null,
+      description: null,
+      backstory: null,
+      items: null
+    };
+
+    const setFullName = (name) => { characterData.fullName = String(name); };
+    const setMood = (mood) => { characterData.mood = String(mood); };
+    const setDescription = (desc) => { characterData.description = String(desc); };
+    const setBackstory = (story) => { characterData.backstory = String(story); };
+    const setItems = (items) => {
+      if (Array.isArray(items)) {
+        characterData.items = items.map(String);
+      } else {
+        characterData.items = [String(items)];
+      }
+    };
+
+    const fn = new Function('location', 'setFullName', 'setMood', 'setDescription', 'setBackstory', 'setItems', code);
+    fn(location, setFullName, setMood, setDescription, setBackstory, setItems);
+
+    return characterData;
+  }
+
+  async function testPython(code, location) {
+    return new Promise((resolve, reject) => {
+      const characterData = {
+        fullName: null,
+        mood: null,
+        description: null,
+        backstory: null,
+        items: null
+      };
+
+      const fullCode = `
+location = ${JSON.stringify(location)}
+_char_data = {"fullName": None, "mood": None, "description": None, "backstory": None, "items": None}
+
+def set_full_name(name):
+    _char_data["fullName"] = str(name)
+
+def set_mood(mood):
+    _char_data["mood"] = str(mood)
+
+def set_description(desc):
+    _char_data["description"] = str(desc)
+
+def set_backstory(story):
+    _char_data["backstory"] = str(story)
+
+def set_items(items):
+    if isinstance(items, list):
+        _char_data["items"] = [str(i) for i in items]
+    else:
+        _char_data["items"] = [str(items)]
+
+${code}
+
+import json
+print(json.dumps(_char_data))
+`;
+
+      let output = '';
+
+      Sk.configure({
+        output: (text) => { output += text; },
+        read: (filename) => {
+          if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][filename] === undefined) {
+            throw new Error("File not found: '" + filename + "'");
+          }
+          return Sk.builtinFiles["files"][filename];
+        },
+      });
+
+      Sk.misceval.asyncToPromise(() => {
+        return Sk.importMainWithBody("<stdin>", false, fullCode, true);
+      }).then(() => {
+        try {
+          const result = JSON.parse(output.trim());
+          resolve(result);
+        } catch {
+          reject(new Error('Failed to parse character data'));
+        }
+      }).catch((err) => {
+        reject(new Error(err.toString()));
+      });
+    });
+  }
+
+  async function submitCode() {
+    const btn = document.getElementById('submit-btn');
+
+    const elapsed = Date.now() - lastSubmitTime;
+    if (elapsed < SUBMIT_THROTTLE_MS) {
+      const secsLeft = Math.ceil((SUBMIT_THROTTLE_MS - elapsed) / 1000);
+      showError(`Please wait ${secsLeft} seconds before submitting again`);
+      return;
+    }
+
+    btn.disabled = true;
+    clearOutput();
+
+    const characterName = document.getElementById('character-name').value.trim();
+    if (!characterName) {
+      showError('Please enter a character name');
+      updateSubmitButton();
+      return;
+    }
+
+    if (!lastTestResults || !testPassed) {
+      showError('Please test your code first');
+      updateSubmitButton();
+      return;
+    }
+
+    const code = editor.getValue();
+    const firstResult = lastTestResults[0];
+    const characterData = firstResult.data;
+
+    try {
+      const { data, error } = await db.rpc('submit_cc_character', {
+        p_tournament_id: TOURNAMENT_ID,
+        p_student_name: STUDENT_NAME,
+        p_character_name: characterName,
+        p_code: code,
+        p_character_data: characterData,
+        p_language: currentLanguage,
+      });
+
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+
+      showSuccess(`Submitted "${characterName}" v${data.version}!`);
+      lastSubmitTime = Date.now();
+      testPassed = false;
+      lastTestResults = null;
+      updateSubmitButton();
+      loadMySubmissions();
+    } catch (e) {
+      showError(e.message);
+      updateSubmitButton();
+    }
+  }
+
+  let mySubmissions = [];
+
+  async function loadMySubmissions() {
+    if (!TOURNAMENT_ID || !STUDENT_NAME) return;
+
+    const { data, error } = await db
+      .from('cc_characters')
+      .select('id, character_name, version, language, code, xp, submitted_at')
+      .eq('tournament_id', TOURNAMENT_ID)
+      .eq('student_name', STUDENT_NAME)
+      .eq('is_archived', false)
+      .order('submitted_at', { ascending: false });
+
+    const list = document.getElementById('submissions-list');
+
+    if (error || !data || data.length === 0) {
+      list.innerHTML = '<div class="no-submissions">No characters yet</div>';
+      mySubmissions = [];
+      document.getElementById('character-count').textContent = `(0/${MAX_CHARACTERS_PER_STUDENT})`;
+      return;
+    }
+
+    mySubmissions = data;
+    const activeCount = countActiveCharacters();
+    document.getElementById('character-count').textContent = `(${activeCount}/${MAX_CHARACTERS_PER_STUDENT})`;
+
+    list.innerHTML = data.map((ch, idx) => {
+      const xpClass = ch.xp > 0 ? 'positive' : ch.xp < 0 ? 'negative' : 'neutral';
+      const xpText = ch.xp >= 0 ? `+${ch.xp}` : ch.xp;
+      return `
+      <div class="submission-card">
+        <div class="submission-info" onclick="loadSubmission(${idx})" title="Click to load into editor">
+          <div class="submission-name">${escapeHtml(ch.character_name)}</div>
+          <div class="submission-meta">v${ch.version} · ${ch.language.toUpperCase()}</div>
+        </div>
+        <span class="submission-xp ${xpClass}">${xpText} XP</span>
+        <button class="archive-btn" onclick="archiveCharacter('${ch.id}')">ARCHIVE</button>
+      </div>
+    `}).join('');
+  }
+
+  function countActiveCharacters() {
+    const activeNames = new Set();
+    for (const ch of mySubmissions) {
+      activeNames.add(ch.character_name);
+    }
+    return activeNames.size;
+  }
+
+  function loadSubmission(idx) {
+    const submission = mySubmissions[idx];
+    if (!submission) return;
+
+    document.getElementById('character-name').value = submission.character_name;
+
+    if (submission.language !== currentLanguage) {
+      setLanguage(submission.language);
+    }
+
+    editor.setValue(submission.code);
+    saveCodeToStorage();
+
+    testPassed = false;
+    lastTestResults = null;
+    updateSubmitButton();
+    clearOutput();
+
+    showInfo(`Loaded "${submission.character_name}" v${submission.version} — make changes and test again to submit`);
+    editor.focus();
+  }
+
+  async function archiveCharacter(characterId) {
+    try {
+      const { data, error } = await db.rpc('archive_cc_character', {
+        p_character_id: characterId,
+        p_student_name: STUDENT_NAME,
+      });
+
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      loadMySubmissions();
+    } catch (e) {
+      showError('Failed to archive: ' + e.message);
+    }
+  }
+
+  async function loadTournament() {
+    const { data, error } = await db
+      .from('cc_tournaments')
+      .select('id, name, locations, max_characters_per_student')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) {
+      const select = document.getElementById('name-select');
+      select.innerHTML = '<option value="">No active tournament</option>';
+      return false;
+    }
+
+    TOURNAMENT_ID = data.id;
+    TOURNAMENT_LOCATIONS = data.locations || ['bathroom', 'cafeteria', 'cliff', 'city', 'airplane'];
+    MAX_CHARACTERS_PER_STUDENT = data.max_characters_per_student || 3;
+    return true;
+  }
+
+  async function loadApprovedNames() {
+    if (!TOURNAMENT_ID) return;
+
+    const { data, error } = await db
+      .from('cc_approved_names')
+      .select('name')
+      .eq('tournament_id', TOURNAMENT_ID)
+      .order('name');
+
+    const select = document.getElementById('name-select');
+
+    if (error || !data || data.length === 0) {
+      select.innerHTML = '<option value="">No approved names</option>';
+      return;
+    }
+
+    select.innerHTML = '<option value="">Select your name...</option>' +
+      data.map(n => `<option value="${escapeHtml(n.name)}">${escapeHtml(n.name)}</option>`).join('');
+
+    const savedName = localStorage.getItem('cc-student-name');
+    if (savedName && data.some(n => n.name === savedName)) {
+      select.value = savedName;
+      document.getElementById('name-submit-btn').disabled = false;
+    }
+  }
+
+  document.getElementById('name-select').addEventListener('change', (e) => {
+    document.getElementById('name-submit-btn').disabled = !e.target.value;
+  });
+
+  document.getElementById('name-submit-btn').addEventListener('click', () => {
+    const name = document.getElementById('name-select').value;
+    if (!name) return;
+
+    STUDENT_NAME = name;
+    localStorage.setItem('cc-student-name', name);
+    document.getElementById('display-name').textContent = name;
+    document.getElementById('name-overlay').classList.add('hidden');
+
+    const savedLang = localStorage.getItem('cc-language');
+    if (savedLang === 'python') {
+      setLanguage('python');
+    } else {
+      setLanguage('js');
+      const saved = loadCodeFromStorage();
+      editor.setValue(saved && saved.trim() !== '' ? saved : STARTER_CODE.js);
+    }
+
+    editor.focus();
+    loadMySubmissions();
+  });
+
+  async function init() {
+    const ok = await loadTournament();
+    if (ok) {
+      await loadApprovedNames();
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>

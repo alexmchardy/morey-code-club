@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Character Clash — Admin</title>
+  <link rel="stylesheet" href="shared.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    body {
+      padding: 16px;
+      min-height: 100vh;
+    }
+
+    .admin-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .admin-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+      color: var(--neon-purple);
+      text-shadow: 0 0 16px var(--neon-purple);
+      letter-spacing: 2px;
+      margin: 0;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      margin-left: auto;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .conn-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--text-dim);
+    }
+
+    .conn-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--neon-red);
+      flex-shrink: 0;
+    }
+
+    .conn-dot.green { background: var(--neon-green); box-shadow: 0 0 6px var(--neon-green); }
+    .conn-dot.yellow { background: var(--neon-yellow); box-shadow: 0 0 6px var(--neon-yellow); }
+    .conn-dot.red { background: var(--neon-red); box-shadow: 0 0 6px var(--neon-red); }
+
+    .tournament-badge {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--neon-purple);
+      border: 1px solid var(--neon-purple);
+      padding: 4px 10px;
+      border-radius: 3px;
+    }
+
+    .paused-badge {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--neon-red);
+      border: 1px solid var(--neon-red);
+      padding: 4px 8px;
+      border-radius: 2px;
+      display: none;
+    }
+
+    .paused-badge.visible { display: inline-block; }
+
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 1000px) {
+      .grid-layout { grid-template-columns: 1fr; }
+    }
+
+    .left-col, .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .form-row {
+      margin-bottom: 14px;
+    }
+
+    .form-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .inline-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+    }
+
+    .inline-row > div {
+      flex: 1;
+    }
+
+    input, select, textarea {
+      width: 100%;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .token-input {
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    .token-status {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: var(--text-dim);
+      margin-top: 6px;
+    }
+
+    .token-status.ok { color: var(--neon-green); }
+    .token-status.err { color: var(--neon-red); }
+
+    .characters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .character-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .character-card:hover {
+      border-color: var(--neon-purple);
+    }
+
+    .character-card.selected {
+      border-color: var(--neon-green);
+      background: rgba(57, 255, 20, 0.08);
+    }
+
+    .character-card.selected .character-card-name {
+      color: var(--neon-green);
+    }
+
+    .character-card-name {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      color: var(--neon-purple);
+      margin-bottom: 4px;
+    }
+
+    .character-card-info {
+      display: flex;
+      gap: 4px;
+    }
+
+    .character-card-student {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    .character-card-meta {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    .character-card-xp {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+    }
+
+    .character-card-xp.positive { color: var(--neon-green); }
+    .character-card-xp.negative { color: var(--neon-red); }
+    .character-card-xp.neutral { color: var(--text-dim); }
+
+    .encounter-controls-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .encounter-queue {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .encounter-queue-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 12px;
+      cursor: grab;
+    }
+
+    .encounter-queue-item:active {
+      cursor: grabbing;
+    }
+
+    .encounter-queue-item.dragging {
+      opacity: 0.5;
+      border-color: var(--neon-purple);
+    }
+
+    .encounter-queue-item.drag-over {
+      border-color: var(--neon-cyan);
+      background: rgba(0, 245, 255, 0.08);
+    }
+
+    .encounter-queue-item.playing {
+      border-color: var(--neon-yellow);
+      background: rgba(255, 190, 11, 0.08);
+    }
+
+    .encounter-queue-item.completed {
+      opacity: 0.5;
+    }
+
+    .drag-handle {
+      font-size: 14px;
+      color: var(--text-dim);
+      cursor: grab;
+    }
+
+    .encounter-vs {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--text-dim);
+    }
+
+    .encounter-char {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .encounter-location {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--neon-pink);
+      background: rgba(255, 107, 157, 0.1);
+      padding: 2px 6px;
+      border-radius: 2px;
+    }
+
+    .encounter-status {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      margin-left: auto;
+    }
+
+    .encounter-status.pending { color: var(--text-dim); }
+    .encounter-status.playing { color: var(--neon-yellow); }
+    .encounter-status.completed { color: var(--neon-green); }
+
+    .encounter-remove {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--text-dim);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .encounter-remove:hover {
+      color: var(--neon-red);
+    }
+
+    .no-queue {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      text-align: center;
+      padding: 20px;
+    }
+
+    .queue-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .queue-header .label {
+      margin-bottom: 0;
+    }
+
+    .checkbox-inline {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+      cursor: pointer;
+    }
+
+    .checkbox-inline input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--neon-purple);
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .toggle-switch.active {
+      background: rgba(57, 255, 20, 0.2);
+      border-color: var(--neon-green);
+    }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      background: var(--text-dim);
+      border-radius: 50%;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .toggle-switch.active::after {
+      transform: translateX(20px);
+      background: var(--neon-green);
+    }
+
+    .toggle-label {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .slider-row {
+      margin-bottom: 16px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .slider-value {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13px;
+      color: var(--neon-purple);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      background: var(--surface2);
+      border-radius: 3px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      background: var(--neon-purple);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 8px var(--neon-purple);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: var(--neon-purple);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 8px var(--neon-purple);
+    }
+
+    .feedback {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      margin-top: 8px;
+      display: none;
+    }
+
+    .feedback.visible { display: block; }
+    .feedback.success { color: var(--neon-green); }
+    .feedback.error { color: var(--neon-red); }
+
+    .btn-pause { color: var(--neon-green); border-color: var(--neon-green); }
+    .btn-pause:hover { background: rgba(57, 255, 20, 0.12); box-shadow: 0 0 12px var(--neon-green); }
+    .btn-pause.paused { color: var(--neon-red); border-color: var(--neon-red); }
+    .btn-pause.paused:hover { background: rgba(255, 68, 68, 0.12); box-shadow: 0 0 12px var(--neon-red); }
+
+    .location-select {
+      max-width: 150px;
+    }
+
+    .no-characters {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+      text-align: center;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="admin-header">
+    <h1 class="admin-title">CHARACTER CLASH // ADMIN</h1>
+    <div class="status-bar">
+      <span class="tournament-badge" id="tournament-badge">No Tournament</span>
+      <span class="paused-badge" id="paused-badge">PAUSED</span>
+      <div class="conn-indicator">
+        <div class="conn-dot" id="conn-dot"></div>
+        <span id="conn-label">connecting</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-layout">
+
+    <div class="left-col">
+
+      <div class="panel">
+        <div class="panel-header">Admin Token</div>
+        <div class="panel-body">
+          <label class="label">Enter Token</label>
+          <input type="password" class="token-input" id="token-input" placeholder="ADMIN_TOKEN" autocomplete="off">
+          <div class="token-status" id="token-status">Enter token to enable admin actions</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">Tournament Setup</div>
+        <div class="panel-body">
+          <div id="current-tournament-section" style="display:none;">
+            <div style="margin-bottom:14px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <span style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--neon-purple);">CURRENT TOURNAMENT</span>
+                <span id="current-tournament-name" style="font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--text);"></span>
+              </div>
+            </div>
+            <hr style="border:0;border-top:1px solid var(--border);margin:14px 0;">
+            <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-dim);margin-bottom:10px;">CREATE NEW TOURNAMENT</div>
+          </div>
+          <div class="form-row">
+            <label class="label">Tournament Name</label>
+            <input type="text" id="tournament-name" placeholder="e.g. Epic Battles" maxlength="50">
+          </div>
+          <div class="form-row">
+            <label class="label">Locations (comma-separated)</label>
+            <input type="text" id="tournament-locations" placeholder="bathroom, cafeteria, cliff, city, airplane" value="bathroom, cafeteria, cliff, city, airplane">
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-green" id="btn-create-tournament">CREATE TOURNAMENT</button>
+          </div>
+          <div class="feedback" id="tournament-feedback"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">Approved Names</div>
+        <div class="panel-body">
+          <label class="label">Student Names (one per line)</label>
+          <textarea id="approved-names" placeholder="Alice&#10;Bob&#10;Charlie"></textarea>
+          <div class="btn-row">
+            <button class="btn" id="btn-save-names">SAVE NAMES</button>
+          </div>
+          <div class="feedback" id="names-feedback"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">API Keys</div>
+        <div class="panel-body">
+          <div class="form-row">
+            <label class="label">Cerebras API Key (for LLM script generation)</label>
+            <input type="password" class="token-input" id="cerebras-key-input" placeholder="csk-..." autocomplete="off">
+            <div class="token-status" id="cerebras-status">Required for encounter scripts</div>
+          </div>
+          <div class="form-row">
+            <label class="label">ElevenLabs API Key (for voice narration)</label>
+            <input type="password" class="token-input" id="elevenlabs-key-input" placeholder="sk_..." autocomplete="off">
+            <div class="token-status" id="elevenlabs-status">Required for Text-to-Dialog</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">Settings</div>
+        <div class="panel-body">
+          <div class="slider-row">
+            <div class="slider-header">
+              <label class="label">Encounter Delay (ms)</label>
+              <span class="slider-value" id="encounter-delay-value">5000</span>
+            </div>
+            <input type="range" id="encounter-delay-slider" min="1000" max="30000" step="500" value="5000">
+          </div>
+          <div class="slider-row">
+            <div class="slider-header">
+              <label class="label">Max Characters Per Student</label>
+              <span class="slider-value" id="max-characters-value">3</span>
+            </div>
+            <input type="range" id="max-characters-slider" min="1" max="10" value="3">
+          </div>
+          <div class="btn-row">
+            <button class="btn" id="btn-save-settings">SAVE SETTINGS</button>
+          </div>
+          <div class="feedback" id="settings-feedback"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="right-col">
+
+      <div class="panel">
+        <div class="panel-header">Encounter Controls</div>
+        <div class="panel-body">
+          <div class="encounter-controls-row">
+            <button class="btn btn-pause" id="btn-pause">PAUSE</button>
+            <div class="toggle-row">
+              <div class="toggle-switch" id="toggle-continuous"></div>
+              <span class="toggle-label">Continuous</span>
+            </div>
+          </div>
+          <div class="queue-header">
+            <label class="label">Encounter Queue (drag to reorder)</label>
+            <label class="checkbox-inline">
+              <input type="checkbox" id="show-completed-check">
+              <span>Show completed</span>
+            </label>
+          </div>
+          <div class="encounter-queue" id="encounter-queue">
+            <div class="no-queue">No encounters queued</div>
+          </div>
+          <div class="btn-row" style="margin-top:14px;">
+            <button class="btn btn-orange" id="btn-clear-queue">CLEAR QUEUE</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">Characters</div>
+        <div class="panel-body">
+          <p style="font-size:12px;color:var(--text-dim);margin:0 0 12px 0;">Select two characters and a location to add encounter</p>
+          <div class="characters-grid" id="characters-grid">
+            <div class="no-characters">No characters submitted yet</div>
+          </div>
+          <div class="inline-row" style="margin-top:14px;">
+            <div style="flex:2;">
+              <div class="btn-row">
+                <button class="btn" id="btn-add-encounter" disabled>ADD ENCOUNTER</button>
+                <button class="btn btn-pink" id="btn-clear-selection">CLEAR</button>
+              </div>
+            </div>
+            <div style="flex:1;">
+              <label class="label">Location</label>
+              <select id="location-select" class="location-select">
+                <option value="random">random</option>
+                <option value="cafeteria">cafeteria</option>
+                <option value="cliff">cliff</option>
+                <option value="city">city</option>
+                <option value="airplane">airplane</option>
+              </select>
+            </div>
+          </div>
+          <div class="btn-row" style="margin-top:10px;">
+            <button class="btn btn-green" id="btn-queue-all">QUEUE ALL VS ALL</button>
+          </div>
+          <div class="feedback" id="encounter-feedback"></div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+<script>
+  const SUPABASE_URL = 'https://facwrgpgbffgrriolgcy.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhY3dyZ3BnYmZmZ3JyaW9sZ2N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzkyODYsImV4cCI6MjA4OTcxNTI4Nn0.G8tmDmDmmMa7O6y-CPd16na4RzOjk-nwnkE4HF383js';
+  const EDGE_FN_URL = 'https://facwrgpgbffgrriolgcy.supabase.co/functions/v1/character-clash-admin';
+
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { db: { schema: 'code_mob' } });
+
+  let TOURNAMENT_ID = null;
+  let TOURNAMENT_LOCATIONS = ['bathroom', 'cafeteria', 'cliff', 'city', 'airplane'];
+  let adminToken = localStorage.getItem('cc_admin_token') || '';
+  let selectedCharacters = [];
+  let characters = [];
+  let encounterQueue = [];
+
+  function getLatestVersions(chars) {
+    const latest = new Map();
+    for (const ch of chars) {
+      const key = `${ch.student_name}|${ch.character_name}`;
+      const existing = latest.get(key);
+      if (!existing || ch.version > existing.version) {
+        latest.set(key, ch);
+      }
+    }
+    return Array.from(latest.values());
+  }
+
+  const tokenInput = document.getElementById('token-input');
+  const tokenStatus = document.getElementById('token-status');
+  tokenInput.value = adminToken;
+  updateTokenStatus();
+
+  tokenInput.addEventListener('input', () => {
+    adminToken = tokenInput.value;
+    localStorage.setItem('cc_admin_token', adminToken);
+    updateTokenStatus();
+  });
+
+  function updateTokenStatus() {
+    if (adminToken) {
+      tokenStatus.textContent = 'Token saved — admin actions enabled';
+      tokenStatus.className = 'token-status ok';
+    } else {
+      tokenStatus.textContent = 'Enter token to enable admin actions';
+      tokenStatus.className = 'token-status';
+    }
+  }
+
+  const cerebrasKeyInput = document.getElementById('cerebras-key-input');
+  const cerebrasStatus = document.getElementById('cerebras-status');
+  cerebrasKeyInput.value = localStorage.getItem('cc_cerebras_key') || '';
+  updateCerebrasStatus();
+
+  cerebrasKeyInput.addEventListener('input', () => {
+    const key = cerebrasKeyInput.value.trim();
+    if (key) {
+      localStorage.setItem('cc_cerebras_key', key);
+    } else {
+      localStorage.removeItem('cc_cerebras_key');
+    }
+    updateCerebrasStatus();
+  });
+
+  function updateCerebrasStatus() {
+    const key = localStorage.getItem('cc_cerebras_key');
+    if (key) {
+      cerebrasStatus.textContent = 'API key saved — LLM enabled';
+      cerebrasStatus.className = 'token-status ok';
+    } else {
+      cerebrasStatus.textContent = 'Required for encounter scripts';
+      cerebrasStatus.className = 'token-status';
+    }
+  }
+
+  const elevenLabsKeyInput = document.getElementById('elevenlabs-key-input');
+  const elevenLabsStatus = document.getElementById('elevenlabs-status');
+  elevenLabsKeyInput.value = localStorage.getItem('cc_elevenlabs_key') || '';
+  updateElevenLabsStatus();
+
+  elevenLabsKeyInput.addEventListener('input', () => {
+    const key = elevenLabsKeyInput.value.trim();
+    if (key) {
+      localStorage.setItem('cc_elevenlabs_key', key);
+    } else {
+      localStorage.removeItem('cc_elevenlabs_key');
+    }
+    updateElevenLabsStatus();
+  });
+
+  function updateElevenLabsStatus() {
+    const key = localStorage.getItem('cc_elevenlabs_key');
+    if (key) {
+      elevenLabsStatus.textContent = 'API key saved — TTS enabled';
+      elevenLabsStatus.className = 'token-status ok';
+    } else {
+      elevenLabsStatus.textContent = 'Required for Text-to-Dialog';
+      elevenLabsStatus.className = 'token-status';
+    }
+  }
+
+  function setConnStatus(status) {
+    const dot = document.getElementById('conn-dot');
+    const label = document.getElementById('conn-label');
+    dot.className = 'conn-dot';
+    if (status === 'connected') {
+      dot.classList.add('green');
+      label.textContent = 'live';
+    } else if (status === 'connecting') {
+      dot.classList.add('yellow');
+      label.textContent = 'connecting';
+    } else {
+      dot.classList.add('red');
+      label.textContent = 'disconnected';
+    }
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function showFeedback(elId, msg, success) {
+    const el = document.getElementById(elId);
+    el.textContent = msg;
+    el.className = 'feedback visible ' + (success ? 'success' : 'error');
+    setTimeout(() => el.classList.remove('visible'), 3000);
+  }
+
+  async function adminAction(action, payload = {}) {
+    if (!adminToken) {
+      alert('Enter your admin token first.');
+      return null;
+    }
+    try {
+      const res = await fetch(EDGE_FN_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ action, token: adminToken, tournamentId: TOURNAMENT_ID, ...payload }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        console.error('Admin action error:', data.error);
+        return { error: data.error };
+      }
+      return data;
+    } catch (err) {
+      console.error('Admin action failed:', err);
+      return { error: err.message };
+    }
+  }
+
+  document.getElementById('btn-create-tournament').addEventListener('click', async () => {
+    const name = document.getElementById('tournament-name').value.trim();
+    const locationsStr = document.getElementById('tournament-locations').value;
+
+    if (!name) {
+      showFeedback('tournament-feedback', 'Enter a tournament name', false);
+      return;
+    }
+
+    const locations = locationsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
+    if (locations.length === 0) {
+      showFeedback('tournament-feedback', 'Enter at least one location', false);
+      return;
+    }
+
+    const data = await adminAction('create_tournament', { name, locations });
+
+    if (data?.error) {
+      showFeedback('tournament-feedback', data.error, false);
+    } else if (data?.ok) {
+      TOURNAMENT_ID = data.tournament?.id;
+      showFeedback('tournament-feedback', 'Tournament created!', true);
+      loadTournament();
+    }
+  });
+
+  document.getElementById('btn-save-names').addEventListener('click', async () => {
+    if (!TOURNAMENT_ID) {
+      showFeedback('names-feedback', 'Create a tournament first', false);
+      return;
+    }
+
+    const text = document.getElementById('approved-names').value;
+    const names = text.split('\n').map(n => n.trim()).filter(n => n.length > 0);
+
+    if (names.length === 0) {
+      showFeedback('names-feedback', 'Enter at least one name', false);
+      return;
+    }
+
+    const data = await adminAction('set_approved_names', { names });
+
+    if (data?.error) {
+      showFeedback('names-feedback', data.error, false);
+    } else if (data?.ok) {
+      showFeedback('names-feedback', `Saved ${names.length} names`, true);
+    }
+  });
+
+  function renderCharacters() {
+    const grid = document.getElementById('characters-grid');
+    const latestCharacters = getLatestVersions(characters);
+
+    if (latestCharacters.length === 0) {
+      grid.innerHTML = '<div class="no-characters">No characters submitted yet</div>';
+      return;
+    }
+
+    grid.innerHTML = latestCharacters.map(ch => {
+      const xpClass = ch.xp > 0 ? 'positive' : ch.xp < 0 ? 'negative' : 'neutral';
+      const xpText = ch.xp >= 0 ? `+${ch.xp}` : ch.xp;
+      return `
+      <div class="character-card ${selectedCharacters.includes(ch.id) ? 'selected' : ''}" data-id="${ch.id}">
+        <div class="character-card-name">${escapeHtml(ch.character_name)}</div>
+        <div class="character-card-info">
+          <div class="character-card-student">${escapeHtml(ch.student_name)}</div>
+          <div class="character-card-meta">v${ch.version}</div>
+          <div class="character-card-xp ${xpClass}">${xpText} XP</div>
+        </div>
+      </div>
+    `}).join('');
+
+    document.querySelectorAll('.character-card').forEach(card => {
+      card.addEventListener('click', () => toggleCharacterSelection(card.dataset.id));
+    });
+
+    updateAddEncounterButton();
+  }
+
+  function toggleCharacterSelection(chId) {
+    const idx = selectedCharacters.indexOf(chId);
+    if (idx === -1) {
+      if (selectedCharacters.length < 2) {
+        selectedCharacters.push(chId);
+      }
+    } else {
+      selectedCharacters.splice(idx, 1);
+    }
+    renderCharacters();
+  }
+
+  function updateAddEncounterButton() {
+    document.getElementById('btn-add-encounter').disabled = selectedCharacters.length !== 2;
+  }
+
+  document.getElementById('btn-clear-selection').addEventListener('click', () => {
+    selectedCharacters = [];
+    renderCharacters();
+  });
+
+  document.getElementById('btn-add-encounter').addEventListener('click', async () => {
+    if (selectedCharacters.length !== 2) return;
+
+    let location = document.getElementById('location-select').value;
+    if (location === 'random') {
+      location = TOURNAMENT_LOCATIONS[Math.floor(Math.random() * TOURNAMENT_LOCATIONS.length)];
+    }
+    const data = await adminAction('queue_encounter', {
+      characterAId: selectedCharacters[0],
+      characterBId: selectedCharacters[1],
+      location,
+    });
+
+    if (data?.ok) {
+      showFeedback('encounter-feedback', 'Encounter added to queue!', true);
+      selectedCharacters = [];
+      renderCharacters();
+      loadEncounterQueue();
+    } else if (data?.error) {
+      showFeedback('encounter-feedback', data.error, false);
+    }
+  });
+
+  document.getElementById('btn-queue-all').addEventListener('click', async () => {
+    const data = await adminAction('queue_all_vs_all');
+
+    if (data?.ok) {
+      showFeedback('encounter-feedback', `Queued ${data.queued} encounters!`, true);
+      loadEncounterQueue();
+    } else if (data?.error) {
+      showFeedback('encounter-feedback', data.error, false);
+    }
+  });
+
+  document.getElementById('btn-clear-queue').addEventListener('click', async () => {
+    const data = await adminAction('clear_queue');
+
+    if (data?.ok) {
+      loadEncounterQueue();
+    } else if (data?.error) {
+      alert(data.error);
+    }
+  });
+
+  let draggedItem = null;
+
+  function renderEncounterQueue() {
+    const el = document.getElementById('encounter-queue');
+    const showCompleted = document.getElementById('show-completed-check').checked;
+    const filtered = showCompleted ? encounterQueue : encounterQueue.filter(e => e.status !== 'completed');
+
+    if (filtered.length === 0) {
+      el.innerHTML = '<div class="no-queue">No encounters queued</div>';
+      return;
+    }
+
+    el.innerHTML = filtered.map(enc => {
+      const chA = characters.find(c => c.id === enc.character_a_id);
+      const chB = characters.find(c => c.id === enc.character_b_id);
+      const nameA = chA ? chA.character_name : '???';
+      const nameB = chB ? chB.character_name : '???';
+      const draggable = enc.status === 'pending' ? 'draggable="true"' : '';
+      return `
+        <div class="encounter-queue-item ${enc.status}" data-id="${enc.id}" ${draggable}>
+          <span class="drag-handle">&#9776;</span>
+          <span class="encounter-char">${escapeHtml(nameA)}</span>
+          <span class="encounter-vs">VS</span>
+          <span class="encounter-char">${escapeHtml(nameB)}</span>
+          <span class="encounter-location">${escapeHtml(enc.location)}</span>
+          <span class="encounter-status ${enc.status}">${enc.status.toUpperCase()}</span>
+          ${enc.status === 'pending' ? `<button class="encounter-remove" data-id="${enc.id}">&times;</button>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    document.querySelectorAll('.encounter-queue-item[draggable="true"]').forEach(item => {
+      item.addEventListener('dragstart', handleDragStart);
+      item.addEventListener('dragend', handleDragEnd);
+      item.addEventListener('dragover', handleDragOver);
+      item.addEventListener('drop', handleDrop);
+      item.addEventListener('dragleave', handleDragLeave);
+    });
+
+    document.querySelectorAll('.encounter-remove').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const encId = btn.dataset.id;
+        const data = await adminAction('remove_encounter', { encounterId: encId });
+        if (data?.ok) {
+          loadEncounterQueue();
+        }
+      });
+    });
+  }
+
+  function handleDragStart(e) {
+    draggedItem = e.target;
+    e.target.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  }
+
+  function handleDragEnd(e) {
+    e.target.classList.remove('dragging');
+    document.querySelectorAll('.encounter-queue-item').forEach(item => {
+      item.classList.remove('drag-over');
+    });
+    draggedItem = null;
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (e.currentTarget !== draggedItem) {
+      e.currentTarget.classList.add('drag-over');
+    }
+  }
+
+  function handleDragLeave(e) {
+    e.currentTarget.classList.remove('drag-over');
+  }
+
+  async function handleDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+
+    if (!draggedItem || e.currentTarget === draggedItem) return;
+
+    const items = Array.from(document.querySelectorAll('.encounter-queue-item[draggable="true"]'));
+    const draggedIdx = items.indexOf(draggedItem);
+    const targetIdx = items.indexOf(e.currentTarget);
+
+    if (draggedIdx === -1 || targetIdx === -1) return;
+
+    const newOrder = items.map(item => item.dataset.id);
+    const [removed] = newOrder.splice(draggedIdx, 1);
+    newOrder.splice(targetIdx, 0, removed);
+
+    const data = await adminAction('reorder_queue', { encounterIds: newOrder });
+    if (data?.ok) {
+      loadEncounterQueue();
+    }
+  }
+
+  document.getElementById('show-completed-check').addEventListener('change', renderEncounterQueue);
+
+  document.getElementById('btn-pause').addEventListener('click', async () => {
+    const data = await adminAction('pause_toggle');
+    if (data?.ok) {
+      updatePausedUI(data.paused);
+    }
+  });
+
+  function updatePausedUI(paused) {
+    const btn = document.getElementById('btn-pause');
+    const badge = document.getElementById('paused-badge');
+    if (paused) {
+      btn.textContent = 'RESUME';
+      btn.classList.add('paused');
+      badge.classList.add('visible');
+    } else {
+      btn.textContent = 'PAUSE';
+      btn.classList.remove('paused');
+      badge.classList.remove('visible');
+    }
+  }
+
+  const continuousToggle = document.getElementById('toggle-continuous');
+  continuousToggle.addEventListener('click', async () => {
+    const newVal = !continuousToggle.classList.contains('active');
+    const data = await adminAction('update_tournament', { continuous: newVal });
+    if (data?.ok) {
+      continuousToggle.classList.toggle('active', newVal);
+    }
+  });
+
+  const encounterDelaySlider = document.getElementById('encounter-delay-slider');
+  const maxCharactersSlider = document.getElementById('max-characters-slider');
+
+  encounterDelaySlider.addEventListener('input', () => {
+    document.getElementById('encounter-delay-value').textContent = encounterDelaySlider.value;
+  });
+
+  maxCharactersSlider.addEventListener('input', () => {
+    document.getElementById('max-characters-value').textContent = maxCharactersSlider.value;
+  });
+
+  document.getElementById('btn-save-settings').addEventListener('click', async () => {
+    const data = await adminAction('update_tournament', {
+      encounter_delay_ms: parseInt(encounterDelaySlider.value, 10),
+      max_characters_per_student: parseInt(maxCharactersSlider.value, 10),
+    });
+
+    if (data?.ok) {
+      showFeedback('settings-feedback', 'Settings saved!', true);
+    } else if (data?.error) {
+      showFeedback('settings-feedback', data.error, false);
+    }
+  });
+
+  async function loadTournament() {
+    const { data, error } = await db
+      .from('cc_tournaments')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const currentSection = document.getElementById('current-tournament-section');
+
+    if (error || !data) {
+      document.getElementById('tournament-badge').textContent = 'No Tournament';
+      currentSection.style.display = 'none';
+      TOURNAMENT_ID = null;
+      return;
+    }
+
+    TOURNAMENT_ID = data.id;
+    TOURNAMENT_LOCATIONS = data.locations || ['bathroom', 'cafeteria', 'cliff', 'city', 'airplane'];
+    document.getElementById('tournament-badge').textContent = data.name;
+    updatePausedUI(data.paused);
+    continuousToggle.classList.toggle('active', data.continuous);
+
+    currentSection.style.display = 'block';
+    document.getElementById('current-tournament-name').textContent = data.name;
+
+    encounterDelaySlider.value = data.encounter_delay_ms || 5000;
+    document.getElementById('encounter-delay-value').textContent = data.encounter_delay_ms || 5000;
+    maxCharactersSlider.value = data.max_characters_per_student || 3;
+    document.getElementById('max-characters-value').textContent = data.max_characters_per_student || 3;
+
+    const locationSelect = document.getElementById('location-select');
+    locationSelect.innerHTML = '<option value="random">random</option>' +
+      TOURNAMENT_LOCATIONS.map(loc =>
+        `<option value="${escapeHtml(loc)}">${escapeHtml(loc)}</option>`
+      ).join('');
+
+    loadCharacters();
+    loadEncounterQueue();
+    loadApprovedNames();
+    subscribeToRealtime();
+  }
+
+  async function loadApprovedNames() {
+    if (!TOURNAMENT_ID) return;
+
+    const { data } = await db
+      .from('cc_approved_names')
+      .select('name')
+      .eq('tournament_id', TOURNAMENT_ID)
+      .order('name');
+
+    if (data) {
+      document.getElementById('approved-names').value = data.map(n => n.name).join('\n');
+    }
+  }
+
+  async function loadCharacters() {
+    if (!TOURNAMENT_ID) return;
+
+    const { data } = await db
+      .from('cc_characters')
+      .select('id, character_name, student_name, version, xp, submitted_at')
+      .eq('tournament_id', TOURNAMENT_ID)
+      .eq('is_archived', false)
+      .order('submitted_at', { ascending: false });
+
+    characters = data || [];
+    renderCharacters();
+    renderEncounterQueue();
+  }
+
+  async function loadEncounterQueue() {
+    if (!TOURNAMENT_ID) return;
+
+    const { data } = await db
+      .from('cc_encounter_queue')
+      .select('id, character_a_id, character_b_id, location, position, status')
+      .eq('tournament_id', TOURNAMENT_ID)
+      .order('position', { ascending: true });
+
+    encounterQueue = data || [];
+    renderEncounterQueue();
+  }
+
+  function subscribeToRealtime() {
+    if (!TOURNAMENT_ID) return;
+
+    db.channel('admin-characters-' + TOURNAMENT_ID)
+      .on('postgres_changes', {
+        event: '*', schema: 'code_mob', table: 'cc_characters',
+        filter: `tournament_id=eq.${TOURNAMENT_ID}`,
+      }, () => loadCharacters())
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') setConnStatus('connected');
+        else if (status === 'CHANNEL_ERROR') setConnStatus('disconnected');
+      });
+
+    db.channel('admin-queue-' + TOURNAMENT_ID)
+      .on('postgres_changes', {
+        event: '*', schema: 'code_mob', table: 'cc_encounter_queue',
+        filter: `tournament_id=eq.${TOURNAMENT_ID}`,
+      }, () => loadEncounterQueue())
+      .subscribe();
+
+    db.channel('admin-tournament-' + TOURNAMENT_ID)
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'code_mob', table: 'cc_tournaments',
+        filter: `id=eq.${TOURNAMENT_ID}`,
+      }, (payload) => {
+        const t = payload.new;
+        updatePausedUI(t.paused);
+        continuousToggle.classList.toggle('active', t.continuous);
+      })
+      .subscribe();
+  }
+
+  async function init() {
+    setConnStatus('connecting');
+    await loadTournament();
+  }
+
+  init();
+</script>
+</body>
+</html>

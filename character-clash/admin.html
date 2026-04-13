@@ -500,6 +500,14 @@
                 <span style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--neon-purple);">CURRENT TOURNAMENT</span>
                 <span id="current-tournament-name" style="font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--text);"></span>
               </div>
+              <div class="form-row" style="margin-top:12px;margin-bottom:0;">
+                <label class="label">Locations (comma-separated)</label>
+                <input type="text" id="current-tournament-locations" placeholder="bathroom, cafeteria, cliff, city, airplane">
+              </div>
+              <div class="btn-row">
+                <button class="btn" id="btn-update-locations">UPDATE LOCATIONS</button>
+              </div>
+              <div class="feedback" id="locations-feedback"></div>
             </div>
             <hr style="border:0;border-top:1px solid var(--border);margin:14px 0;">
             <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--text-dim);margin-bottom:10px;">CREATE NEW TOURNAMENT</div>
@@ -816,6 +824,35 @@
     }
   });
 
+  document.getElementById('btn-update-locations').addEventListener('click', async () => {
+    if (!TOURNAMENT_ID) {
+      showFeedback('locations-feedback', 'No active tournament', false);
+      return;
+    }
+
+    const locationsStr = document.getElementById('current-tournament-locations').value;
+    const locations = locationsStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+    if (locations.length === 0) {
+      showFeedback('locations-feedback', 'Enter at least one location', false);
+      return;
+    }
+
+    const data = await adminAction('update_tournament', { locations });
+
+    if (data?.error) {
+      showFeedback('locations-feedback', data.error, false);
+    } else if (data?.ok) {
+      TOURNAMENT_LOCATIONS = locations;
+      const locationSelect = document.getElementById('location-select');
+      locationSelect.innerHTML = '<option value="random">random</option>' +
+        locations.map(loc =>
+          `<option value="${escapeHtml(loc)}">${escapeHtml(loc)}</option>`
+        ).join('');
+      showFeedback('locations-feedback', `Updated ${locations.length} locations`, true);
+    }
+  });
+
   document.getElementById('btn-save-names').addEventListener('click', async () => {
     if (!TOURNAMENT_ID) {
       showFeedback('names-feedback', 'Create a tournament first', false);
@@ -1115,6 +1152,7 @@
 
     currentSection.style.display = 'block';
     document.getElementById('current-tournament-name').textContent = data.name;
+    document.getElementById('current-tournament-locations').value = TOURNAMENT_LOCATIONS.join(', ');
 
     encounterDelaySlider.value = data.encounter_delay_ms || 5000;
     document.getElementById('encounter-delay-value').textContent = data.encounter_delay_ms || 5000;
@@ -1203,6 +1241,15 @@
         const t = payload.new;
         updatePausedUI(t.paused);
         continuousToggle.classList.toggle('active', t.continuous);
+        if (t.locations) {
+          TOURNAMENT_LOCATIONS = t.locations;
+          document.getElementById('current-tournament-locations').value = t.locations.join(', ');
+          const locationSelect = document.getElementById('location-select');
+          locationSelect.innerHTML = '<option value="random">random</option>' +
+            t.locations.map(loc =>
+              `<option value="${escapeHtml(loc)}">${escapeHtml(loc)}</option>`
+            ).join('');
+        }
       })
       .subscribe();
   }

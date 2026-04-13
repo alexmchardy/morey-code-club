@@ -446,7 +446,39 @@
     }
 
     .CodeMirror {
-      height: 280px;
+      min-height: 280px;
+    }
+
+    .editor-signature-row {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    @media (min-width: 1099px) {
+      .editor-signature-row {
+        flex-direction: row-reverse;
+        align-items: stretch;
+      }
+
+      .editor-signature-row .editor-wrap {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .editor-signature-row .signature-wrap {
+        width: min(320px, 38vw);
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+
+      .editor-signature-row .signature-body {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+      }
     }
 
     /* Buttons row */
@@ -610,7 +642,8 @@
           <div class="hint-code" id="hint-optional">setMood("confident")
 setDescription("A brave warrior")
 setBackstory("Grew up in mountains")
-setItems(["sword", "shield"])</div>
+setItems(["sword", "shield"])
+setVoice("deep and heroic")</div>
         </div>
         <div class="hint-item">
           <div class="hint-title">Location-Based</div>
@@ -650,23 +683,25 @@ setItems(["sword", "shield"])</div>
       </div>
     </div>
 
-    <!-- Function signature (reference) -->
-    <div class="signature-wrap">
-      <div class="signature-header">
-        <span class="signature-label">AVAILABLE FUNCTIONS</span>
-        <span class="signature-badge">REFERENCE</span>
+    <div class="editor-signature-row">
+      <!-- Function signature (reference) — stacks above editor on small screens; right of editor on desktop -->
+      <div class="signature-wrap">
+        <div class="signature-header">
+          <span class="signature-label">AVAILABLE FUNCTIONS</span>
+          <span class="signature-badge">REFERENCE</span>
+        </div>
+        <div class="signature-body" id="signature-body">
+        </div>
       </div>
-      <div class="signature-body" id="signature-body">
-      </div>
-    </div>
 
-    <!-- Editor -->
-    <div class="editor-wrap">
-      <div class="editor-header">
-        <span class="editor-hint">Write the body of initializeCharacter(location)</span>
-        <span class="editor-hint">Ctrl+Enter to test</span>
+      <!-- Editor -->
+      <div class="editor-wrap">
+        <div class="editor-header">
+          <span class="editor-hint">Write the body of initializeCharacter(location)</span>
+          <span class="editor-hint">Ctrl+Enter to test</span>
+        </div>
+        <textarea id="code-editor"></textarea>
       </div>
-      <textarea id="code-editor"></textarea>
     </div>
 
     <!-- Buttons -->
@@ -714,7 +749,8 @@ setFullName("The Mighty Hero");
 // setMood("confident");
 // setDescription("A brave warrior");
 // setBackstory("Grew up in the mountains");
-// setItems(["sword", "map"]);`,
+// setItems(["sword", "map"]);
+// setVoice("deep and heroic");`,
     python: `# location is one of: "bathroom", "cafeteria", "cliff", "city", "airplane"
 
 set_full_name("The Mighty Hero")
@@ -723,7 +759,8 @@ set_full_name("The Mighty Hero")
 # set_mood("confident")
 # set_description("A brave warrior")
 # set_backstory("Grew up in the mountains")
-# set_items(["sword", "map"])`
+# set_items(["sword", "map"])
+# set_voice("deep and heroic")`
   };
 
   const SIGNATURES = {
@@ -737,7 +774,8 @@ set_full_name("The Mighty Hero")
 <span class="pc-fn">setMood</span><span class="pc-punct">(</span><span class="pc-string">"string"</span><span class="pc-punct">)</span>         <span class="pc-comment">← optional</span>
 <span class="pc-fn">setDescription</span><span class="pc-punct">(</span><span class="pc-string">"string"</span><span class="pc-punct">)</span>  <span class="pc-comment">← optional</span>
 <span class="pc-fn">setBackstory</span><span class="pc-punct">(</span><span class="pc-string">"string"</span><span class="pc-punct">)</span>    <span class="pc-comment">← optional</span>
-<span class="pc-fn">setItems</span><span class="pc-punct">(</span><span class="pc-string">"item"</span> or <span class="pc-punct">[</span><span class="pc-string">"a"</span>, <span class="pc-string">"b"</span><span class="pc-punct">]</span><span class="pc-punct">)</span> <span class="pc-comment">← optional</span>`,
+<span class="pc-fn">setItems</span><span class="pc-punct">(</span><span class="pc-string">"item"</span> or <span class="pc-punct">[</span><span class="pc-string">"a"</span>, <span class="pc-string">"b"</span><span class="pc-punct">]</span><span class="pc-punct">)</span> <span class="pc-comment">← optional</span>
+<span class="pc-fn">setVoice</span><span class="pc-punct">(</span><span class="pc-string">"string"</span><span class="pc-punct">)</span>        <span class="pc-comment">← optional</span>`,
     python: `<span class="pc-comment"># Your code runs inside:</span>
 <span class="pc-keyword">def</span> <span class="pc-fn">initialize_character</span><span class="pc-punct">(</span><span class="pc-param">location</span><span class="pc-punct">):</span>
   <span class="pc-comment"># your code here...</span>
@@ -747,7 +785,8 @@ set_full_name("The Mighty Hero")
 <span class="pc-fn">set_mood</span><span class="pc-punct">(</span><span class="pc-string">"string"</span><span class="pc-punct">)</span>         <span class="pc-comment">← optional</span>
 <span class="pc-fn">set_description</span><span class="pc-punct">(</span><span class="pc-string">"string"</span><span class="pc-punct">)</span>  <span class="pc-comment">← optional</span>
 <span class="pc-fn">set_backstory</span><span class="pc-punct">(</span><span class="pc-string">"string"</span><span class="pc-punct">)</span>    <span class="pc-comment">← optional</span>
-<span class="pc-fn">set_items</span><span class="pc-punct">(</span><span class="pc-string">"item"</span> or <span class="pc-punct">[</span><span class="pc-string">"a"</span>, <span class="pc-string">"b"</span><span class="pc-punct">]</span><span class="pc-punct">)</span> <span class="pc-comment">← optional</span>`
+<span class="pc-fn">set_items</span><span class="pc-punct">(</span><span class="pc-string">"item"</span> or <span class="pc-punct">[</span><span class="pc-string">"a"</span>, <span class="pc-string">"b"</span><span class="pc-punct">]</span><span class="pc-punct">)</span> <span class="pc-comment">← optional</span>
+<span class="pc-fn">set_voice</span><span class="pc-punct">(</span><span class="pc-string">"string"</span><span class="pc-punct">)</span>        <span class="pc-comment">← optional</span>`
   };
 
   const HINTS_PYTHON = {
@@ -755,7 +794,8 @@ set_full_name("The Mighty Hero")
     optional: `set_mood("confident")
 set_description("A brave warrior")
 set_backstory("Grew up in mountains")
-set_items(["sword", "shield"])`,
+set_items(["sword", "shield"])
+set_voice("deep and heroic")`,
     location: `if location == "cliff":
   set_mood("nervous")
 else:
@@ -767,7 +807,8 @@ else:
     optional: `setMood("confident")
 setDescription("A brave warrior")
 setBackstory("Grew up in mountains")
-setItems(["sword", "shield"])`,
+setItems(["sword", "shield"])
+setVoice("deep and heroic")`,
     location: `if (location === "cliff") {
   setMood("nervous");
 } else {
@@ -979,7 +1020,8 @@ setItems(["sword", "shield"])`,
       mood: null,
       description: null,
       backstory: null,
-      items: null
+      items: null,
+      voice: null
     };
 
     const setFullName = (name) => { characterData.fullName = String(name); };
@@ -993,26 +1035,19 @@ setItems(["sword", "shield"])`,
         characterData.items = [String(items)];
       }
     };
+    const setVoice = (voice) => { characterData.voice = String(voice); };
 
-    const fn = new Function('location', 'setFullName', 'setMood', 'setDescription', 'setBackstory', 'setItems', code);
-    fn(location, setFullName, setMood, setDescription, setBackstory, setItems);
+    const fn = new Function('location', 'setFullName', 'setMood', 'setDescription', 'setBackstory', 'setItems', 'setVoice', code);
+    fn(location, setFullName, setMood, setDescription, setBackstory, setItems, setVoice);
 
     return characterData;
   }
 
   async function testPython(code, location) {
     return new Promise((resolve, reject) => {
-      const characterData = {
-        fullName: null,
-        mood: null,
-        description: null,
-        backstory: null,
-        items: null
-      };
-
       const fullCode = `
 location = ${JSON.stringify(location)}
-_char_data = {"fullName": None, "mood": None, "description": None, "backstory": None, "items": None}
+_char_data = {"fullName": None, "mood": None, "description": None, "backstory": None, "items": None, "voice": None}
 
 def set_full_name(name):
     _char_data["fullName"] = str(name)
@@ -1032,16 +1067,14 @@ def set_items(items):
     else:
         _char_data["items"] = [str(items)]
 
-${code}
+def set_voice(voice):
+    _char_data["voice"] = str(voice)
 
-import json
-print(json.dumps(_char_data))
+${code}
 `;
 
-      let output = '';
-
       Sk.configure({
-        output: (text) => { output += text; },
+        output: () => {},
         read: (filename) => {
           if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][filename] === undefined) {
             throw new Error("File not found: '" + filename + "'");
@@ -1052,9 +1085,10 @@ print(json.dumps(_char_data))
 
       Sk.misceval.asyncToPromise(() => {
         return Sk.importMainWithBody("<stdin>", false, fullCode, true);
-      }).then(() => {
+      }).then((module) => {
         try {
-          const result = JSON.parse(output.trim());
+          const charDataPy = module.$d._char_data;
+          const result = Sk.ffi.remapToJs(charDataPy);
           resolve(result);
         } catch {
           reject(new Error('Failed to parse character data'));

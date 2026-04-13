@@ -756,7 +756,7 @@ ${voicesStr}
 
 Rules:
 1. Write dialogue for a Narrator and both characters. ONLY dialog - no parentheticals or stage directions.
-2. Assign an appropriate voice_id from the AVAILABLE VOICES list to the Narrator and each character
+2. Assign an appropriate voice_id from the AVAILABLE VOICES list to the Narrator and each character. If a character has a "Voice" description, use it as a hint to pick a matching voice from the available voices.
 3. Award XP to each character based on how well they did:
    - Winner: +10 to +20 XP
    - Loser: -5 to +5 XP
@@ -784,7 +784,8 @@ Return ONLY valid JSON in this exact format:
       mood: null,
       description: null,
       backstory: null,
-      items: null
+      items: null,
+      voice: null
     };
 
     if (language === 'js') {
@@ -799,10 +800,11 @@ Return ONLY valid JSON in this exact format:
           characterData.items = [String(items)];
         }
       };
+      const setVoice = (voice) => { characterData.voice = String(voice); };
 
       try {
-        const fn = new Function('location', 'setFullName', 'setMood', 'setDescription', 'setBackstory', 'setItems', code);
-        fn(location, setFullName, setMood, setDescription, setBackstory, setItems);
+        const fn = new Function('location', 'setFullName', 'setMood', 'setDescription', 'setBackstory', 'setItems', 'setVoice', code);
+        fn(location, setFullName, setMood, setDescription, setBackstory, setItems, setVoice);
       } catch (e) {
         console.error('JS execution error:', e);
       }
@@ -810,7 +812,7 @@ Return ONLY valid JSON in this exact format:
       try {
         const fullCode = `
 location = ${JSON.stringify(location)}
-_char_data = {"fullName": None, "mood": None, "description": None, "backstory": None, "items": None}
+_char_data = {"fullName": None, "mood": None, "description": None, "backstory": None, "items": None, "voice": None}
 
 def set_full_name(name):
     _char_data["fullName"] = str(name)
@@ -830,15 +832,14 @@ def set_items(items):
     else:
         _char_data["items"] = [str(items)]
 
-${code}
+def set_voice(voice):
+    _char_data["voice"] = str(voice)
 
-import json
-print(json.dumps(_char_data))
+${code}
 `;
 
-        let output = '';
         Sk.configure({
-          output: (text) => { output += text; },
+          output: () => {},
           read: (filename) => {
             if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][filename] === undefined) {
               throw new Error("File not found: '" + filename + "'");
@@ -847,11 +848,12 @@ print(json.dumps(_char_data))
           },
         });
 
-        await Sk.misceval.asyncToPromise(() => {
+        const module = await Sk.misceval.asyncToPromise(() => {
           return Sk.importMainWithBody("<stdin>", false, fullCode, true);
         });
 
-        const result = JSON.parse(output.trim());
+        const charDataPy = module.$d._char_data;
+        const result = Sk.ffi.remapToJs(charDataPy);
         Object.assign(characterData, result);
       } catch (e) {
         console.error('Python execution error:', e);
@@ -919,6 +921,7 @@ print(json.dumps(_char_data))
 - Description: ${dataA.description || 'No description'}
 - Backstory: ${dataA.backstory || 'Unknown'}
 - Items: ${dataA.items ? dataA.items.join(', ') : 'None'}
+- Voice: ${dataA.voice || 'Not specified'}
 
 CHARACTER B: "${nameB}" (created by ${charB.student_name})
 - Full Name: ${fullNameB}
@@ -926,6 +929,7 @@ CHARACTER B: "${nameB}" (created by ${charB.student_name})
 - Description: ${dataB.description || 'No description'}
 - Backstory: ${dataB.backstory || 'Unknown'}
 - Items: ${dataB.items ? dataB.items.join(', ') : 'None'}
+- Voice: ${dataB.voice || 'Not specified'}
 
 LOCATION: ${location}
 

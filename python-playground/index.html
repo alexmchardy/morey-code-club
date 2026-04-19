@@ -5,9 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Python Playground</title>
   <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
 </head>
 <body>
-  <h1>Test</h1>
-  <p>If you see this with dark background and correct fonts, CSS is working.</p>
+  <div class="app-container">
+    <!-- Project Panel -->
+    <div class="project-panel">
+      <div class="project-header">
+        <select class="project-selector" id="projectSelector">
+          <option value="">No project</option>
+        </select>
+        <h2 class="project-title hidden" id="projectTitle"></h2>
+        <p class="project-description hidden" id="projectDescription"></p>
+      </div>
+      <div class="project-content" id="projectContent">
+        <!-- Steps and hints render here -->
+      </div>
+    </div>
+
+    <!-- Editor Panel -->
+    <div class="editor-panel">
+      <div class="editor-container">
+        <textarea id="codeEditor"># Start coding!</textarea>
+      </div>
+    </div>
+
+    <!-- Terminal Panel -->
+    <div class="terminal-panel">
+      <div class="terminal-header">
+        <button class="terminal-btn run" id="runBtn">RUN</button>
+        <button class="terminal-btn stop hidden" id="stopBtn">STOP</button>
+        <button class="terminal-btn reset" id="resetBtn">RESET</button>
+      </div>
+      <div class="terminal-body" id="terminalBody"></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
 </body>
 </html>

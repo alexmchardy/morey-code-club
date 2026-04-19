@@ -164,8 +164,9 @@
       Sk.configure({
         output: (text) => appendToTerminal(text),
         read: builtinRead,
-        inputfun: () => {
+        inputfun: (prompt) => {
           return new Promise((resolve) => {
+            if (prompt) appendToTerminal(prompt);
             inputResolve = resolve;
             inputBuffer = '';
             showInputCursor();
@@ -191,6 +192,11 @@
     function stopCode() {
       interruptExecution = true;
       isRunning = false;
+      if (inputResolve) {
+        hideInputCursor();
+        inputResolve = null;
+        inputBuffer = '';
+      }
       runBtn.classList.remove('hidden');
       stopBtn.classList.add('hidden');
       appendToTerminal('\n[Execution stopped]', 'terminal-error');

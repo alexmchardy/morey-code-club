@@ -305,14 +305,59 @@
       manualStepStates = {};
     }
 
-    // === STEP DETECTION STUBS (implemented in Task 9) ===
+    // === STEP DETECTION ===
     function detectSteps() {
-      // Stub: will detect auto-steps by analyzing code in Task 9
+      if (!currentProject || !currentProject.steps) return;
+
+      const code = editor.getValue();
+      const stepsList = document.getElementById('stepsList');
+      if (!stepsList) return;
+
+      currentProject.steps.forEach(step => {
+        const li = stepsList.querySelector(`[data-step-id="${step.id}"]`);
+        if (!li) return;
+
+        let isComplete = false;
+
+        if (step.manual) {
+          isComplete = manualStepStates[step.id] || false;
+        } else if (step.detect) {
+          isComplete = step.detect(code);
+        }
+
+        if (isComplete) {
+          li.classList.add('completed');
+        } else {
+          li.classList.remove('completed');
+        }
+      });
     }
 
     function toggleManualStep(stepId) {
-      // Stub: will toggle manual step completion in Task 9
+      manualStepStates[stepId] = !manualStepStates[stepId];
+      saveManualStepStates();
+      detectSteps();
     }
+
+    function saveManualStepStates() {
+      // Stub: will save to localStorage in Task 9
+    }
+
+    let detectTimeout = null;
+
+    function scheduleDetection() {
+      if (detectTimeout) clearTimeout(detectTimeout);
+      detectTimeout = setTimeout(detectSteps, 500);
+    }
+
+    function scheduleSaveCode() {
+      // Stub: will schedule code save in Task 9
+    }
+
+    editor.on('change', () => {
+      scheduleDetection();
+      scheduleSaveCode();
+    });
 
     // === SKULPT CONFIG ===
     function builtinRead(filename) {

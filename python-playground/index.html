@@ -295,14 +295,62 @@
       detectSteps();
     }
 
-    // === PERSISTENCE STUBS (implemented in Task 8) ===
+    // === PERSISTENCE ===
+    let saveCodeTimeout = null;
+
+    function scheduleSaveCode() {
+      if (saveCodeTimeout) clearTimeout(saveCodeTimeout);
+      saveCodeTimeout = setTimeout(saveCode, 1000);
+    }
+
+    function saveCode() {
+      const projectId = currentProject ? currentProject.id : 'sandbox';
+      const key = `pp-code-${projectId}`;
+      try {
+        localStorage.setItem(key, editor.getValue());
+      } catch (e) {
+        console.warn('Failed to save code:', e);
+      }
+    }
+
     function loadSavedCode(projectId) {
-      // Stub: will load code from localStorage in Task 8
+      const key = `pp-code-${projectId}`;
+      try {
+        const saved = localStorage.getItem(key);
+        if (saved !== null) {
+          editor.setValue(saved);
+        } else if (currentProject && currentProject.starterCode) {
+          editor.setValue(currentProject.starterCode);
+        } else {
+          editor.setValue('# Start coding!\n');
+        }
+      } catch (e) {
+        console.warn('Failed to load code:', e);
+        if (currentProject && currentProject.starterCode) {
+          editor.setValue(currentProject.starterCode);
+        }
+      }
+    }
+
+    function saveManualStepStates() {
+      if (!currentProject) return;
+      const key = `pp-steps-${currentProject.id}`;
+      try {
+        localStorage.setItem(key, JSON.stringify(manualStepStates));
+      } catch (e) {
+        console.warn('Failed to save step states:', e);
+      }
     }
 
     function loadManualStepStates(projectId) {
-      // Stub: will load manual step states from localStorage in Task 8
-      manualStepStates = {};
+      const key = `pp-steps-${projectId}`;
+      try {
+        const saved = localStorage.getItem(key);
+        manualStepStates = saved ? JSON.parse(saved) : {};
+      } catch (e) {
+        console.warn('Failed to load step states:', e);
+        manualStepStates = {};
+      }
     }
 
     // === STEP DETECTION ===
@@ -339,19 +387,11 @@
       detectSteps();
     }
 
-    function saveManualStepStates() {
-      // Stub: will save to localStorage in Task 9
-    }
-
     let detectTimeout = null;
 
     function scheduleDetection() {
       if (detectTimeout) clearTimeout(detectTimeout);
       detectTimeout = setTimeout(detectSteps, 500);
-    }
-
-    function scheduleSaveCode() {
-      // Stub: will schedule code save in Task 9
     }
 
     editor.on('change', () => {
@@ -424,8 +464,17 @@
     runBtn.addEventListener('click', runCode);
     stopBtn.addEventListener('click', stopCode);
     resetBtn.addEventListener('click', () => {
-      editor.setValue('# Start coding!\n');
+      if (currentProject) {
+        editor.setValue(currentProject.starterCode || '# Start coding!\n');
+        manualStepStates = {};
+        saveManualStepStates();
+        saveCode();
+      } else {
+        editor.setValue('# Start coding!\n');
+        saveCode();
+      }
       clearTerminal();
+      detectSteps();
     });
     terminalBody.addEventListener('keydown', handleInputKeydown);
 

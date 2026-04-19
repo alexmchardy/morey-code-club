@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Fredoka:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #030310;
+  --surface: #0a0a1e;
+  --surface2: #151530;
+  --border: #2a2a4a;
+  --text: #e8e8f0;
+  --text-dim: #8888a8;
+  --neon-green: #39ff14;
+  --neon-red: #ff4444;
+  --neon-orange: #ff8c00;
+  --neon-purple: #bf00ff;
+  --neon-cyan: #00f5ff;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Fredoka', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Press Start 2P', monospace;
+  font-weight: 400;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Scanline overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    transparent, transparent 3px,
+    rgba(0,0,0,0.03) 3px, rgba(0,0,0,0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}

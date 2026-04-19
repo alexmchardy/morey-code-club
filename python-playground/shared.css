@@ -225,3 +225,16 @@ body::after {
 @keyframes blink {
   50% { opacity: 0; }
 }
+
+/* Terminal input */
+.terminal-body.waiting-input {
+  cursor: text;
+}
+
+.terminal-input-wrapper {
+  display: inline;
+}
+
+.terminal-input-text {
+  color: var(--neon-cyan);
+}

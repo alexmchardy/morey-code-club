@@ -38,7 +38,7 @@
         <button class="terminal-btn stop hidden" id="stopBtn">STOP</button>
         <button class="terminal-btn reset" id="resetBtn">RESET</button>
       </div>
-      <div class="terminal-body" id="terminalBody"></div>
+      <div class="terminal-body" id="terminalBody" tabindex="0"></div>
     </div>
   </div>
 
@@ -50,6 +50,8 @@
     // === STATE ===
     let isRunning = false;
     let interruptExecution = false;
+    let inputResolve = null;
+    let inputBuffer = '';
 
     // === DOM REFS ===
     const editorTextarea = document.getElementById('codeEditor');
@@ -84,6 +86,61 @@
       terminalBody.scrollTop = terminalBody.scrollHeight;
     }
 
+    function showInputCursor() {
+      const wrapper = document.createElement('span');
+      wrapper.className = 'terminal-input-wrapper';
+      wrapper.id = 'inputWrapper';
+
+      const textSpan = document.createElement('span');
+      textSpan.className = 'terminal-input-text';
+      textSpan.id = 'inputText';
+
+      const cursor = document.createElement('span');
+      cursor.className = 'terminal-cursor';
+      cursor.id = 'inputCursor';
+
+      wrapper.appendChild(textSpan);
+      wrapper.appendChild(cursor);
+      terminalBody.appendChild(wrapper);
+      terminalBody.scrollTop = terminalBody.scrollHeight;
+      terminalBody.classList.add('waiting-input');
+      terminalBody.focus();
+    }
+
+    function hideInputCursor() {
+      const wrapper = document.getElementById('inputWrapper');
+      if (wrapper) {
+        const finalText = document.getElementById('inputText').textContent;
+        wrapper.remove();
+        appendToTerminal(finalText + '\n', 'terminal-input-text');
+      }
+      terminalBody.classList.remove('waiting-input');
+    }
+
+    function handleInputKeydown(e) {
+      if (!inputResolve) return;
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const value = inputBuffer;
+        inputBuffer = '';
+        hideInputCursor();
+        inputResolve(value);
+        inputResolve = null;
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        if (inputBuffer.length > 0) {
+          inputBuffer = inputBuffer.slice(0, -1);
+          document.getElementById('inputText').textContent = inputBuffer;
+        }
+      } else if (e.key.length === 1) {
+        e.preventDefault();
+        inputBuffer += e.key;
+        document.getElementById('inputText').textContent = inputBuffer;
+        terminalBody.scrollTop = terminalBody.scrollHeight;
+      }
+    }
+
     // === SKULPT CONFIG ===
     function builtinRead(filename) {
       if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][filename] === undefined) {
@@ -107,6 +164,14 @@
       Sk.configure({
         output: (text) => appendToTerminal(text),
         read: builtinRead,
+        inputfun: () => {
+          return new Promise((resolve) => {
+            inputResolve = resolve;
+            inputBuffer = '';
+            showInputCursor();
+          });
+        },
+        inputfunTakesPrompt: true,
         __future__: Sk.python3,
       });
 
@@ -138,6 +203,7 @@
       editor.setValue('# Start coding!\n');
       clearTerminal();
     });
+    terminalBody.addEventListener('keydown', handleInputKeydown);
   </script>
 </body>
 </html>

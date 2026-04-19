@@ -350,3 +350,84 @@ body::after {
   white-space: pre-wrap;
   overflow-x: auto;
 }
+
+/* === RESPONSIVE === */
+@media (max-width: 1024px) {
+  .app-container {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .project-panel {
+    width: 100%;
+    max-height: 40vh;
+    border-right: none;
+    border-bottom: 2px solid var(--neon-purple);
+  }
+
+  .project-panel.collapsed {
+    max-height: 60px;
+    overflow: hidden;
+  }
+
+  .project-panel.collapsed .project-content {
+    display: none;
+  }
+
+  .project-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .collapse-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .collapse-btn:hover {
+    border-color: var(--neon-purple);
+    color: var(--neon-purple);
+  }
+
+  .editor-panel {
+    min-height: 300px;
+    height: 40vh;
+  }
+
+  .terminal-panel {
+    width: 100%;
+    min-height: 200px;
+    height: 30vh;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 600px) {
+  .project-selector {
+    font-size: 12px;
+  }
+
+  .project-title {
+    font-size: 10px;
+  }
+
+  .terminal-btn {
+    font-size: 8px;
+    padding: 6px 10px;
+  }
+
+  .step-item {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+}

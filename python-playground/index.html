@@ -16,6 +16,7 @@
         <select class="project-selector" id="projectSelector">
           <option value="">No project</option>
         </select>
+        <button class="collapse-btn hidden" id="collapseBtn">▼</button>
         <h2 class="project-title hidden" id="projectTitle"></h2>
         <p class="project-description hidden" id="projectDescription"></p>
       </div>
@@ -393,6 +394,27 @@
       if (detectTimeout) clearTimeout(detectTimeout);
       detectTimeout = setTimeout(detectSteps, 500);
     }
+
+    // === RESPONSIVE ===
+    const collapseBtn = document.getElementById('collapseBtn');
+    const projectPanel = document.querySelector('.project-panel');
+
+    function checkMobile() {
+      if (window.innerWidth <= 1024) {
+        collapseBtn.classList.remove('hidden');
+      } else {
+        collapseBtn.classList.add('hidden');
+        projectPanel.classList.remove('collapsed');
+      }
+    }
+
+    collapseBtn.addEventListener('click', () => {
+      projectPanel.classList.toggle('collapsed');
+      collapseBtn.textContent = projectPanel.classList.contains('collapsed') ? '▶' : '▼';
+    });
+
+    window.addEventListener('resize', checkMobile);
+    checkMobile();
 
     editor.on('change', () => {
       scheduleDetection();

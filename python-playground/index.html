@@ -177,6 +177,7 @@
       if (!projectId) {
         // No project mode
         currentProject = null;
+        document.title = 'Python Playground';
         titleEl.classList.add('hidden');
         descEl.classList.add('hidden');
         contentEl.innerHTML = '';
@@ -188,6 +189,10 @@
       try {
         const module = await import(`./projects/${projectId}.js`);
         currentProject = module.default;
+
+        document.title = currentProject
+          ? `${currentProject.title} — Python Playground`
+          : 'Python Playground';
 
         // Update URL without reload
         const url = new URL(window.location);
@@ -455,6 +460,8 @@
         inputfunTakesPrompt: true,
         __future__: Sk.python3,
       });
+
+      Sk.execLimit = 10000; // 10 second timeout
 
       try {
         await Sk.misceval.asyncToPromise(() => {

@@ -44,9 +44,21 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
   <script>
-    // === EDITOR ===
+    // === STATE ===
+    let isRunning = false;
+    let interruptExecution = false;
+
+    // === DOM REFS ===
     const editorTextarea = document.getElementById('codeEditor');
+    const terminalBody = document.getElementById('terminalBody');
+    const runBtn = document.getElementById('runBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // === EDITOR ===
     const editor = CodeMirror.fromTextArea(editorTextarea, {
       mode: 'python',
       theme: 'material-darker',
@@ -57,9 +69,75 @@
       lineWrapping: true,
       autofocus: true,
     });
-
-    // Ensure editor fills container
     editor.setSize('100%', '100%');
+
+    // === TERMINAL ===
+    function clearTerminal() {
+      terminalBody.innerHTML = '';
+    }
+
+    function appendToTerminal(text, className = 'terminal-output') {
+      const span = document.createElement('span');
+      span.className = className;
+      span.textContent = text;
+      terminalBody.appendChild(span);
+      terminalBody.scrollTop = terminalBody.scrollHeight;
+    }
+
+    // === SKULPT CONFIG ===
+    function builtinRead(filename) {
+      if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][filename] === undefined) {
+        throw "File not found: '" + filename + "'";
+      }
+      return Sk.builtinFiles["files"][filename];
+    }
+
+    // === EXECUTION ===
+    async function runCode() {
+      if (isRunning) return;
+
+      isRunning = true;
+      interruptExecution = false;
+      runBtn.classList.add('hidden');
+      stopBtn.classList.remove('hidden');
+      clearTerminal();
+
+      const code = editor.getValue();
+
+      Sk.configure({
+        output: (text) => appendToTerminal(text),
+        read: builtinRead,
+        __future__: Sk.python3,
+      });
+
+      try {
+        await Sk.misceval.asyncToPromise(() => {
+          return Sk.importMainWithBody("<stdin>", false, code, true);
+        });
+      } catch (err) {
+        appendToTerminal('\n' + err.toString(), 'terminal-error');
+      }
+
+      isRunning = false;
+      runBtn.classList.remove('hidden');
+      stopBtn.classList.add('hidden');
+    }
+
+    function stopCode() {
+      interruptExecution = true;
+      isRunning = false;
+      runBtn.classList.remove('hidden');
+      stopBtn.classList.add('hidden');
+      appendToTerminal('\n[Execution stopped]', 'terminal-error');
+    }
+
+    // === EVENT LISTENERS ===
+    runBtn.addEventListener('click', runCode);
+    stopBtn.addEventListener('click', stopCode);
+    resetBtn.addEventListener('click', () => {
+      editor.setValue('# Start coding!\n');
+      clearTerminal();
+    });
   </script>
 </body>
 </html>

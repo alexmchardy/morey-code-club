@@ -18,8 +18,20 @@ python-playground/
 ├── index.html              # Main application (self-contained)
 ├── shared.css              # Shared styles (Code Club aesthetic)
 ├── projects/
+│   ├── index.js            # Project manifest (list of available projects)
 │   └── snarky-calculator.js   # First project module
 └── README.md               # Notes for adding new projects
+```
+
+### Project Manifest
+
+`projects/index.js` exports a list of available projects for the selector:
+
+```javascript
+export default [
+  { id: 'snarky-calculator', title: 'Snarky Calculator' },
+  // Add new projects here
+];
 ```
 
 ### Tech Stack
@@ -33,7 +45,7 @@ python-playground/
 ### URL Patterns
 
 - `python-playground/?project=snarky-calculator` → loads Snarky Calculator
-- `python-playground/` (no param) → shows error: "No project specified. Try ?project=snarky-calculator"
+- `python-playground/` (no param) → free-form Python sandbox with no project loaded
 
 ## UI Layout
 
@@ -55,10 +67,20 @@ Single-column stacked layout:
 
 | Component | Description |
 |-----------|-------------|
-| Project Panel | Title, step checklist, expandable hints. Purple accent border. |
+| Project Panel | Project selector dropdown at top, then title, step checklist, expandable hints. Purple accent border. |
+| Project Selector | Dropdown with "No project" as default plus available projects. Changing selection updates URL and loads project. |
 | Editor | CodeMirror with Python mode, line numbers, syntax highlighting. |
 | Terminal Header | Run (green), Stop (red, shown when running), Reset (orange) buttons. |
 | Terminal Body | Monospace output. Shows print() output, input() prompts with blinking cursor. |
+
+### No Project Mode
+
+When "No project" is selected (or no query param):
+- Project panel shows only the selector dropdown
+- Steps and hints sections are hidden
+- Editor starts empty (or with a simple `# Start coding!` comment)
+- Full editor and terminal functionality available
+- Code still auto-saves to localStorage (key: `pp-code-sandbox`)
 
 ## Project Module API
 
@@ -209,8 +231,7 @@ When `input()` is called:
 ### Error Handling
 
 - Invalid localStorage data → fall back to defaults
-- Project not found → show error with suggestion
-- No query param → show error with example URL
+- Project not found → show error in project panel, fall back to sandbox mode
 
 ## Visual Style
 

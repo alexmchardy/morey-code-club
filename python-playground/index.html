@@ -44,5 +44,22 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <script>
+    // === EDITOR ===
+    const editorTextarea = document.getElementById('codeEditor');
+    const editor = CodeMirror.fromTextArea(editorTextarea, {
+      mode: 'python',
+      theme: 'material-darker',
+      lineNumbers: true,
+      indentUnit: 4,
+      tabSize: 4,
+      indentWithTabs: false,
+      lineWrapping: true,
+      autofocus: true,
+    });
+
+    // Ensure editor fills container
+    editor.setSize('100%', '100%');
+  </script>
 </body>
 </html>

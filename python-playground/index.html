@@ -52,6 +52,8 @@
     let interruptExecution = false;
     let inputResolve = null;
     let inputBuffer = '';
+    let currentProject = null;
+    let manualStepStates = {};
 
     // === DOM REFS ===
     const editorTextarea = document.getElementById('codeEditor');
@@ -141,6 +143,177 @@
       }
     }
 
+    // === PROJECTS ===
+    async function loadProjectManifest() {
+      try {
+        const manifest = await import('./projects/index.js');
+        const selector = document.getElementById('projectSelector');
+
+        manifest.default.forEach(proj => {
+          const option = document.createElement('option');
+          option.value = proj.id;
+          option.textContent = proj.title;
+          selector.appendChild(option);
+        });
+
+        // Check URL for project param
+        const params = new URLSearchParams(window.location.search);
+        const projectId = params.get('project');
+        if (projectId) {
+          selector.value = projectId;
+          await loadProject(projectId);
+        }
+      } catch (err) {
+        console.error('Failed to load project manifest:', err);
+      }
+    }
+
+    async function loadProject(projectId) {
+      const titleEl = document.getElementById('projectTitle');
+      const descEl = document.getElementById('projectDescription');
+      const contentEl = document.getElementById('projectContent');
+
+      if (!projectId) {
+        // No project mode
+        currentProject = null;
+        titleEl.classList.add('hidden');
+        descEl.classList.add('hidden');
+        contentEl.innerHTML = '';
+        editor.setValue('# Start coding!\n');
+        loadSavedCode('sandbox');
+        return;
+      }
+
+      try {
+        const module = await import(`./projects/${projectId}.js`);
+        currentProject = module.default;
+
+        // Update URL without reload
+        const url = new URL(window.location);
+        url.searchParams.set('project', projectId);
+        window.history.pushState({}, '', url);
+
+        // Show project info
+        titleEl.textContent = currentProject.title;
+        titleEl.classList.remove('hidden');
+
+        if (currentProject.description) {
+          descEl.textContent = currentProject.description;
+          descEl.classList.remove('hidden');
+        } else {
+          descEl.classList.add('hidden');
+        }
+
+        // Load saved state
+        loadManualStepStates(projectId);
+        loadSavedCode(projectId);
+
+        // Render steps and hints
+        renderProjectContent();
+
+      } catch (err) {
+        console.error('Failed to load project:', err);
+        contentEl.innerHTML = `<p class="terminal-error">Project not found: ${projectId}</p>`;
+        currentProject = null;
+      }
+    }
+
+    function renderProjectContent() {
+      const contentEl = document.getElementById('projectContent');
+      contentEl.innerHTML = '';
+
+      if (!currentProject) return;
+
+      // Render steps
+      if (currentProject.steps && currentProject.steps.length > 0) {
+        const stepsSection = document.createElement('div');
+        stepsSection.className = 'steps-section';
+        stepsSection.innerHTML = '<h3 class="section-title">Steps</h3>';
+
+        const stepsList = document.createElement('ul');
+        stepsList.className = 'steps-list';
+        stepsList.id = 'stepsList';
+
+        currentProject.steps.forEach((step, index) => {
+          const li = document.createElement('li');
+          li.className = 'step-item';
+          li.dataset.stepId = step.id;
+
+          const checkbox = document.createElement('span');
+          checkbox.className = 'step-checkbox';
+
+          const text = document.createElement('span');
+          text.className = 'step-text';
+          text.textContent = step.text;
+
+          if (step.manual) {
+            li.classList.add('manual');
+            li.addEventListener('click', () => toggleManualStep(step.id));
+          } else {
+            const badge = document.createElement('span');
+            badge.className = 'step-badge';
+            badge.textContent = 'auto';
+            li.appendChild(badge);
+          }
+
+          li.insertBefore(checkbox, li.firstChild);
+          li.appendChild(text);
+          stepsList.appendChild(li);
+        });
+
+        stepsSection.appendChild(stepsList);
+        contentEl.appendChild(stepsSection);
+      }
+
+      // Render hints
+      if (currentProject.hints && currentProject.hints.length > 0) {
+        const hintsSection = document.createElement('div');
+        hintsSection.className = 'hints-section';
+        hintsSection.innerHTML = '<h3 class="section-title">Hints</h3>';
+
+        currentProject.hints.forEach((hint, index) => {
+          const hintEl = document.createElement('details');
+          hintEl.className = 'hint-item';
+
+          const summary = document.createElement('summary');
+          summary.className = 'hint-title';
+          summary.textContent = hint.title;
+
+          const content = document.createElement('pre');
+          content.className = 'hint-content';
+          content.textContent = hint.content;
+
+          hintEl.appendChild(summary);
+          hintEl.appendChild(content);
+          hintsSection.appendChild(hintEl);
+        });
+
+        contentEl.appendChild(hintsSection);
+      }
+
+      // Initial step detection
+      detectSteps();
+    }
+
+    // === PERSISTENCE STUBS (implemented in Task 8) ===
+    function loadSavedCode(projectId) {
+      // Stub: will load code from localStorage in Task 8
+    }
+
+    function loadManualStepStates(projectId) {
+      // Stub: will load manual step states from localStorage in Task 8
+      manualStepStates = {};
+    }
+
+    // === STEP DETECTION STUBS (implemented in Task 9) ===
+    function detectSteps() {
+      // Stub: will detect auto-steps by analyzing code in Task 9
+    }
+
+    function toggleManualStep(stepId) {
+      // Stub: will toggle manual step completion in Task 9
+    }
+
     // === SKULPT CONFIG ===
     function builtinRead(filename) {
       if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][filename] === undefined) {
@@ -210,6 +383,13 @@
       clearTerminal();
     });
     terminalBody.addEventListener('keydown', handleInputKeydown);
+
+    document.getElementById('projectSelector').addEventListener('change', (e) => {
+      loadProject(e.target.value);
+    });
+
+    // Initialize
+    loadProjectManifest();
   </script>
 </body>
 </html>

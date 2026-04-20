@@ -704,6 +704,25 @@ Don't be a prude, but if asked something inappropriate, decline and make a snark
       document.getElementById('introModalOverlay').classList.add('hidden');
     }
 
+    /**
+     * Close stacked overlays when Escape is pressed.
+     * @param e Keyboard event
+     */
+    function handleModalEscape(e) {
+      if (e.key !== 'Escape') return;
+      const intro = document.getElementById('introModalOverlay');
+      const voice = document.getElementById('voicePopupOverlay');
+      if (!intro.classList.contains('hidden')) {
+        hideProjectIntro();
+        e.preventDefault();
+        return;
+      }
+      if (!voice.classList.contains('hidden')) {
+        hideVoicePopup();
+        e.preventDefault();
+      }
+    }
+
     // === KONAMI CODE ===
     function handleKonamiKey(e) {
       const now = Date.now();
@@ -958,6 +977,7 @@ Don't be a prude, but if asked something inappropriate, decline and make a snark
       if (e.target === e.currentTarget) hideProjectIntro();
     });
     document.getElementById('showIntroBtn').addEventListener('click', showProjectIntro);
+    document.addEventListener('keydown', handleModalEscape);
 
     // Initialize
     fetchAvailableVoices();

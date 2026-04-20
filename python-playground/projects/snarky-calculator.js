@@ -34,13 +34,17 @@ export default {
   hints: [
     {
       title: 'Getting input',
-      content: `a = input("First number: ")
+      content: `input( ) asks the user a question in the console, waits for them to type and press Enter, then puts what they typed into the variable on the left of the =.
+
+a = input("First number: ")
 action = input("Operator: ")
 b = input("Second number: ")`
     },
     {
       title: 'Doing math',
-      content: `if action == "+":
+      content: `input() gives you a string. You need int( ) around each value to turn the string into a number before you can do math.
+
+if action == "+":
     answer = int(a) + int(b)
 elif action == "-":
     answer = int(a) - int(b)`
@@ -51,6 +55,14 @@ elif action == "-":
     print("Too easy, dummy!")
 elif answer > 100:
     print("Wow, big number!")`
+    },
+    {
+      title: 'While loop',
+      content: `Put a while True: at the top (same indent as your other code at column 0), then indent everything else one level so it runs over and over:
+
+while True:
+    a = input("First number: ")
+    # ... rest of your calculator, all indented inside the loop`
     },
   ],
 

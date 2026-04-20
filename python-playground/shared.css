@@ -59,8 +59,8 @@ body::after {
 
 /* === PROJECT PANEL === */
 .project-panel {
-  width: 280px;
-  min-width: 240px;
+  width: 380px;
+  min-width: 340px;
   background: var(--surface);
   border-right: 2px solid var(--neon-purple);
   display: flex;

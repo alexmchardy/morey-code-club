@@ -14,7 +14,7 @@
     <div class="project-panel">
       <div class="project-header">
         <select class="project-selector" id="projectSelector">
-          <option value="">No project</option>
+          <option value="">Blank</option>
         </select>
         <button class="collapse-btn hidden" id="collapseBtn">▼</button>
         <h2 class="project-title hidden" id="projectTitle"></h2>
@@ -64,6 +64,41 @@
     const resetBtn = document.getElementById('resetBtn');
 
     // === EDITOR ===
+    /**
+     * Use spaces for Tab so Python never sees mixed tabs and spaces from this key.
+     * @param cm CodeMirror instance
+     */
+    function insertSpacesTab(cm) {
+      if (cm.somethingSelected()) {
+        cm.indentSelection('add');
+      } else {
+        const unit = cm.getOption('indentUnit') || 4;
+        cm.replaceSelection(' '.repeat(unit), 'end', '+input');
+      }
+    }
+
+    /**
+     * When every character before the cursor on this line is whitespace (and
+     * there is at least one), delete back to the previous indent column
+     * (indentUnit tab stops). Otherwise defer to CodeMirror default handling.
+     * @param cm CodeMirror instance
+     */
+    function dedentWhitespaceBeforeCursor(cm) {
+      const cur = cm.getCursor();
+      const line = cm.getLine(cur.line);
+      const ch = cur.ch;
+      if (ch === 0) return CodeMirror.Pass;
+      const prefix = line.slice(0, ch);
+      if (!/^\s+$/.test(prefix)) return CodeMirror.Pass;
+      const indentUnit = cm.getOption('indentUnit') || 4;
+      const targetCh = Math.floor((ch - 1) / indentUnit) * indentUnit;
+      if (targetCh >= ch) return CodeMirror.Pass;
+      const from = { line: cur.line, ch: targetCh };
+      const to = { line: cur.line, ch };
+      cm.replaceRange('', from, to);
+      cm.setCursor({ line: cur.line, ch: targetCh });
+    }
+
     const editor = CodeMirror.fromTextArea(editorTextarea, {
       mode: 'python',
       theme: 'material-darker',
@@ -73,6 +108,11 @@
       indentWithTabs: false,
       lineWrapping: true,
       autofocus: true,
+      extraKeys: {
+        Tab: insertSpacesTab,
+        Backspace: dedentWhitespaceBeforeCursor,
+        'Shift-Tab': 'indentLess',
+      },
     });
     editor.setSize('100%', '100%');
 
@@ -175,7 +215,7 @@
       const contentEl = document.getElementById('projectContent');
 
       if (!projectId) {
-        // No project mode
+        // Blank mode
         currentProject = null;
         document.title = 'Python Playground';
         titleEl.classList.add('hidden');

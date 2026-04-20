@@ -3,6 +3,30 @@ export default {
   title: 'Snarky Calculator',
   description: 'Build a calculator that insults you!',
 
+  intro: `
+    <p class="subtitle">The computer is better than you at math, dummy!</p>
+    <h3>Your mission</h3>
+    <p>Build a calculator that can add, subtract, multiply, and divide. It also makes random snarky remarks and insults you based on what you ask it to do (dummy!).</p>
+    <h3>What it does</h3>
+    <p>It's like a regular calculator, dummy! You enter a number, then a math operator (<code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>), then another number.</p>
+    <ol>
+      <li>Enter a number</li>
+      <li>Enter a math operator (<code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>)</li>
+      <li>Enter another number</li>
+      <li>It prints the answer</li>
+      <li>Then it prints a totally unnecessary insult or snarky remark depending on the answer</li>
+    </ol>
+    <h3>Example usage</h3>
+    <div class="example-box">
+      <span class="input">2</span><br>
+      <span class="input">+</span><br>
+      <span class="input">3</span><br>
+      <span class="output">=</span><br>
+      <span class="output">5</span><br>
+      <span class="snark">C'mon! You can do that in your head, dummy!</span>
+    </div>
+  `,
+
   steps: [
     {
       id: 'get-inputs',

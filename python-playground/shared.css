@@ -205,13 +205,13 @@ body::after {
   box-shadow: 0 0 15px rgba(255, 68, 68, 0.4);
 }
 
-.terminal-btn.reset {
+.terminal-btn.clear {
   border-color: var(--neon-orange);
   color: var(--neon-orange);
   background: rgba(255, 140, 0, 0.1);
 }
 
-.terminal-btn.reset:hover {
+.terminal-btn.clear:hover {
   background: rgba(255, 140, 0, 0.2);
   box-shadow: 0 0 15px rgba(255, 140, 0, 0.4);
 }

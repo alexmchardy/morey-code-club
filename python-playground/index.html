@@ -90,7 +90,7 @@
       <div class="terminal-header">
         <button class="terminal-btn run" id="runBtn">RUN</button>
         <button class="terminal-btn stop hidden" id="stopBtn">STOP</button>
-        <button class="terminal-btn reset" id="resetBtn">RESET</button>
+        <button class="terminal-btn clear" id="clearBtn">CLEAR</button>
       </div>
       <div class="terminal-body" id="terminalBody" tabindex="0"></div>
     </div>
@@ -190,7 +190,7 @@ Don't be a prude, but if asked something inappropriate, decline and make a snark
     const terminalBody = document.getElementById('terminalBody');
     const runBtn = document.getElementById('runBtn');
     const stopBtn = document.getElementById('stopBtn');
-    const resetBtn = document.getElementById('resetBtn');
+    const clearBtn = document.getElementById('clearBtn');
 
     // === EDITOR ===
     /**
@@ -910,7 +910,7 @@ Don't be a prude, but if asked something inappropriate, decline and make a snark
       });
 
       registerSpecialBuiltins();
-      Sk.execLimit = 20000; // 10 second timeout
+      Sk.execLimit = 120000; // 2 minute timeout
 
       try {
         await Sk.misceval.asyncToPromise(() => {
@@ -941,18 +941,8 @@ Don't be a prude, but if asked something inappropriate, decline and make a snark
     // === EVENT LISTENERS ===
     runBtn.addEventListener('click', runCode);
     stopBtn.addEventListener('click', stopCode);
-    resetBtn.addEventListener('click', () => {
-      if (currentProject) {
-        editor.setValue(currentProject.starterCode || '# Start coding!\n');
-        manualStepStates = {};
-        saveManualStepStates();
-        saveCode();
-      } else {
-        editor.setValue('# Start coding!\n');
-        saveCode();
-      }
+    clearBtn.addEventListener('click', () => {
       clearTerminal();
-      detectSteps();
     });
     terminalBody.addEventListener('keydown', handleInputKeydown);
 

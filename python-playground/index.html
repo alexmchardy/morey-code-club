@@ -38,13 +38,13 @@
           </div>
           <div class="special-func">
             <code>say(text)</code>
-            <span class="special-func-desc">Speak text aloud (30s cooldown, 300 char max)</span>
+            <span class="special-func-desc">Speak text aloud (100 wpm limit, 500 char max)</span>
           </div>
         </div>
         <div id="aiAskHint" class="hidden">
           <div class="special-func">
             <code>ask_ai(text)</code>
-            <span class="special-func-desc">Ask AI a question and get an answer (10s cooldown, 2000 char max)</span>
+            <span class="special-func-desc">Ask AI a question and get an answer (200 wpm limit, 2000 char max)</span>
           </div>
         </div>
       </div>
@@ -152,13 +152,36 @@
     let availableVoices = [...FALLBACK_VOICES];
     let currentVoiceId = 'YOq2y2Up4RgXP2HyXjE5'; // Default: Announcer
 
-    // === RATE LIMITING ===
-    let lastSayTime = 0;
-    let lastAiAskTime = 0;
-    const SAY_COOLDOWN_MS = 30000;
-    const AI_ASK_COOLDOWN_MS = 10000;
-    const SAY_MAX_CHARS = 300;
+    // === RATE LIMITING (Leaky Bucket) ===
+    const SAY_WPM = 100;
+    const AI_ASK_WPM = 200;
+    const SAY_MAX_CHARS = 500;
     const AI_ASK_MAX_CHARS = 2000;
+
+    // Bucket state: words in bucket and last update time
+    let sayBucketWords = 0;
+    let sayBucketLastUpdate = Date.now();
+    let aiAskBucketWords = 0;
+    let aiAskBucketLastUpdate = Date.now();
+
+    function countWords(text) {
+      return String(text).trim().split(/\s+/).filter(w => w.length > 0).length;
+    }
+
+    function updateBucket(bucketWords, lastUpdate, wpm) {
+      const now = Date.now();
+      const elapsedMs = now - lastUpdate;
+      const leakedWords = (elapsedMs / 60000) * wpm;
+      const newBucketWords = Math.max(0, bucketWords - leakedWords);
+      return { words: newBucketWords, timestamp: now };
+    }
+
+    function getWaitTimeMs(bucketWords, wordsToAdd, wpm) {
+      const totalWords = bucketWords + wordsToAdd;
+      if (totalWords <= 0) return 0;
+      const minutesToWait = totalWords / wpm;
+      return Math.ceil(minutesToWait * 60000);
+    }
 
     // === AI SYSTEM PROMPT ===
     const AI_ASK_SYSTEM_PROMPT = `You are a snarky and sarcastic AI assistant responding to a Morey Middle School Code Club student.
@@ -174,8 +197,6 @@ Don't be a prude, but if asked something inappropriate, decline and make a snark
 
     // === COOLDOWN UI ===
     let cooldownIntervalId = null;
-    let sayCooldownEnd = 0;
-    let aiAskCooldownEnd = 0;
 
     // === STATE ===
     let isRunning = false;
@@ -636,9 +657,17 @@ Don't be a prude, but if asked something inappropriate, decline and make a snark
     // === COOLDOWN UI ===
     function updateCooldownBar() {
       const bar = document.getElementById('cooldownBar');
-      const now = Date.now();
-      const sayRemaining = Math.max(0, Math.ceil((sayCooldownEnd - now) / 1000));
-      const aiAskRemaining = Math.max(0, Math.ceil((aiAskCooldownEnd - now) / 1000));
+
+      // Update buckets to get current state
+      const sayState = updateBucket(sayBucketWords, sayBucketLastUpdate, SAY_WPM);
+      const aiAskState = updateBucket(aiAskBucketWords, aiAskBucketLastUpdate, AI_ASK_WPM);
+
+      // Calculate remaining wait time for each bucket (time to drain to 0)
+      const sayWaitMs = getWaitTimeMs(sayState.words, 0, SAY_WPM);
+      const aiAskWaitMs = getWaitTimeMs(aiAskState.words, 0, AI_ASK_WPM);
+
+      const sayRemaining = Math.ceil(sayWaitMs / 1000);
+      const aiAskRemaining = Math.ceil(aiAskWaitMs / 1000);
 
       if (sayRemaining <= 0 && aiAskRemaining <= 0) {
         bar.classList.add('hidden');
@@ -651,8 +680,8 @@ Don't be a prude, but if asked something inappropriate, decline and make a snark
       }
 
       const parts = [];
-      if (sayRemaining > 0) parts.push(`say ${sayRemaining}...`);
-      if (aiAskRemaining > 0) parts.push(`ask_ai ${aiAskRemaining}...`);
+      if (sayRemaining > 0) parts.push(`say ${sayRemaining}s (~${Math.ceil(sayState.words)}w)`);
+      if (aiAskRemaining > 0) parts.push(`ask_ai ${aiAskRemaining}s (~${Math.ceil(aiAskState.words)}w)`);
 
       bar.textContent = parts.join('  ');
       bar.classList.remove('hidden');
@@ -766,19 +795,26 @@ Don't be a prude, but if asked something inappropriate, decline and make a snark
         }
       });
 
-      // say(text) - Text to speech
+      // say(text) - Text to speech with leaky bucket rate limiting (100 wpm)
       Sk.builtins['say'] = new Sk.builtin.func(function(textArg) {
         const text = Sk.ffi.remapToJs(textArg);
         return Sk.misceval.promiseToSuspension(
           (async () => {
-            const now = Date.now();
-            const remaining = sayCooldownEnd - now;
-            if (remaining > 0) {
+            const truncated = String(text).slice(0, SAY_MAX_CHARS);
+            const wordCount = countWords(truncated);
+
+            // Update bucket state (leak words based on elapsed time)
+            const state = updateBucket(sayBucketWords, sayBucketLastUpdate, SAY_WPM);
+            sayBucketWords = state.words;
+            sayBucketLastUpdate = state.timestamp;
+
+            // Check if we need to wait
+            if (sayBucketWords > 0) {
+              const waitMs = getWaitTimeMs(sayBucketWords, 0, SAY_WPM);
               startCooldownTimer();
-              return new Sk.builtin.str(`[say] Cooldown: wait ${Math.ceil(remaining / 1000)} seconds`);
+              return new Sk.builtin.str(`[say] Rate limited: wait ${Math.ceil(waitMs / 1000)} seconds`);
             }
 
-            const truncated = String(text).slice(0, SAY_MAX_CHARS);
             if (!ELEVENLABS_API_KEY) {
               return new Sk.builtin.str('[say] No API key configured');
             }
@@ -810,7 +846,9 @@ Don't be a prude, but if asked something inappropriate, decline and make a snark
               const audio = new Audio(audioUrl);
               await audio.play();
 
-              sayCooldownEnd = Date.now() + SAY_COOLDOWN_MS;
+              // Add words to bucket after successful call
+              sayBucketWords += wordCount;
+              sayBucketLastUpdate = Date.now();
               startCooldownTimer();
 
               return new Sk.builtin.str('');
@@ -821,19 +859,26 @@ Don't be a prude, but if asked something inappropriate, decline and make a snark
         );
       });
 
-      // ask_ai(text) - Ask AI a question
+      // ask_ai(text) - Ask AI a question with leaky bucket rate limiting (200 wpm)
       Sk.builtins['ask_ai'] = new Sk.builtin.func(function(textArg) {
         const text = Sk.ffi.remapToJs(textArg);
         return Sk.misceval.promiseToSuspension(
           (async () => {
-            const now = Date.now();
-            const remaining = aiAskCooldownEnd - now;
-            if (remaining > 0) {
+            const truncated = String(text).slice(0, AI_ASK_MAX_CHARS);
+            const wordCount = countWords(truncated);
+
+            // Update bucket state (leak words based on elapsed time)
+            const state = updateBucket(aiAskBucketWords, aiAskBucketLastUpdate, AI_ASK_WPM);
+            aiAskBucketWords = state.words;
+            aiAskBucketLastUpdate = state.timestamp;
+
+            // Check if we need to wait
+            if (aiAskBucketWords > 0) {
+              const waitMs = getWaitTimeMs(aiAskBucketWords, 0, AI_ASK_WPM);
               startCooldownTimer();
-              return new Sk.builtin.str(`[ask_ai] Cooldown: wait ${Math.ceil(remaining / 1000)} seconds`);
+              return new Sk.builtin.str(`[ask_ai] Rate limited: wait ${Math.ceil(waitMs / 1000)} seconds`);
             }
 
-            const truncated = String(text).slice(0, AI_ASK_MAX_CHARS);
             if (!CEREBRAS_API_KEY || CEREBRAS_API_KEY === 'csk-PLACEHOLDER') {
               return new Sk.builtin.str('[ask_ai] No API key configured');
             }
@@ -862,7 +907,9 @@ Don't be a prude, but if asked something inappropriate, decline and make a snark
               const data = await response.json();
               const answer = data.choices?.[0]?.message?.content || 'No response';
 
-              aiAskCooldownEnd = Date.now() + AI_ASK_COOLDOWN_MS;
+              // Add words to bucket after successful call
+              aiAskBucketWords += wordCount;
+              aiAskBucketLastUpdate = Date.now();
               startCooldownTimer();
 
               return new Sk.builtin.str(answer);

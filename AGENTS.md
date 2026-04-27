@@ -13,7 +13,8 @@ Central hub that links to interactive games and coding projects for club members
 ## Tech Stack
 
 - Pure HTML/CSS/JavaScript — no build tools, no bundler, no package manager
-- **CodeMirror 5.65.16** — embedded code editor (used in Kookie Klicker and M-Dash)
+- **CodeMirror 5.65.16** — embedded code editor (Kookie Klicker, M-Dash, RPS Arena, Character Clash, Python Playground)
+- **Skulpt** — Python execution in the browser (RPS Arena, Character Clash, Python Playground)
 - **Google Fonts** — Press Start 2P, Share Tech Mono, Fredoka (retro gaming aesthetic)
 - **GitHub Pages** — static hosting, deploy by pushing to `main`
 
@@ -41,6 +42,13 @@ Central hub that links to interactive games and coding projects for club members
 │   ├── room.html           # Battle arena display — animated encounter narration
 │   ├── admin.html          # Admin interface — tournament and encounter management
 │   └── shared.css          # Shared styles for all Character Clash pages
+├── python-playground/      # Python Playground (see below)
+│   ├── index.html          # Main playground with editor and terminal
+│   ├── shared.css          # Styles for the playground
+│   └── projects/           # Project modules (JS files)
+│       ├── index.js        # Project manifest
+│       ├── snarky-calculator.js
+│       └── guess-again.js
 ├── assets/
 │   ├── css/style.css       # Main shared styles
 │   ├── css/cards.css       # Card component styles
@@ -112,6 +120,39 @@ Key tables in the `code_mob` schema:
 - `cc_characters` — Student-submitted character code with versioning
 - `cc_encounter_queue` — Pending/playing/completed encounters
 - `cc_approved_names` — Whitelist of student names per tournament
+
+## Python Playground
+
+A browser-based Python coding environment with guided projects. Students write Python code in an editor with syntax highlighting, run it in a simulated terminal, and follow step-by-step project guides.
+
+### How It Works
+
+1. **Students** select a project from the dropdown (or use `?project=<id>` URL param)
+2. **Project intro modal** explains the goal and shows an example
+3. **Steps panel** tracks progress — some steps auto-detect code patterns, others are manual checkboxes
+4. **Hints** provide expandable code snippets when students get stuck
+5. **Code persists** in localStorage per project
+
+### Tech Stack
+
+- **Skulpt** — Python execution in the browser
+- **CodeMirror 5.65.16** — Code editor with Python syntax highlighting
+- **ElevenLabs API** — TTS for `say()` function (Konami code unlock)
+- **Cerebras API** — LLM for `ask_ai()` function (Konami code unlock)
+
+### Adding Projects
+
+Projects are ES modules in `python-playground/projects/`. Each exports an object with:
+
+- `id` — URL-safe identifier
+- `title` — Display name
+- `description` — Short tagline
+- `intro` — HTML for the intro modal
+- `steps` — Array of step objects with `id`, `text`, and either `detect(code)` function or `manual: true`
+- `hints` — Array of hint objects with `title` and `content` (code snippets)
+- `starterCode` — Initial editor content
+
+Add new projects to the manifest in `python-playground/projects/index.js`.
 
 ## Conventions
 

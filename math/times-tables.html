@@ -1,0 +1,1573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Times Tables</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cause&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0a2e;
+      --surface: #141450;
+      --surface-light: #1e1e6e;
+      --accent: #00e5ff;
+      --accent-dim: rgba(0, 229, 255, 0.25);
+      --accent-pink: #ff4fa3;
+      --accent-yellow: #ffe14d;
+      --accent-green: #3ddc84;
+      --accent-red: #ff4444;
+      --text: #e0e0f0;
+      --text-dim: #8888bb;
+      --border: rgba(0, 229, 255, 0.2);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Cause', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 30px 16px;
+    }
+
+    .app {
+      width: 520px;
+      max-width: 100%;
+    }
+
+    h1 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 20px;
+      color: var(--accent);
+      text-shadow: 0 0 12px var(--accent), 0 0 30px rgba(0, 229, 255, 0.3);
+      text-align: center;
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+
+    h2 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 13px;
+      color: var(--accent-pink);
+      text-shadow: 0 0 8px rgba(255, 79, 163, 0.4);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ── NAME ── */
+
+    .name-section {
+      margin-bottom: 28px;
+    }
+
+    .name-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .name-input {
+      font-family: 'Cause', sans-serif;
+      font-size: 18px;
+      flex: 1;
+      padding: 10px 14px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .name-input:focus {
+      border-color: var(--accent);
+    }
+    .name-input::placeholder {
+      color: var(--text-dim);
+      opacity: 0.6;
+    }
+
+    .saved-names {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .name-chip {
+      font-family: 'Cause', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      background: var(--surface);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .name-chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .name-chip.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .greeting {
+      font-size: 18px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .greeting strong {
+      color: var(--accent);
+    }
+
+    body.light .name-input {
+      background: #fff;
+      border-color: rgba(0,0,0,0.15);
+      color: #2d2d2d;
+    }
+    body.light .name-input::placeholder {
+      color: #aaa;
+    }
+    body.light .name-chip {
+      background: #fff;
+      border-color: rgba(0,0,0,0.12);
+      color: #888;
+    }
+    body.light .name-chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    body.light .name-chip.active {
+      background: rgba(33, 150, 243, 0.1);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    body.light .greeting strong {
+      color: #f57f17;
+    }
+
+    /* ── SETUP ── */
+
+    .section-label {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .table-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+
+    .table-btn {
+      font-family: 'Cause', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      padding: 12px 0;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .table-btn:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+    .table-btn.selected {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+    }
+
+    .mode-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .mode-btn {
+      font-family: 'Cause', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      flex: 1;
+      padding: 12px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .mode-btn:hover {
+      border-color: var(--accent-pink);
+      color: var(--text);
+    }
+    .mode-btn.selected {
+      background: rgba(255, 79, 163, 0.15);
+      border-color: var(--accent-pink);
+      color: var(--accent-pink);
+    }
+
+    .mode-config {
+      margin-bottom: 28px;
+      min-height: 50px;
+    }
+
+    .mode-config label {
+      display: block;
+      font-size: 14px;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+
+    .mode-config input[type="number"] {
+      font-family: 'Cause', sans-serif;
+      font-size: 20px;
+      width: 100px;
+      padding: 8px 12px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      text-align: center;
+      outline: none;
+    }
+    .mode-config input[type="number"]:focus {
+      border-color: var(--accent);
+    }
+
+    .time-options {
+      display: flex;
+      gap: 8px;
+    }
+
+    .time-btn {
+      font-family: 'Cause', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 10px 18px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .time-btn:hover {
+      border-color: var(--accent-yellow);
+      color: var(--text);
+    }
+    .time-btn.selected {
+      background: rgba(255, 225, 77, 0.12);
+      border-color: var(--accent-yellow);
+      color: var(--accent-yellow);
+    }
+
+    .start-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 14px;
+      width: 100%;
+      padding: 18px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent-pink), #c0399e);
+      color: #fff;
+      cursor: pointer;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      transition: transform 0.1s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(255, 79, 163, 0.35);
+    }
+    .start-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px rgba(255, 79, 163, 0.5);
+    }
+    .start-btn:active {
+      transform: translateY(0);
+    }
+    .start-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .select-shortcuts {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .shortcut-btn {
+      font-family: 'Cause', sans-serif;
+      font-size: 12px;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .shortcut-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── PRACTICE ── */
+
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 10px 14px;
+      background: var(--surface);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .hud-item {
+      text-align: center;
+    }
+    .hud-label {
+      font-size: 10px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 2px;
+    }
+    .hud-value {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 14px;
+      color: var(--accent);
+    }
+    .hud-value.score {
+      color: var(--accent-green);
+    }
+    .hud-value.timer {
+      color: var(--accent-yellow);
+    }
+
+    .problem-area {
+      text-align: center;
+      margin: 40px 0 32px;
+    }
+
+    .problem {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 56px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .problem-num, .problem-op {
+      display: inline-block;
+    }
+
+    .problem-num {
+      animation: jiggle 2.5s ease-in-out infinite;
+    }
+    .problem-num:nth-child(1) {
+      animation-delay: 0s;
+    }
+    .problem-op {
+      color: var(--accent-pink);
+      animation: jiggle 2.5s ease-in-out infinite;
+      animation-delay: 0.4s;
+    }
+    .problem-num:nth-child(3) {
+      animation-delay: 0.8s;
+    }
+    .problem-eq {
+      color: var(--text-dim);
+      font-size: 48px;
+    }
+
+    @keyframes jiggle {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      15% { transform: translate(-1.5px, 1px) rotate(-2deg); }
+      30% { transform: translate(1px, -1.5px) rotate(1.5deg); }
+      45% { transform: translate(-0.5px, 1.5px) rotate(-1deg); }
+      60% { transform: translate(1.5px, 0.5px) rotate(2deg); }
+      75% { transform: translate(-1px, -1px) rotate(-1.5deg); }
+      90% { transform: translate(0.5px, 1px) rotate(0.5deg); }
+    }
+
+    .answer-area {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      align-items: center;
+      position: relative;
+    }
+
+    .answer-input {
+      font-family: 'Cause', sans-serif;
+      font-size: 32px;
+      font-weight: 700;
+      width: 140px;
+      padding: 12px 16px;
+      border: 3px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      color: var(--text);
+      text-align: center;
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+      -moz-appearance: textfield;
+    }
+    .answer-input::-webkit-outer-spin-button,
+    .answer-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .answer-input:focus {
+      border-color: var(--accent);
+    }
+    .answer-input.correct {
+      border-color: var(--accent-yellow);
+      background: rgba(255, 225, 77, 0.15);
+      box-shadow:
+        0 0 12px rgba(255, 225, 77, 0.5),
+        0 0 30px rgba(255, 225, 77, 0.3),
+        0 0 60px rgba(255, 225, 77, 0.15),
+        inset 0 0 15px rgba(255, 225, 77, 0.1);
+    }
+    .answer-input.wrong {
+      border-color: var(--accent-red);
+      background: rgba(255, 68, 68, 0.15);
+      box-shadow:
+        0 0 12px rgba(255, 68, 68, 0.5),
+        0 0 30px rgba(255, 68, 68, 0.3),
+        0 0 60px rgba(255, 68, 68, 0.15),
+        inset 0 0 15px rgba(255, 68, 68, 0.1);
+      animation: shake 0.3s ease-out;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      15% { transform: translateX(-8px); }
+      30% { transform: translateX(7px); }
+      45% { transform: translateX(-6px); }
+      60% { transform: translateX(5px); }
+      75% { transform: translateX(-3px); }
+      90% { transform: translateX(2px); }
+    }
+
+    .submit-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 11px;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 10px;
+      background: var(--accent-green);
+      color: #0a2a14;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.2s;
+      box-shadow: 0 3px 12px rgba(61, 220, 132, 0.3);
+    }
+    .submit-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 5px 18px rgba(61, 220, 132, 0.4);
+    }
+    .submit-btn:active {
+      transform: translateY(0);
+    }
+
+    .plus-one {
+      position: absolute;
+      top: -10px;
+      right: 30%;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 16px;
+      color: var(--accent-green);
+      pointer-events: none;
+      animation: floatUp 0.7s ease-out forwards;
+    }
+
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-50px); }
+    }
+
+    /* ── RESULTS ── */
+
+    .results-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .results-header h2 {
+      font-size: 18px;
+      color: var(--accent-yellow);
+      text-shadow: 0 0 10px rgba(255, 225, 77, 0.4);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 18px;
+      color: var(--accent);
+    }
+    .stat-value.green { color: var(--accent-green); }
+    .stat-value.red { color: var(--accent-red); }
+    .stat-value.yellow { color: var(--accent-yellow); }
+    .stat-value.pink { color: var(--accent-pink); }
+
+    .breakdown-section {
+      margin-bottom: 24px;
+    }
+    .breakdown-section h3 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+    }
+
+    .breakdown-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 8px;
+    }
+
+    .breakdown-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+    }
+    .breakdown-table {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+    }
+    .breakdown-pct {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+    }
+    .breakdown-pct.perfect { color: var(--accent-green); }
+    .breakdown-pct.good { color: var(--accent-yellow); }
+    .breakdown-pct.needs-work { color: var(--accent-red); }
+
+    .play-again-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), #0090aa);
+      color: #fff;
+      cursor: pointer;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      transition: transform 0.1s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(0, 229, 255, 0.3);
+    }
+    .play-again-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px rgba(0, 229, 255, 0.45);
+    }
+    .play-again-btn:active {
+      transform: translateY(0);
+    }
+
+    /* ── ALL-TIME STATS ── */
+
+    .alltime-section {
+      margin-bottom: 24px;
+      padding: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    .alltime-section h3 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+    .alltime-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+    .alltime-item {
+      text-align: center;
+    }
+    .alltime-label {
+      font-size: 10px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .alltime-value {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 14px;
+      color: var(--accent);
+    }
+
+    body.light .alltime-section {
+      background: #fff;
+      border-color: rgba(0,0,0,0.08);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    body.light .alltime-section h3 {
+      color: #2196f3;
+    }
+
+    /* ── HELP ── */
+
+    .help-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-top: 16px;
+      min-height: 36px;
+    }
+
+    .help-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      padding: 8px 16px;
+      border: 2px solid var(--accent-yellow);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--accent-yellow);
+      cursor: pointer;
+      transition: all 0.15s;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    .help-btn:hover {
+      background: rgba(255, 225, 77, 0.15);
+      box-shadow: 0 0 12px rgba(255, 225, 77, 0.3);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .help-hint {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 11px;
+      color: var(--accent-yellow);
+      text-shadow: 0 0 8px rgba(255, 225, 77, 0.4);
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── THEME TOGGLE ── */
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      font-size: 24px;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      z-index: 100;
+      line-height: 1;
+    }
+    .theme-toggle:hover {
+      border-color: var(--accent-yellow);
+      box-shadow: 0 0 12px rgba(255, 225, 77, 0.3);
+      transform: rotate(20deg);
+    }
+
+    /* ── LIGHT MODE ── */
+
+    body.light {
+      --bg: #fff8e7;
+      --surface: #ffffff;
+      --surface-light: #fff3cc;
+      --accent: #2196f3;
+      --accent-dim: rgba(33, 150, 243, 0.15);
+      --accent-pink: #e91e8a;
+      --accent-yellow: #f9a825;
+      --accent-green: #2e7d32;
+      --accent-red: #d32f2f;
+      --text: #2d2d2d;
+      --text-dim: #777777;
+      --border: rgba(33, 150, 243, 0.25);
+    }
+
+    body.light {
+      background: linear-gradient(180deg, #fffde7 0%, #fff8e1 40%, #fff3cd 100%);
+    }
+
+    body.light h1 {
+      color: #f57f17;
+      text-shadow: 0 0 8px rgba(245, 127, 23, 0.3), 0 2px 0 rgba(0,0,0,0.06);
+    }
+
+    body.light h2 {
+      color: var(--accent-pink);
+      text-shadow: none;
+    }
+
+    body.light .hud {
+      background: #fff;
+      border-color: rgba(0,0,0,0.1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    body.light .problem-op {
+      color: var(--accent-pink);
+    }
+
+    body.light .problem-eq {
+      color: #bbb;
+    }
+
+    body.light .answer-input {
+      background: #fff;
+      border-color: rgba(0,0,0,0.15);
+      color: #2d2d2d;
+    }
+    body.light .answer-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 8px rgba(33, 150, 243, 0.2);
+    }
+    body.light .answer-input.correct {
+      border-color: #f9a825;
+      background: rgba(249, 168, 37, 0.1);
+      box-shadow:
+        0 0 10px rgba(249, 168, 37, 0.4),
+        0 0 25px rgba(249, 168, 37, 0.2),
+        0 0 50px rgba(249, 168, 37, 0.1);
+    }
+    body.light .answer-input.wrong {
+      border-color: #d32f2f;
+      background: rgba(211, 47, 47, 0.08);
+      box-shadow:
+        0 0 10px rgba(211, 47, 47, 0.4),
+        0 0 25px rgba(211, 47, 47, 0.2),
+        0 0 50px rgba(211, 47, 47, 0.1);
+    }
+
+    body.light .table-btn {
+      background: #fff;
+      border-color: rgba(0,0,0,0.12);
+      color: #888;
+    }
+    body.light .table-btn:hover {
+      border-color: var(--accent);
+      color: #444;
+    }
+    body.light .table-btn.selected {
+      background: rgba(33, 150, 243, 0.1);
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 2px 8px rgba(33, 150, 243, 0.15);
+    }
+
+    body.light .mode-btn {
+      background: #fff;
+      border-color: rgba(0,0,0,0.12);
+      color: #888;
+    }
+    body.light .mode-btn.selected {
+      background: rgba(233, 30, 138, 0.08);
+      border-color: var(--accent-pink);
+      color: var(--accent-pink);
+    }
+
+    body.light .time-btn {
+      background: #fff;
+      border-color: rgba(0,0,0,0.12);
+      color: #888;
+    }
+    body.light .time-btn.selected {
+      background: rgba(249, 168, 37, 0.1);
+      border-color: var(--accent-yellow);
+      color: #e65100;
+    }
+
+    body.light .mode-config input[type="number"] {
+      background: #fff;
+      border-color: rgba(0,0,0,0.15);
+      color: #2d2d2d;
+    }
+
+    body.light .start-btn {
+      background: linear-gradient(135deg, #ff6f00, #f57f17);
+      box-shadow: 0 4px 16px rgba(245, 127, 23, 0.3);
+    }
+    body.light .start-btn:hover {
+      box-shadow: 0 6px 24px rgba(245, 127, 23, 0.45);
+    }
+
+    body.light .submit-btn {
+      background: #2e7d32;
+      color: #fff;
+      box-shadow: 0 3px 10px rgba(46, 125, 50, 0.25);
+    }
+
+    body.light .stat-card {
+      background: #fff;
+      border-color: rgba(0,0,0,0.08);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    body.light .breakdown-item {
+      background: #fff;
+      border-color: rgba(0,0,0,0.08);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+
+    body.light .play-again-btn {
+      background: linear-gradient(135deg, #2196f3, #1565c0);
+      box-shadow: 0 4px 16px rgba(33, 150, 243, 0.3);
+    }
+
+    body.light .shortcut-btn {
+      border-color: rgba(0,0,0,0.15);
+      color: #888;
+    }
+    body.light .shortcut-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    body.light .theme-toggle {
+      background: #fff;
+      border-color: rgba(0,0,0,0.12);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    body.light .help-btn {
+      border-color: #e65100;
+      color: #e65100;
+    }
+    body.light .help-btn:hover {
+      background: rgba(230, 81, 0, 0.08);
+    }
+    body.light .help-hint {
+      color: #e65100;
+      text-shadow: none;
+    }
+    body.light .plus-one {
+      color: var(--accent-green);
+    }
+    body.light .results-header h2 {
+      color: #f57f17;
+      text-shadow: none;
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" id="themeToggle" title="Toggle light/dark mode">&#x1F31E;</button>
+  <div class="app">
+    <h1>Times Tables</h1>
+
+    <!-- ── SETUP SCREEN ── -->
+    <div id="setupScreen" class="screen active">
+      <div class="name-section">
+        <div class="section-label">Your name</div>
+        <div class="name-row">
+          <input type="text" class="name-input" id="nameInput" placeholder="Type your name..." maxlength="20" autocomplete="off">
+        </div>
+        <div class="saved-names" id="savedNames"></div>
+      </div>
+
+      <div class="section-label">Pick your tables</div>
+      <div class="select-shortcuts">
+        <button class="shortcut-btn" data-action="all">All</button>
+        <button class="shortcut-btn" data-action="none">None</button>
+        <button class="shortcut-btn" data-action="hard">Hard ones</button>
+      </div>
+      <div class="table-grid" id="tableGrid"></div>
+
+      <div class="section-label">Mode</div>
+      <div class="mode-row">
+        <button class="mode-btn selected" data-mode="count"># of Questions</button>
+        <button class="mode-btn" data-mode="timed">Timed Race</button>
+      </div>
+
+      <div class="mode-config" id="modeConfig">
+        <div id="countConfig">
+          <label>How many questions?</label>
+          <input type="number" id="questionCount" value="20" min="5" max="100" step="5">
+        </div>
+        <div id="timedConfig" style="display:none">
+          <label>How long?</label>
+          <div class="time-options" id="timeOptions"></div>
+        </div>
+      </div>
+
+      <button class="start-btn" id="startBtn" disabled>GO!</button>
+    </div>
+
+    <!-- ── PRACTICE SCREEN ── -->
+    <div id="practiceScreen" class="screen">
+      <div class="hud">
+        <div class="hud-item">
+          <div class="hud-label">Question</div>
+          <div class="hud-value" id="hudProgress">1 / 20</div>
+        </div>
+        <div class="hud-item" id="hudTimerWrap" style="display:none">
+          <div class="hud-label">Time</div>
+          <div class="hud-value timer" id="hudTimer">60</div>
+        </div>
+        <div class="hud-item">
+          <div class="hud-label">Score</div>
+          <div class="hud-value score" id="hudScore">0</div>
+        </div>
+      </div>
+
+      <div class="problem-area">
+        <div class="problem">
+          <span class="problem-num" id="numA">7</span>
+          <span class="problem-op">&times;</span>
+          <span class="problem-num" id="numB">8</span>
+          <span class="problem-eq">=</span>
+        </div>
+      </div>
+
+      <div class="answer-area" id="answerArea">
+        <input type="number" class="answer-input" id="answerInput" inputmode="numeric" autocomplete="off">
+        <button class="submit-btn" id="submitBtn">GO</button>
+      </div>
+      <div class="help-row" id="helpRow"></div>
+    </div>
+
+    <!-- ── RESULTS SCREEN ── -->
+    <div id="resultsScreen" class="screen">
+      <div class="results-header">
+        <h2 id="resultsHeading">Nice Work!</h2>
+      </div>
+      <div class="stats-grid" id="statsGrid"></div>
+      <div class="breakdown-section" id="breakdownSection">
+        <h3>Per-Table Breakdown</h3>
+        <div class="breakdown-grid" id="breakdownGrid"></div>
+      </div>
+      <div class="alltime-section" id="alltimeSection" style="display:none">
+        <h3 id="alltimeHeading">All-Time Stats</h3>
+        <div class="alltime-grid" id="alltimeGrid"></div>
+      </div>
+      <button class="play-again-btn" id="playAgainBtn">Play Again</button>
+    </div>
+  </div>
+
+  <script>
+    const TABLES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    const TIME_OPTIONS = [30, 60, 90, 120];
+    const HARD_TABLES = [6, 7, 8, 9, 12];
+
+    let selectedTables = new Set();
+    let mode = 'count';
+    let questionLimit = 20;
+    let timeLimit = 60;
+
+    let questions = [];
+    let currentIndex = 0;
+    let correctCount = 0;
+    let wrongCount = 0;
+    let currentStreak = 0;
+    let bestStreak = 0;
+    let answerTimes = [];
+    let questionStartTime = 0;
+    let timerInterval = null;
+    let timeRemaining = 0;
+    let perTable = {};
+    let isTransitioning = false;
+    let lastQuestion = null;
+    let wrongTriesForQuestion = 0;
+    let helpRevealed = false;
+    let currentPlayer = '';
+
+    // ── DOM refs ──
+    const setupScreen = document.getElementById('setupScreen');
+    const practiceScreen = document.getElementById('practiceScreen');
+    const resultsScreen = document.getElementById('resultsScreen');
+    const tableGrid = document.getElementById('tableGrid');
+    const startBtn = document.getElementById('startBtn');
+    const modeConfig = document.getElementById('modeConfig');
+    const countConfig = document.getElementById('countConfig');
+    const timedConfig = document.getElementById('timedConfig');
+    const questionCountInput = document.getElementById('questionCount');
+    const timeOptionsEl = document.getElementById('timeOptions');
+    const hudProgress = document.getElementById('hudProgress');
+    const hudTimerWrap = document.getElementById('hudTimerWrap');
+    const hudTimer = document.getElementById('hudTimer');
+    const hudScore = document.getElementById('hudScore');
+    const numA = document.getElementById('numA');
+    const numB = document.getElementById('numB');
+    const answerInput = document.getElementById('answerInput');
+    const submitBtn = document.getElementById('submitBtn');
+    const answerArea = document.getElementById('answerArea');
+    const statsGrid = document.getElementById('statsGrid');
+    const breakdownSection = document.getElementById('breakdownSection');
+    const breakdownGrid = document.getElementById('breakdownGrid');
+    const playAgainBtn = document.getElementById('playAgainBtn');
+    const helpRow = document.getElementById('helpRow');
+    const themeToggle = document.getElementById('themeToggle');
+    const nameInput = document.getElementById('nameInput');
+    const savedNamesEl = document.getElementById('savedNames');
+    const resultsHeading = document.getElementById('resultsHeading');
+    const alltimeSection = document.getElementById('alltimeSection');
+    const alltimeHeading = document.getElementById('alltimeHeading');
+    const alltimeGrid = document.getElementById('alltimeGrid');
+
+    // ── Player name & saved stats ──
+    const STORAGE_KEY = 'tt-players';
+
+    function loadPlayers() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+      catch { return {}; }
+    }
+
+    function savePlayers(players) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
+    }
+
+    function getPlayerStats(name) {
+      const players = loadPlayers();
+      return players[name] || {
+        sessions: 0, totalCorrect: 0, totalWrong: 0,
+        bestStreak: 0, fastestTime: null
+      };
+    }
+
+    function saveSessionStats() {
+      if (!currentPlayer) return;
+      const players = loadPlayers();
+      const s = players[currentPlayer] || {
+        sessions: 0, totalCorrect: 0, totalWrong: 0,
+        bestStreak: 0, fastestTime: null
+      };
+      s.sessions++;
+      s.totalCorrect += correctCount;
+      s.totalWrong += wrongCount;
+      if (bestStreak > s.bestStreak) s.bestStreak = bestStreak;
+      const sessionFastest = answerTimes.length > 0 ? Math.min(...answerTimes) : null;
+      if (sessionFastest !== null && (s.fastestTime === null || sessionFastest < s.fastestTime)) {
+        s.fastestTime = sessionFastest;
+      }
+      players[currentPlayer] = s;
+      savePlayers(players);
+    }
+
+    function renderSavedNames() {
+      const players = loadPlayers();
+      const names = Object.keys(players).sort();
+      savedNamesEl.innerHTML = '';
+      if (names.length === 0) return;
+      names.forEach(name => {
+        const chip = document.createElement('button');
+        chip.className = 'name-chip' + (name === currentPlayer ? ' active' : '');
+        chip.textContent = name;
+        chip.addEventListener('click', () => {
+          currentPlayer = name;
+          nameInput.value = name;
+          renderSavedNames();
+          updateStartBtn();
+        });
+        savedNamesEl.appendChild(chip);
+      });
+    }
+
+    nameInput.addEventListener('input', () => {
+      currentPlayer = nameInput.value.trim();
+      renderSavedNames();
+      updateStartBtn();
+    });
+
+    const lastPlayer = localStorage.getItem('tt-last-player') || '';
+    if (lastPlayer) {
+      currentPlayer = lastPlayer;
+      nameInput.value = lastPlayer;
+    }
+    renderSavedNames();
+    updateStartBtn();
+
+    // ── Build table buttons ──
+    TABLES.forEach(n => {
+      const btn = document.createElement('button');
+      btn.className = 'table-btn';
+      btn.textContent = n + 's';
+      btn.addEventListener('click', () => {
+        if (selectedTables.has(n)) {
+          selectedTables.delete(n);
+          btn.classList.remove('selected');
+        } else {
+          selectedTables.add(n);
+          btn.classList.add('selected');
+        }
+        updateStartBtn();
+      });
+      tableGrid.appendChild(btn);
+    });
+
+    // ── Shortcut buttons ──
+    document.querySelectorAll('.shortcut-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.action;
+        const allBtns = tableGrid.querySelectorAll('.table-btn');
+        if (action === 'all') {
+          selectedTables = new Set(TABLES);
+          allBtns.forEach(b => b.classList.add('selected'));
+        } else if (action === 'none') {
+          selectedTables.clear();
+          allBtns.forEach(b => b.classList.remove('selected'));
+        } else if (action === 'hard') {
+          selectedTables = new Set(HARD_TABLES);
+          allBtns.forEach((b, i) => {
+            const n = TABLES[i];
+            b.classList.toggle('selected', HARD_TABLES.includes(n));
+          });
+        }
+        updateStartBtn();
+      });
+    });
+
+    // ── Build time option buttons ──
+    TIME_OPTIONS.forEach(t => {
+      const btn = document.createElement('button');
+      btn.className = 'time-btn' + (t === timeLimit ? ' selected' : '');
+      btn.textContent = t + 's';
+      btn.addEventListener('click', () => {
+        timeLimit = t;
+        timeOptionsEl.querySelectorAll('.time-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+      });
+      timeOptionsEl.appendChild(btn);
+    });
+
+    // ── Mode buttons ──
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        mode = btn.dataset.mode;
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        countConfig.style.display = mode === 'count' ? '' : 'none';
+        timedConfig.style.display = mode === 'timed' ? '' : 'none';
+      });
+    });
+
+    function updateStartBtn() {
+      startBtn.disabled = selectedTables.size === 0 || !currentPlayer;
+    }
+
+    // ── Generate a question ──
+    function generateQuestion() {
+      const tables = [...selectedTables];
+      let a, b;
+      const maxAttempts = 20;
+      for (let i = 0; i < maxAttempts; i++) {
+        a = tables[Math.floor(Math.random() * tables.length)];
+        b = Math.floor(Math.random() * 12) + 1;
+        if (!lastQuestion || a !== lastQuestion.a || b !== lastQuestion.b) break;
+      }
+      const q = { a, b, answer: a * b };
+      lastQuestion = q;
+      return q;
+    }
+
+    // ── Show screen ──
+    function showScreen(screen) {
+      [setupScreen, practiceScreen, resultsScreen].forEach(s => s.classList.remove('active'));
+      screen.classList.add('active');
+    }
+
+    // ── Start practice ──
+    startBtn.addEventListener('click', () => {
+      currentPlayer = nameInput.value.trim();
+      if (!currentPlayer) return;
+      localStorage.setItem('tt-last-player', currentPlayer);
+
+      if (mode === 'count') {
+        questionLimit = Math.max(5, Math.min(100, parseInt(questionCountInput.value) || 20));
+      }
+
+      questions = [];
+      currentIndex = 0;
+      correctCount = 0;
+      wrongCount = 0;
+      currentStreak = 0;
+      bestStreak = 0;
+      answerTimes = [];
+      perTable = {};
+      lastQuestion = null;
+      isTransitioning = false;
+
+      selectedTables.forEach(t => {
+        perTable[t] = { correct: 0, total: 0 };
+      });
+
+      if (mode === 'count') {
+        for (let i = 0; i < questionLimit; i++) {
+          questions.push(generateQuestion());
+        }
+      } else {
+        questions.push(generateQuestion());
+      }
+
+      hudTimerWrap.style.display = mode === 'timed' ? '' : 'none';
+
+      if (mode === 'timed') {
+        timeRemaining = timeLimit;
+        hudTimer.textContent = timeRemaining;
+        startTimer();
+      }
+
+      showScreen(practiceScreen);
+      showQuestion();
+    });
+
+    function startTimer() {
+      const startTime = performance.now();
+      const endTime = startTime + timeLimit * 1000;
+
+      if (timerInterval) cancelAnimationFrame(timerInterval);
+
+      function tick() {
+        const now = performance.now();
+        const remaining = Math.max(0, Math.ceil((endTime - now) / 1000));
+        hudTimer.textContent = remaining;
+        timeRemaining = remaining;
+
+        if (remaining <= 0) {
+          finishPractice();
+          return;
+        }
+        timerInterval = requestAnimationFrame(tick);
+      }
+      timerInterval = requestAnimationFrame(tick);
+    }
+
+    function showQuestion() {
+      const q = questions[currentIndex];
+      numA.textContent = q.a;
+      numB.textContent = q.b;
+
+      if (mode === 'count') {
+        hudProgress.textContent = (currentIndex + 1) + ' / ' + questions.length;
+      } else {
+        hudProgress.textContent = '' + (currentIndex + 1);
+      }
+      hudScore.textContent = correctCount;
+
+      answerInput.value = '';
+      answerInput.classList.remove('correct', 'wrong');
+      wrongTriesForQuestion = 0;
+      helpRevealed = false;
+      helpRow.innerHTML = '';
+      answerInput.focus();
+      questionStartTime = performance.now();
+    }
+
+    // ── Submit answer ──
+    submitBtn.addEventListener('click', checkAnswer);
+    answerInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') checkAnswer();
+    });
+
+    function checkAnswer() {
+      if (isTransitioning) return;
+
+      const val = answerInput.value.trim();
+      if (val === '') return;
+
+      const q = questions[currentIndex];
+      const userAnswer = parseInt(val, 10);
+      const elapsed = (performance.now() - questionStartTime) / 1000;
+
+      if (userAnswer === q.answer) {
+        isTransitioning = true;
+        correctCount++;
+        currentStreak++;
+        if (currentStreak > bestStreak) bestStreak = currentStreak;
+        answerTimes.push(elapsed);
+
+        perTable[q.a].correct++;
+        perTable[q.a].total++;
+
+        answerInput.classList.add('correct');
+        spawnPlusOne();
+
+        setTimeout(() => {
+          isTransitioning = false;
+          advance();
+        }, 400);
+      } else {
+        wrongCount++;
+        currentStreak = 0;
+        wrongTriesForQuestion++;
+        perTable[q.a].total++;
+
+        answerInput.classList.add('wrong');
+        answerInput.addEventListener('animationend', function onEnd() {
+          answerInput.removeEventListener('animationend', onEnd);
+          answerInput.classList.remove('wrong');
+          answerInput.select();
+          answerInput.focus();
+        });
+
+        if (wrongTriesForQuestion >= 3 && !helpRevealed) {
+          showHelpButton(q);
+        }
+
+        questionStartTime = performance.now();
+      }
+    }
+
+    function spawnPlusOne() {
+      const el = document.createElement('div');
+      el.className = 'plus-one';
+      el.textContent = '+1';
+      answerArea.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+    }
+
+    function advance() {
+      currentIndex++;
+
+      if (mode === 'count' && currentIndex >= questions.length) {
+        finishPractice();
+        return;
+      }
+
+      if (mode === 'timed') {
+        if (timeRemaining <= 0) {
+          finishPractice();
+          return;
+        }
+        questions.push(generateQuestion());
+      }
+
+      showQuestion();
+    }
+
+    function finishPractice() {
+      if (timerInterval) {
+        cancelAnimationFrame(timerInterval);
+        timerInterval = null;
+      }
+      saveSessionStats();
+      showScreen(resultsScreen);
+      renderResults();
+      fireConfetti();
+    }
+
+    // ── Results ──
+    function renderResults() {
+      const total = correctCount + wrongCount;
+      const correctPct = total > 0 ? Math.round((correctCount / total) * 100) : 0;
+      const avgTime = answerTimes.length > 0
+        ? (answerTimes.reduce((a, b) => a + b, 0) / answerTimes.length).toFixed(1)
+        : '\u2014';
+      const fastest = answerTimes.length > 0
+        ? Math.min(...answerTimes).toFixed(1)
+        : '\u2014';
+
+      if (currentPlayer) {
+        resultsHeading.textContent = 'Nice work, ' + currentPlayer + '!';
+      } else {
+        resultsHeading.textContent = 'Nice Work!';
+      }
+
+      statsGrid.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-label">Questions</div>
+          <div class="stat-value">${total}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Correct</div>
+          <div class="stat-value green">${correctPct}%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg Time</div>
+          <div class="stat-value yellow">${avgTime}s</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Fastest</div>
+          <div class="stat-value yellow">${fastest}s</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Best Streak</div>
+          <div class="stat-value pink">${bestStreak}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Wrong</div>
+          <div class="stat-value red">${wrongCount}</div>
+        </div>
+      `;
+
+      const tableKeys = Object.keys(perTable).map(Number).sort((a, b) => a - b);
+      if (tableKeys.length > 1) {
+        breakdownSection.style.display = '';
+        breakdownGrid.innerHTML = tableKeys.map(t => {
+          const data = perTable[t];
+          const pct = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0;
+          let cls = 'needs-work';
+          if (pct === 100) cls = 'perfect';
+          else if (pct >= 70) cls = 'good';
+          return `
+            <div class="breakdown-item">
+              <div class="breakdown-table">${t}s</div>
+              <div class="breakdown-pct ${cls}">${pct}%</div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        breakdownSection.style.display = 'none';
+      }
+
+      renderAlltimeStats();
+    }
+
+    function renderAlltimeStats() {
+      if (!currentPlayer) {
+        alltimeSection.style.display = 'none';
+        return;
+      }
+      const s = getPlayerStats(currentPlayer);
+      if (s.sessions < 1) {
+        alltimeSection.style.display = 'none';
+        return;
+      }
+
+      alltimeSection.style.display = '';
+      alltimeHeading.textContent = currentPlayer + "'s All-Time Stats";
+      const allTotal = s.totalCorrect + s.totalWrong;
+      const allPct = allTotal > 0 ? Math.round((s.totalCorrect / allTotal) * 100) : 0;
+      const allFastest = s.fastestTime !== null ? s.fastestTime.toFixed(1) : '\u2014';
+
+      alltimeGrid.innerHTML = `
+        <div class="alltime-item">
+          <div class="alltime-label">Sessions</div>
+          <div class="alltime-value">${s.sessions}</div>
+        </div>
+        <div class="alltime-item">
+          <div class="alltime-label">Correct</div>
+          <div class="alltime-value" style="color:var(--accent-green)">${allPct}%</div>
+        </div>
+        <div class="alltime-item">
+          <div class="alltime-label">Answered</div>
+          <div class="alltime-value">${allTotal}</div>
+        </div>
+        <div class="alltime-item">
+          <div class="alltime-label">Best Streak</div>
+          <div class="alltime-value" style="color:var(--accent-pink)">${s.bestStreak}</div>
+        </div>
+        <div class="alltime-item">
+          <div class="alltime-label">Fastest</div>
+          <div class="alltime-value" style="color:var(--accent-yellow)">${allFastest}s</div>
+        </div>
+        <div class="alltime-item">
+          <div class="alltime-label">Total Wrong</div>
+          <div class="alltime-value" style="color:var(--accent-red)">${s.totalWrong}</div>
+        </div>
+      `;
+    }
+
+    function fireConfetti() {
+      const defaults = { startVelocity: 30, spread: 70, ticks: 80, zIndex: 10000 };
+
+      confetti({ ...defaults, particleCount: 80, origin: { x: 0.15, y: 0.6 }, angle: 60 });
+      confetti({ ...defaults, particleCount: 80, origin: { x: 0.85, y: 0.6 }, angle: 120 });
+
+      setTimeout(() => {
+        confetti({ ...defaults, particleCount: 50, origin: { x: 0.5, y: 0.3 }, angle: 90, spread: 120 });
+      }, 300);
+    }
+
+    // ── Help ──
+    function showHelpButton(q) {
+      helpRow.innerHTML = '';
+      const btn = document.createElement('button');
+      btn.className = 'help-btn';
+      btn.textContent = 'Help!';
+      btn.addEventListener('click', () => {
+        helpRevealed = true;
+        helpRow.innerHTML = '';
+        const hint = document.createElement('span');
+        hint.className = 'help-hint';
+        hint.textContent = q.a + ' \u00d7 ' + q.b + ' = ' + q.answer;
+        helpRow.appendChild(hint);
+        answerInput.value = '';
+        answerInput.focus();
+      });
+      helpRow.appendChild(btn);
+    }
+
+    // ── Theme toggle ──
+    function setTheme(isLight) {
+      document.body.classList.toggle('light', isLight);
+      themeToggle.textContent = isLight ? '\u{1F319}' : '\u{1F31E}';
+      localStorage.setItem('tt-theme', isLight ? 'light' : 'dark');
+    }
+
+    themeToggle.addEventListener('click', () => {
+      setTheme(!document.body.classList.contains('light'));
+    });
+
+    const savedTheme = localStorage.getItem('tt-theme');
+    if (savedTheme === 'light') setTheme(true);
+
+    // ── Play Again ──
+    playAgainBtn.addEventListener('click', () => {
+      showScreen(setupScreen);
+    });
+  </script>
+</body>
+</html>

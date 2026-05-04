@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Botty McBotface — Room</title>
+  <link rel="stylesheet" href="shared.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+  <script src="engine.js"></script>
+  <script src="levels.js"></script>
+
+  <style>
+    html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; user-select: none; }
+
+    #app { display: flex; flex-direction: column; width: 100vw; height: 100vh; overflow: hidden; }
+
+    #header {
+      flex: 0 0 56px; display: flex; align-items: center; padding: 0 20px;
+      background: var(--surface); border-bottom: 3px solid var(--neon-purple); position: relative;
+    }
+    #header-title {
+      font-family: 'Press Start 2P', monospace; font-size: 18px;
+      color: var(--neon-purple); text-shadow: 0 0 12px var(--neon-purple), 0 0 28px var(--neon-purple);
+      letter-spacing: 3px; position: absolute; left: 50%; transform: translateX(-50%);
+    }
+    #header-tournament {
+      position: absolute; right: 20px; font-family: 'Press Start 2P', monospace;
+      font-size: 9px; color: var(--neon-yellow); text-shadow: 0 0 8px var(--neon-yellow);
+    }
+    #audio-toggle {
+      display: flex; align-items: center; gap: 6px; padding: 6px 10px;
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 4px;
+      cursor: pointer; transition: border-color 0.2s; position: absolute; left: 20px;
+    }
+    #audio-toggle:hover { border-color: var(--neon-purple); }
+    #audio-toggle.enabled { border-color: var(--neon-green); background: rgba(57,255,20,0.1); }
+    .audio-icon { font-size: 16px; }
+    .audio-label { font-family: 'Press Start 2P', monospace; font-size: 7px; color: var(--text-dim); }
+    #audio-toggle.enabled .audio-label { color: var(--neon-green); }
+
+    #main-area { flex: 1; display: flex; overflow: hidden; }
+
+    #center-stage {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 16px; overflow: hidden;
+      background: radial-gradient(ellipse at center, rgba(191,0,255,0.04) 0%, transparent 70%);
+    }
+
+    #game-grid-wrap {
+      display: inline-block; border: 2px solid var(--border); border-radius: 4px;
+      background: var(--surface); padding: 3px;
+    }
+    #game-grid { display: grid; gap: 1px; background: var(--border); }
+    .cell {
+      background: var(--surface2); display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .cell.wall { background: #1a1a3a; }
+    .cell .dir-indicator { position: absolute; font-size: 8px; color: var(--neon-green); pointer-events: none; bottom: 1px; right: 2px; }
+    .cell .bot-star { animation: starGlow 0.4s ease-in-out infinite alternate; }
+    @keyframes starGlow { from { filter: drop-shadow(0 0 4px gold); } to { filter: drop-shadow(0 0 10px gold) brightness(1.3); } }
+    .cell .bot-mushroom { transform: scale(1.15); }
+
+    /* Scoreboard */
+    #scoreboard {
+      width: 260px; background: var(--surface); border-left: 2px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .sb-header {
+      font-family: 'Press Start 2P', monospace; font-size: 9px; color: var(--neon-purple);
+      padding: 12px 14px; background: rgba(191,0,255,0.06); border-bottom: 1px solid var(--border);
+      letter-spacing: 2px;
+    }
+    .sb-content { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+
+    .bot-scorecard {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 5px; padding: 10px;
+      transition: border-color 0.2s;
+    }
+    .bot-scorecard.dead { opacity: 0.45; }
+    .bot-scorecard.active { border-color: var(--neon-yellow); background: rgba(255,190,11,0.05); }
+    .bot-scorecard.star-power { border-color: gold; background: rgba(255,215,0,0.08); }
+    .bot-scorecard.mushroom-power { border-color: #cc66ff; background: rgba(204,102,255,0.08); }
+
+    .sc-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .sc-emoji { font-size: 26px; }
+    .sc-names { flex: 1; min-width: 0; }
+    .sc-botname { font-family: 'Press Start 2P', monospace; font-size: 8px; color: var(--neon-purple); word-break: break-all; }
+    .sc-student { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-dim); }
+    .sc-status { font-family: 'Press Start 2P', monospace; font-size: 7px; color: var(--neon-green); text-align: right; }
+    .sc-status.dead { color: var(--neon-red); }
+
+    .sc-bar-wrap { height: 6px; background: var(--border); border-radius: 3px; margin-bottom: 6px; overflow: hidden; }
+    .sc-bar { height: 100%; background: var(--neon-green); border-radius: 3px; transition: width 0.3s; }
+    .sc-bar.low { background: var(--neon-red); }
+
+    .sc-stats { display: flex; gap: 12px; }
+    .sc-stat { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-dim); }
+    .sc-stat span { color: var(--neon-yellow); }
+
+    /* Commentary */
+    #commentary-area {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      padding: 12px 20px; background: rgba(3,3,16,0.9);
+      border-top: 2px solid var(--neon-purple); text-align: center;
+      pointer-events: none; transform: translateY(100%); transition: transform 0.3s ease;
+      z-index: 100;
+    }
+    #commentary-area.visible { transform: translateY(0); }
+    #commentary-text {
+      font-family: 'Fredoka', sans-serif; font-size: 20px;
+      color: var(--neon-yellow); text-shadow: 0 0 12px rgba(255,190,11,0.5); line-height: 1.3;
+    }
+
+    /* Waiting screen */
+    #waiting-screen {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; z-index: 200;
+    }
+    #waiting-screen.hidden { display: none; }
+    .waiting-title { font-family: 'Press Start 2P', monospace; font-size: 14px; color: var(--neon-purple); text-shadow: 0 0 20px var(--neon-purple); }
+    .waiting-sub { font-family: 'Fredoka', sans-serif; font-size: 18px; color: var(--text-dim); }
+    .waiting-pulse { animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  </style>
+</head>
+<body>
+
+<div id="waiting-screen">
+  <div class="waiting-title waiting-pulse">BOTTY MCBOTFACE</div>
+  <div class="waiting-sub" id="waiting-msg">Waiting for match...</div>
+</div>
+
+<div id="app">
+  <div id="header">
+    <div id="audio-toggle" onclick="toggleAudio()">
+      <span class="audio-icon">🔇</span>
+      <span class="audio-label">AUDIO</span>
+    </div>
+    <div id="header-title">BOTTY MCBOTFACE</div>
+    <div id="header-tournament"></div>
+  </div>
+
+  <div id="main-area">
+    <div id="center-stage">
+      <div id="game-grid-wrap">
+        <div id="game-grid"></div>
+      </div>
+    </div>
+
+    <div id="scoreboard">
+      <div class="sb-header">SCOREBOARD</div>
+      <div class="sb-content" id="sb-content"></div>
+    </div>
+  </div>
+</div>
+
+<div id="commentary-area">
+  <div id="commentary-text"></div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://facwrgpgbffgrriolgcy.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhY3dyZ3BnYmZmZ3JyaW9sZ2N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzkyODYsImV4cCI6MjA4OTcxNTI4Nn0.G8tmDmDmmMa7O6y-CPd16na4RzOjk-nwnkE4HF383js';
+
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { db: { schema: 'code_mob' } });
+
+  // ── API keys from URL params (stored to localStorage) ─────────────────────
+  function getKey(paramName, storageKey) {
+    const p = new URLSearchParams(window.location.search).get(paramName);
+    if (p) { localStorage.setItem(storageKey, p); return p; }
+    return localStorage.getItem(storageKey) || '';
+  }
+  const CEREBRAS_KEY = getKey('cerebras', 'bmb_cerebras_key');
+  const ELEVENLABS_KEY = getKey('elevenlabs', 'bmb_elevenlabs_key');
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  let engine = null;
+  let botStates = []; // { bot, code, pendingAction, signalResolve, pythonFinished }
+  let currentBotIdx = 0;
+  let globalStop = false;
+  let audioUnlocked = false;
+  let audioEnabled = false;
+  let sounds = null;
+  let tournamentConfig = null;
+  let matchRunning = false;
+
+  // Commentary
+  let eventLog = [];
+  let commentaryCooldown = false;
+  let commentarySpeaking = false;
+
+  const DIR_ARROWS = ['▲','▶','▼','◀'];
+  const MATCH_SPEED_MS = 200;
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── Audio ─────────────────────────────────────────────────────────────────
+  function toggleAudio() {
+    audioEnabled = !audioEnabled;
+    const el = document.getElementById('audio-toggle');
+    el.classList.toggle('enabled', audioEnabled);
+    el.querySelector('.audio-icon').textContent = audioEnabled ? '🔊' : '🔇';
+    el.querySelector('.audio-label').textContent = audioEnabled ? 'ON' : 'OFF';
+    if (audioEnabled && !sounds) { sounds = createSounds(); audioUnlocked = true; }
+    if (audioEnabled) audioUnlocked = true;
+  }
+
+  function playEventSound(event) {
+    if (!sounds || !audioEnabled || !event) return;
+    const map = { move:'move', hit_wall:'hitWall', collect_good:'collectGood',
+      collect_bad:'collectBad', collect_star:'starPower', collect_mushroom:'mushroomPower',
+      star_steal:'steal', mushroom_steal:'steal', turn:'turn' };
+    const fn = map[event.type];
+    if (fn && sounds[fn]) sounds[fn]();
+  }
+
+  // ── Grid render ───────────────────────────────────────────────────────────
+  function computeCellSize() {
+    const availW = window.innerWidth - 280 - 40;
+    const availH = window.innerHeight - 56 - 40;
+    if (!engine) return 40;
+    return Math.max(20, Math.min(60, Math.floor(Math.min(availW / engine.grid.width, availH / engine.grid.height))));
+  }
+
+  function renderGrid() {
+    const gridEl = document.getElementById('game-grid');
+    if (!engine) { gridEl.innerHTML = ''; return; }
+    const { width, height } = engine.grid;
+    const cellSize = computeCellSize();
+    const fontSize = Math.max(12, Math.floor(cellSize * 0.55));
+    gridEl.style.gridTemplateColumns = `repeat(${width}, ${cellSize}px)`;
+
+    const frag = document.createDocumentFragment();
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const cell = engine.grid.cells[y][x];
+        const div = document.createElement('div');
+        div.className = 'cell' + (cell.wall ? ' wall' : '');
+        div.style.width = div.style.height = cellSize + 'px';
+        div.style.fontSize = fontSize + 'px';
+
+        const botsHere = botStates.filter(s => s.bot.alive && s.bot.x === x && s.bot.y === y);
+        if (botsHere.length > 0) {
+          const s = botsHere[0];
+          const span = document.createElement('span');
+          span.textContent = s.bot.emoji;
+          if (s.bot.powerUp === 'star') span.className = 'bot-star';
+          else if (s.bot.powerUp === 'mushroom') span.className = 'bot-mushroom';
+          div.appendChild(span);
+          const arrow = document.createElement('span');
+          arrow.className = 'dir-indicator';
+          arrow.textContent = DIR_ARROWS[s.bot.dir];
+          div.appendChild(arrow);
+        } else if (cell.wall) {
+          div.textContent = '🧱';
+        } else if (cell.item) {
+          div.textContent = cell.item;
+        }
+        frag.appendChild(div);
+      }
+    }
+    gridEl.innerHTML = '';
+    gridEl.appendChild(frag);
+  }
+
+  // ── Scoreboard ────────────────────────────────────────────────────────────
+  function renderScoreboard(activeBotIdx) {
+    const el = document.getElementById('sb-content');
+    if (!botStates.length) { el.innerHTML = ''; return; }
+
+    const maxEnergy = tournamentConfig ? tournamentConfig.starting_energy : 50;
+    el.innerHTML = botStates.map((s, i) => {
+      const b = s.bot;
+      const pct = Math.max(0, Math.min(100, (b.energy / maxEnergy) * 100));
+      const classes = ['bot-scorecard', !b.alive ? 'dead' : '', i === activeBotIdx ? 'active' : '',
+        b.powerUp === 'star' ? 'star-power' : b.powerUp === 'mushroom' ? 'mushroom-power' : ''].filter(Boolean).join(' ');
+      return `
+        <div class="${classes}">
+          <div class="sc-top">
+            <div class="sc-emoji">${escapeHtml(b.emoji)}</div>
+            <div class="sc-names">
+              <div class="sc-botname">${escapeHtml(b.name)}</div>
+              <div class="sc-student">${escapeHtml(b.studentName)}</div>
+            </div>
+            <div class="sc-status ${!b.alive ? 'dead' : ''}">${!b.alive ? 'DEAD' : b.powerUp ? b.powerUp.toUpperCase() + '!' : ''}</div>
+          </div>
+          <div class="sc-bar-wrap">
+            <div class="sc-bar ${pct < 25 ? 'low' : ''}" style="width:${pct}%"></div>
+          </div>
+          <div class="sc-stats">
+            <div class="sc-stat">⚡<span>${b.energy}</span></div>
+            <div class="sc-stat">📦<span>${b.collected}</span></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ── Skulkt multi-bot suspension ────────────────────────────────────────────
+  function signalBot(state) {
+    if (state.signalResolve) { const r = state.signalResolve; state.signalResolve = null; r(); }
+  }
+
+  function waitForBotAction(state) {
+    return new Promise(resolve => {
+      if (state.pendingAction || state.pythonFinished || globalStop) resolve();
+      else state.signalResolve = resolve;
+    });
+  }
+
+  function makeBotSuspend(type, params) {
+    if (globalStop) throw new Error('__bmb_stopped__');
+    const state = botStates[currentBotIdx];
+    return new Sk.misceval.promiseToSuspension(
+      new Promise(resolve => {
+        state.pendingAction = { type, params, resolve };
+        signalBot(state);
+      })
+    );
+  }
+
+  function setupSkulkt() {
+    Sk.configure({
+      output: () => {},
+      read: f => {
+        if (!Sk.builtinFiles || !Sk.builtinFiles['files'][f]) throw new Error(`File not found: '${f}'`);
+        return Sk.builtinFiles['files'][f];
+      },
+      execLimit: 500000,
+    });
+    Sk.builtins.move = new Sk.builtin.func(() => makeBotSuspend('move', {}));
+    Sk.builtins.turn_left = new Sk.builtin.func(n => {
+      const turns = n !== undefined ? Sk.ffi.remapToJs(n) : 1;
+      return makeBotSuspend('turn', { direction: 'left', turns: Math.max(1, Math.min(4, turns | 0)) });
+    });
+    Sk.builtins.turn_right = new Sk.builtin.func(n => {
+      const turns = n !== undefined ? Sk.ffi.remapToJs(n) : 1;
+      return makeBotSuspend('turn', { direction: 'right', turns: Math.max(1, Math.min(4, turns | 0)) });
+    });
+    Sk.builtins.look = new Sk.builtin.func(dir => {
+      const state = botStates[currentBotIdx];
+      if (!engine || !state || !state.bot.alive) return new Sk.builtin.str('');
+      const d = dir ? Sk.ffi.remapToJs(dir) : 'forward';
+      return new Sk.builtin.str(engine.lookResult(state.bot, d));
+    });
+  }
+
+  function startBotExecution(state, idx) {
+    currentBotIdx = idx;
+    Sk.misceval.asyncToPromise(() =>
+      Sk.importMainWithBody('<stdin>', false, state.code, true)
+    ).then(() => {
+      state.pythonFinished = true;
+      signalBot(state);
+    }).catch(err => {
+      const msg = err && err.toString();
+      if (msg && !msg.includes('__bmb_stopped__')) console.warn('Bot error:', msg);
+      state.pythonFinished = true;
+      signalBot(state);
+    });
+  }
+
+  // ── Match execution ────────────────────────────────────────────────────────
+  async function runMatch(match, bots) {
+    globalStop = false;
+    const cfg = tournamentConfig || {};
+
+    // Build grid
+    const w = cfg.grid_width || 10, h = cfg.grid_height || 10;
+    const grid = new Grid(w, h);
+    const itemPool = [];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) itemPool.push({ x, y });
+    shuffle(itemPool);
+
+    // Place walls
+    const wallCount = cfg.wall_count || 10;
+    let idx = 0;
+    for (let i = 0; i < wallCount && idx < itemPool.length; i++, idx++) {
+      grid.setWall(itemPool[idx].x, itemPool[idx].y);
+    }
+    // Place good items
+    const GOODS = ['🍕','🍩','💎','🍪','🧁','🍫','🎁','🍭'];
+    const BADS = ['💣','💀','🔥','💩','🕷️','👻'];
+    const goodCount = cfg.good_item_count || 10;
+    for (let i = 0; i < goodCount && idx < itemPool.length; i++, idx++) {
+      grid.placeItem(itemPool[idx].x, itemPool[idx].y, GOODS[Math.floor(Math.random() * GOODS.length)]);
+    }
+    const badCount = cfg.bad_item_count || 5;
+    for (let i = 0; i < badCount && idx < itemPool.length; i++, idx++) {
+      grid.placeItem(itemPool[idx].x, itemPool[idx].y, BADS[Math.floor(Math.random() * BADS.length)]);
+    }
+    if (cfg.power_ups_enabled) {
+      if (idx < itemPool.length) { grid.placeItem(itemPool[idx].x, itemPool[idx].y, '⭐'); idx++; }
+      if (idx < itemPool.length) { grid.placeItem(itemPool[idx].x, itemPool[idx].y, '🍄'); idx++; }
+    }
+
+    // Place bots
+    const energy = cfg.starting_energy || 50;
+    const maxTurns = cfg.max_turns || 200;
+    const botObjs = bots.map((b, i) => {
+      const pos = itemPool[idx + i] || { x: i % w, y: Math.floor(i / w) };
+      const bot = new Bot(b.id, b.bot_name, b.bot_emoji, pos.x, pos.y, i % 4, energy);
+      bot.studentName = b.student_name;
+      return bot;
+    });
+
+    engine = new GameEngine(grid, botObjs, { maxTurns });
+
+    botStates = bots.map((b, i) => ({
+      bot: botObjs[i],
+      code: b.code,
+      pendingAction: null,
+      signalResolve: null,
+      pythonFinished: false,
+    }));
+
+    setupSkulkt();
+
+    // Show match screen
+    document.getElementById('waiting-screen').classList.add('hidden');
+    renderGrid();
+    renderScoreboard(-1);
+
+    // Brief intro delay
+    await delay(1000);
+
+    // Start all bot executions
+    for (let i = 0; i < botStates.length; i++) {
+      startBotExecution(botStates[i], i);
+    }
+    // Let all bots run to their first move()
+    await new Promise(r => setTimeout(r, 0));
+    await delay(50);
+
+    // Commentary intro
+    if (CEREBRAS_KEY) {
+      const desc = bots.map(b => `${b.bot_emoji} ${b.bot_name} (by ${b.student_name})`).join(', ');
+      generateAndSpeak(`Match starting! Competing bots: ${desc}. Let's see who collects the most items! FIGHT!`);
+    }
+
+    // Round-robin game loop
+    while (!engine.isFinished() && !globalStop) {
+      let anyAction = false;
+      for (let i = 0; i < botStates.length; i++) {
+        const state = botStates[i];
+        if (!state.bot.alive || state.pythonFinished) continue;
+
+        await waitForBotAction(state);
+        if (globalStop || !state.pendingAction) continue;
+
+        anyAction = true;
+        const action = state.pendingAction;
+        state.pendingAction = null;
+
+        let event;
+        currentBotIdx = i;
+        if (action.type === 'move') {
+          event = engine.processMove(state.bot);
+          engine.turnCount++;
+        } else if (action.type === 'turn') {
+          event = engine.processTurn(state.bot, action.params.turns, action.params.direction);
+        }
+
+        renderGrid();
+        renderScoreboard(i);
+        playEventSound(event);
+        if (event) logEvent(event);
+
+        await delay(MATCH_SPEED_MS);
+
+        // Resume bot (it will run synchronously until next suspension)
+        currentBotIdx = i;
+        action.resolve();
+        await new Promise(r => setTimeout(r, 0));
+
+        if (engine.isFinished() || globalStop) break;
+      }
+      if (!anyAction) break;
+    }
+
+    // Stop all Python
+    globalStop = true;
+    for (const state of botStates) {
+      if (state.pendingAction) { const r = state.pendingAction.resolve; state.pendingAction = null; r(); }
+      signalBot(state);
+    }
+
+    if (sounds && audioEnabled) sounds.gameOver();
+    renderGrid();
+    renderScoreboard(-1);
+
+    // Determine winner
+    const winner = engine.getWinner();
+    const results = { winner: winner ? `${winner.emoji} ${winner.name}` : 'Draw', scoreboard: engine.getScoreboard() };
+
+    // End commentary
+    if (CEREBRAS_KEY) await maybeTriggerCommentary(true);
+
+    // Update match status in DB
+    await db.from('bmb_match_queue').update({ status: 'completed', winner_bot_id: winner ? winner.id : null, results }).eq('id', match.id);
+
+    // Update bot stats
+    for (const s of botStates) {
+      const isWinner = winner && winner.id === s.bot.id;
+      const { data: cur } = await db.from('bmb_bots').select('match_wins, match_losses').eq('id', s.bot.id).single();
+      if (cur) {
+        await db.from('bmb_bots').update({
+          match_wins: cur.match_wins + (isWinner ? 1 : 0),
+          match_losses: cur.match_losses + (!isWinner ? 1 : 0),
+          total_collected: s.bot.collected,
+        }).eq('id', s.bot.id);
+      }
+    }
+
+    // Show waiting after brief pause
+    await delay(4000);
+    document.getElementById('waiting-screen').classList.remove('hidden');
+    document.getElementById('waiting-msg').textContent = 'Waiting for next match...';
+    matchRunning = false;
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }
+
+  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  // ── Commentary ─────────────────────────────────────────────────────────────
+  function logEvent(event) {
+    const notable = ['hit_wall','collect_good','collect_bad','collect_star','collect_mushroom','star_steal','mushroom_steal'];
+    if (!notable.includes(event.type)) return;
+    const desc = {
+      hit_wall: `${event.botName} ${event.botEmoji} ran into a wall!`,
+      collect_good: `${event.botName} ${event.botEmoji} snagged a ${(event.detail||{}).item || 'item'}!`,
+      collect_bad: `${event.botName} ${event.botEmoji} stepped on a ${(event.detail||{}).item || 'trap'}!`,
+      collect_star: `${event.botName} ${event.botEmoji} grabbed the ⭐ STAR and went INVINCIBLE!`,
+      collect_mushroom: `${event.botName} ${event.botEmoji} grabbed the 🍄 MUSHROOM and powered up!`,
+      star_steal: `${event.botName} ${event.botEmoji} star-charged through ${(event.detail||{}).targetBot} stealing ${(event.detail||{}).stolen} energy!`,
+      mushroom_steal: `${event.botName} ${event.botEmoji} barreled through ${(event.detail||{}).targetBot} stealing ${(event.detail||{}).stolen} energy!`,
+    }[event.type];
+    if (desc) { eventLog.push(desc); maybeTriggerCommentary(false); }
+  }
+
+  async function maybeTriggerCommentary(isEnd) {
+    if (!CEREBRAS_KEY) return;
+    if (commentarySpeaking && !isEnd) return;
+    if (commentaryCooldown && !isEnd) return;
+    const events = eventLog.splice(0);
+    if (!events.length && !isEnd) return;
+
+    commentarySpeaking = true;
+    const text = await generateCommentary(events, isEnd);
+    if (text) { showSubtitle(text); await speakCommentary(text); }
+    commentarySpeaking = false;
+    if (!isEnd) { commentaryCooldown = true; setTimeout(() => { commentaryCooldown = false; }, 5000); }
+  }
+
+  async function generateAndSpeak(text) {
+    showSubtitle(text);
+    await speakCommentary(text);
+  }
+
+  async function generateCommentary(events, isEnd) {
+    const scores = engine ? engine.getScoreboard().map(b => `${b.name} ${b.emoji}: ${b.energy} energy, ${b.collected} items`).join('; ') : '';
+    const prompt = isEnd
+      ? `The bot match just ENDED! Recent events:\n${events.join('\n')}\nFinal scores: ${scores}\nGive an exciting 1-2 sentence wrap-up announcing the winner!`
+      : `Recent bot battle events:\n${events.join('\n')}\nCurrent scores: ${scores}\nGive a short punchy 1-2 sentence sports commentary. Be funny!`;
+    try {
+      const res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${CEREBRAS_KEY}` },
+        body: JSON.stringify({
+          model: 'llama3.1-8b',
+          messages: [
+            { role: 'system', content: 'You are an over-the-top kids sports commentator for a bot programming competition. Be funny, dramatic, kid-friendly. Max 2 sentences. Use bot names and emoji.' },
+            { role: 'user', content: prompt }
+          ],
+          max_tokens: 150,
+        }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.choices?.[0]?.message?.content?.trim() || null;
+    } catch { return null; }
+  }
+
+  async function speakCommentary(text) {
+    if (!ELEVENLABS_KEY || !audioUnlocked || !audioEnabled) return;
+    try {
+      const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/YOq2y2Up4RgXP2HyXjE5`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'xi-api-key': ELEVENLABS_KEY },
+        body: JSON.stringify({ text, model_id: 'eleven_flash_v2_5', voice_settings: { stability: 0.5, similarity_boost: 0.75 } }),
+      });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      await new Promise(resolve => {
+        audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
+        audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+        audio.play().catch(() => resolve());
+      });
+    } catch {}
+  }
+
+  function showSubtitle(text) {
+    const area = document.getElementById('commentary-area');
+    document.getElementById('commentary-text').textContent = text;
+    area.classList.add('visible');
+    setTimeout(() => area.classList.remove('visible'), 8000);
+  }
+
+  // ── Supabase realtime ──────────────────────────────────────────────────────
+  async function loadTournament() {
+    const { data } = await db.from('bmb_tournaments').select('*').eq('is_active', true).limit(1).maybeSingle();
+    if (data) {
+      tournamentConfig = data;
+      document.getElementById('header-tournament').textContent = data.name;
+    }
+    return data;
+  }
+
+  async function checkForPendingMatch() {
+    if (matchRunning) return;
+    const { data: match } = await db.from('bmb_match_queue').select('*')
+      .eq('tournament_id', tournamentConfig?.id || '')
+      .eq('status', 'pending').order('position').limit(1).maybeSingle();
+    if (!match) return;
+    matchRunning = true;
+    globalStop = false;
+    eventLog = [];
+
+    // Mark as playing
+    await db.from('bmb_match_queue').update({ status: 'playing' }).eq('id', match.id);
+
+    // Fetch bots
+    const { data: bots } = await db.from('bmb_bots').select('*').in('id', match.bot_ids);
+    if (!bots || bots.length < 2) {
+      await db.from('bmb_match_queue').update({ status: 'completed' }).eq('id', match.id);
+      matchRunning = false;
+      return;
+    }
+
+    // Sort bots to match order in bot_ids
+    const orderedBots = match.bot_ids.map(id => bots.find(b => b.id === id)).filter(Boolean);
+    await runMatch(match, orderedBots);
+  }
+
+  async function init() {
+    const t = await loadTournament();
+    if (!t) { document.getElementById('waiting-msg').textContent = 'No active tournament'; return; }
+
+    // Check once on load
+    await checkForPendingMatch();
+
+    // Subscribe to match queue changes
+    db.channel('bmb-match-queue')
+      .on('postgres_changes', { event: '*', schema: 'code_mob', table: 'bmb_match_queue' }, () => {
+        if (!matchRunning) checkForPendingMatch();
+      })
+      .subscribe();
+
+    // Poll fallback every 5s
+    setInterval(() => { if (!matchRunning) checkForPendingMatch(); }, 5000);
+  }
+
+  window.addEventListener('resize', () => { if (engine) renderGrid(); });
+  init();
+</script>
+</body>
+</html>

@@ -528,6 +528,91 @@
       font-size: 28px;
     }
 
+    /* ── Editor / grid side-by-side ─────────────────────────────────────── */
+    .editor-grid-row {
+      display: flex;
+      flex-direction: row;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .editor-side {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .grid-side {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    /* ── Python console ──────────────────────────────────────────────────── */
+    .console-area {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--neon-green);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .console-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      background: rgba(57, 255, 20, 0.06);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .console-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 7px;
+      color: var(--neon-green);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .console-clear-btn {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 2px 8px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .console-clear-btn:hover {
+      color: var(--text);
+      border-color: var(--text-dim);
+    }
+
+    .console-output {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--neon-green);
+      padding: 8px 12px;
+      min-height: 80px;
+      max-height: 180px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .console-output:empty::before {
+      content: 'print() output appears here…';
+      color: var(--text-dim);
+      font-style: italic;
+    }
+
     /* ── Mobile ──────────────────────────────────────────────────────────── */
     @media (max-width: 768px) {
       .page-wrapper {
@@ -554,6 +639,14 @@
       }
 
       .stats-panel {
+        width: 100%;
+      }
+
+      .editor-grid-row {
+        flex-direction: column;
+      }
+
+      .grid-side {
         width: 100%;
       }
     }
@@ -652,59 +745,80 @@
       <div>
         <label class="label">Speed</label>
         <select id="speed-select">
-          <option value="300">Slow (300ms)</option>
-          <option value="150" selected>Normal (150ms)</option>
-          <option value="50">Fast (50ms)</option>
-          <option value="10">Turbo (10ms)</option>
+          <option value="1000">Turtle (1000ms)</option>
+          <option value="400">Slow (400ms)</option>
+          <option value="200" selected>Normal (200ms)</option>
+          <option value="100">Fast (100ms)</option>
+          <option value="50">Turbo (50ms)</option>
         </select>
       </div>
     </div>
 
-    <!-- Editor -->
-    <div class="editor-wrap">
-      <div class="editor-header">
-        <span class="editor-header-label">Write your bot's code</span>
-        <span class="editor-hint">Ctrl+Enter to run</span>
-      </div>
-      <textarea id="code-editor"></textarea>
-    </div>
+    <div class="editor-grid-row">
 
-    <!-- Button row -->
-    <div class="btn-row">
-      <button class="run-btn" id="run-btn">&#9654; RUN</button>
-      <button class="stop-btn" id="stop-btn">&#9632; STOP</button>
-      <button class="reset-btn" id="reset-btn">&#8635; RESET</button>
-      <button class="submit-btn" id="submit-btn" disabled>&#10003; SUBMIT</button>
-    </div>
+      <!-- Editor side -->
+      <div class="editor-side">
 
-    <!-- Error area -->
-    <div class="error-area" id="error-area"></div>
+        <div class="editor-wrap">
+          <div class="editor-header">
+            <span class="editor-header-label">Write your bot's code</span>
+            <span class="editor-hint">Ctrl+Enter to run</span>
+          </div>
+          <textarea id="code-editor"></textarea>
+        </div>
 
-    <!-- Grid and stats -->
-    <div class="grid-container">
-      <div class="grid-wrap">
-        <div class="grid" id="game-grid"></div>
-      </div>
-      <div class="stats-panel" id="stats-panel">
-        <div class="stats-panel-title">Stats</div>
-        <div class="stat-row">
-          <span class="stat-label">Energy</span>
-          <span class="stat-value" id="stat-energy">—</span>
+        <div class="btn-row">
+          <button class="run-btn" id="run-btn">&#9654; RUN</button>
+          <button class="stop-btn" id="stop-btn">&#9632; STOP</button>
+          <button class="reset-btn" id="reset-btn">&#8635; RESET</button>
+          <button class="submit-btn" id="submit-btn" disabled>&#10003; SUBMIT</button>
         </div>
-        <div class="stat-row">
-          <span class="stat-label">Collected</span>
-          <span class="stat-value" id="stat-collected">—</span>
+
+        <div class="error-area" id="error-area"></div>
+
+      </div><!-- /.editor-side -->
+
+      <!-- Grid side -->
+      <div class="grid-side">
+
+        <!-- Grid and stats -->
+        <div class="grid-container">
+          <div class="grid-wrap">
+            <div class="grid" id="game-grid"></div>
+          </div>
+          <div class="stats-panel" id="stats-panel">
+            <div class="stats-panel-title">Stats</div>
+            <div class="stat-row">
+              <span class="stat-label">Energy</span>
+              <span class="stat-value" id="stat-energy">—</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Collected</span>
+              <span class="stat-value" id="stat-collected">—</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Moves</span>
+              <span class="stat-value" id="stat-moves">—</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Status</span>
+              <span class="stat-value" id="stat-status">—</span>
+            </div>
+          </div>
         </div>
-        <div class="stat-row">
-          <span class="stat-label">Moves</span>
-          <span class="stat-value" id="stat-moves">—</span>
+
+        <!-- Python console -->
+        <div class="console-area">
+          <div class="console-header">
+            <span class="console-label">Console</span>
+            <button class="console-clear-btn" id="console-clear-btn">Clear</button>
+          </div>
+          <div class="console-output" id="console-output"></div>
         </div>
-        <div class="stat-row">
-          <span class="stat-label">Status</span>
-          <span class="stat-value" id="stat-status">—</span>
-        </div>
-      </div>
-    </div>
+
+      </div><!-- /.grid-side -->
+
+    </div><!-- /.editor-grid-row -->
 
   </main>
 
@@ -913,12 +1027,26 @@ for i in range(10):
 
   // ── Sound ─────────────────────────────────────────────────────────────────
   function playEventSound(event) {
+    console.log(event && event.type);
     if (!sounds || !event) return;
     const map = { move:'move', hit_wall:'hitWall', collect_good:'collectGood',
       collect_bad:'collectBad', collect_star:'starPower', collect_mushroom:'mushroomPower',
       star_steal:'steal', mushroom_steal:'steal', turn:'turn' };
     const fn = map[event.type];
     if (fn && sounds[fn]) sounds[fn]();
+  }
+
+  // ── Console ───────────────────────────────────────────────────────────────
+  let consoleBuffer = '';
+  function clearConsole() {
+    consoleBuffer = '';
+    const el = document.getElementById('console-output');
+    if (el) el.textContent = '';
+  }
+  function appendConsole(text) {
+    consoleBuffer += text;
+    const el = document.getElementById('console-output');
+    if (el) { el.textContent = consoleBuffer; el.scrollTop = el.scrollHeight; }
   }
 
   // ── Skulkt suspension ──────────────────────────────────────────────────────
@@ -940,7 +1068,7 @@ for i in range(10):
 
   function setupSkulkt() {
     Sk.configure({
-      output: () => {},
+      output: text => appendConsole(text),
       read: f => {
         if (!Sk.builtinFiles || !Sk.builtinFiles['files'][f]) throw new Error(`File not found: '${f}'`);
         return Sk.builtinFiles['files'][f];
@@ -971,7 +1099,7 @@ for i in range(10):
     running = true; stopRequested = false; pythonFinished = false;
     pendingAction = null; actionSignalResolve = null; runSucceeded = false;
 
-    clearError(); setStatus('Running...');
+    clearConsole(); clearError(); setStatus('Running...');
     document.getElementById('run-btn').style.display = 'none';
     document.getElementById('stop-btn').style.display = '';
     document.getElementById('submit-btn').disabled = true;
@@ -1134,6 +1262,7 @@ for i in range(10):
   document.getElementById('stop-btn').addEventListener('click', stopCode);
   document.getElementById('reset-btn').addEventListener('click', resetLevel);
   document.getElementById('submit-btn').addEventListener('click', submitBot);
+  document.getElementById('console-clear-btn').addEventListener('click', clearConsole);
 
   // ── Boot ──────────────────────────────────────────────────────────────────
   initEmojiPicker();

@@ -236,7 +236,11 @@ class GameEngine {
 
     // Item on tile
     const item = this.grid.getItem(x, y);
-    if (item) return lookCategory(itemType(item));
+    if (item) {
+      const type = itemType(item);
+      if (starPowered && type === 'bad') return '';
+      return lookCategory(type);
+    }
 
     return '';
   }
@@ -364,21 +368,21 @@ class GameEngine {
           type: 'collect_good', detail: { item },
         });
       } else if (type === 'bad') {
-        bot.energy -= 10;
+        if (!starPowered) bot.energy -= 10;
         pushEvent({
           botId: bot.id, botName: bot.name, botEmoji: bot.emoji,
           type: 'collect_bad', detail: { item },
         });
       } else if (type === 'star') {
         bot.powerUp = 'star';
-        bot.powerUpMoves = 10;
+        bot.powerUpMoves = 30;
         pushEvent({
           botId: bot.id, botName: bot.name, botEmoji: bot.emoji,
           type: 'collect_star', detail: { item },
         });
       } else if (type === 'mushroom') {
         bot.powerUp = 'mushroom';
-        bot.powerUpMoves = 10;
+        bot.powerUpMoves = 30;
         pushEvent({
           botId: bot.id, botName: bot.name, botEmoji: bot.emoji,
           type: 'collect_mushroom', detail: { item },
@@ -560,8 +564,8 @@ function createSounds() {
   }
 
   return {
-    move()          { playTone(200, 0.08, 'square', 0.08); },
-    turn()          { playTone(400, 0.06, 'sine', 0.08); },
+    move()          { playTone(200, 0.08, 'sine', 0.02); },
+    turn()          { playTone(400, 0.06, 'sine', 0.04); },
     collectGood()   { playNotes([[523, 0.08], [659, 0.08], [784, 0.12]], 'square', 0.12); },
     collectBad()    { playNotes([[300, 0.1], [200, 0.15]], 'sawtooth', 0.12); },
     hitWall()       { noise(0.12, 0.15); },

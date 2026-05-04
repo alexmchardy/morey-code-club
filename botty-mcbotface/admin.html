@@ -155,14 +155,19 @@
             <input type="number" id="t-maxbots" value="3" min="1" max="10">
           </div>
         </div>
-        <div class="form-row" style="margin-top:14px;">
-          <div class="toggle-row">
+        <div class="inline-row" style="margin-top:14px; align-items:center;">
+          <div style="flex:0; display:flex; align-items:center; gap:10px; white-space:nowrap;">
             <input type="checkbox" id="t-powerups">
-            <label class="toggle-label" for="t-powerups">Enable Power-Ups (⭐ 🍄)</label>
+            <label class="toggle-label" for="t-powerups">Power-Ups (⭐ 🍄)</label>
+          </div>
+          <div>
+            <label class="label">Power-Up Count</label>
+            <input type="number" id="t-powerup-count" value="2" min="1" max="20">
           </div>
         </div>
         <div class="btn-row">
           <button class="btn btn-green" onclick="createTournament()">CREATE TOURNAMENT</button>
+          <button class="btn btn-yellow" id="btn-update" onclick="updateTournament()" style="display:none;">UPDATE TOURNAMENT</button>
           <button class="btn" onclick="loadTournament()">REFRESH</button>
         </div>
         <div class="feedback" id="t-feedback"></div>
@@ -304,6 +309,8 @@
     document.getElementById('t-maxturns').value = data.max_turns;
     document.getElementById('t-maxbots').value = data.max_bots_per_student;
     document.getElementById('t-powerups').checked = data.power_ups_enabled;
+    document.getElementById('t-powerup-count').value = data.power_up_count ?? 2;
+    document.getElementById('btn-update').style.display = '';
 
     subscribeToRealtime();
     await loadApprovedNames();
@@ -329,6 +336,7 @@
       wall_count: parseInt(document.getElementById('t-walls').value) || 10,
       starting_energy: parseInt(document.getElementById('t-energy').value) || 50,
       power_ups_enabled: document.getElementById('t-powerups').checked,
+      power_up_count: parseInt(document.getElementById('t-powerup-count').value) || 2,
       max_turns: parseInt(document.getElementById('t-maxturns').value) || 200,
       max_bots_per_student: parseInt(document.getElementById('t-maxbots').value) || 3,
       is_active: true,
@@ -339,12 +347,38 @@
     TOURNAMENT_ID = data.id;
     document.getElementById('tournament-badge').textContent = name;
     document.getElementById('tournament-badge').style.display = '';
+    document.getElementById('btn-update').style.display = '';
     feedback('t-feedback', `Tournament "${name}" created!`, 'ok');
     selectedBotIds.clear();
     subscribeToRealtime();
     await loadApprovedNames();
     await loadBots();
     await loadQueue();
+  }
+
+  async function updateTournament() {
+    if (!TOURNAMENT_ID) { feedback('t-feedback', 'No active tournament to update', 'err'); return; }
+    const name = document.getElementById('t-name').value.trim();
+    if (!name) { feedback('t-feedback', 'Tournament name required', 'err'); return; }
+
+    const { error } = await db.from('bmb_tournaments').update({
+      name,
+      grid_width: parseInt(document.getElementById('t-width').value) || 10,
+      grid_height: parseInt(document.getElementById('t-height').value) || 10,
+      good_item_count: parseInt(document.getElementById('t-good').value) || 10,
+      bad_item_count: parseInt(document.getElementById('t-bad').value) || 5,
+      wall_count: parseInt(document.getElementById('t-walls').value) || 10,
+      starting_energy: parseInt(document.getElementById('t-energy').value) || 50,
+      power_ups_enabled: document.getElementById('t-powerups').checked,
+      power_up_count: parseInt(document.getElementById('t-powerup-count').value) || 2,
+      max_turns: parseInt(document.getElementById('t-maxturns').value) || 200,
+      max_bots_per_student: parseInt(document.getElementById('t-maxbots').value) || 3,
+    }).eq('id', TOURNAMENT_ID);
+
+    if (error) { feedback('t-feedback', 'Error: ' + error.message, 'err'); return; }
+
+    document.getElementById('tournament-badge').textContent = name;
+    feedback('t-feedback', `Tournament updated!`, 'ok');
   }
 
   // ── Approved Names ────────────────────────────────────────────────────────

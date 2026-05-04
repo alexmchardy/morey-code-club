@@ -396,8 +396,10 @@
       grid.placeItem(itemPool[idx].x, itemPool[idx].y, BADS[Math.floor(Math.random() * BADS.length)]);
     }
     if (cfg.power_ups_enabled) {
-      if (idx < itemPool.length) { grid.placeItem(itemPool[idx].x, itemPool[idx].y, '⭐'); idx++; }
-      if (idx < itemPool.length) { grid.placeItem(itemPool[idx].x, itemPool[idx].y, '🍄'); idx++; }
+      const puCount = cfg.power_up_count ?? 2;
+      for (let i = 0; i < puCount && idx < itemPool.length; i++, idx++) {
+        grid.placeItem(itemPool[idx].x, itemPool[idx].y, i % 2 === 0 ? '⭐' : '🍄');
+      }
     }
 
     // Place bots

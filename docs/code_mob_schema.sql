@@ -93,3 +93,60 @@ CREATE TABLE code_mob.students (
   CONSTRAINT students_pkey PRIMARY KEY (session_id, name),
   CONSTRAINT students_session_id_fkey FOREIGN KEY (session_id) REFERENCES code_mob.sessions(id)
 );
+
+CREATE TABLE code_mob.bmb_tournaments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  grid_width integer NOT NULL DEFAULT 10,
+  grid_height integer NOT NULL DEFAULT 10,
+  good_item_count integer NOT NULL DEFAULT 10,
+  bad_item_count integer NOT NULL DEFAULT 5,
+  wall_count integer NOT NULL DEFAULT 10,
+  starting_energy integer NOT NULL DEFAULT 50,
+  power_ups_enabled boolean NOT NULL DEFAULT false,
+  max_turns integer NOT NULL DEFAULT 200,
+  max_bots_per_student integer NOT NULL DEFAULT 3,
+  paused boolean NOT NULL DEFAULT false,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT bmb_tournaments_pkey PRIMARY KEY (id)
+);
+
+CREATE TABLE code_mob.bmb_approved_names (
+  tournament_id uuid NOT NULL,
+  name text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT bmb_approved_names_pkey PRIMARY KEY (tournament_id, name),
+  CONSTRAINT bmb_approved_names_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES code_mob.bmb_tournaments(id)
+);
+
+CREATE TABLE code_mob.bmb_bots (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  tournament_id uuid NOT NULL,
+  student_name text NOT NULL,
+  bot_name text NOT NULL,
+  bot_emoji text NOT NULL DEFAULT '🤖',
+  version integer NOT NULL DEFAULT 1,
+  code text NOT NULL,
+  is_archived boolean NOT NULL DEFAULT false,
+  match_wins integer NOT NULL DEFAULT 0,
+  match_losses integer NOT NULL DEFAULT 0,
+  total_collected integer NOT NULL DEFAULT 0,
+  submitted_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT bmb_bots_pkey PRIMARY KEY (id),
+  CONSTRAINT bmb_bots_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES code_mob.bmb_tournaments(id)
+);
+
+CREATE TABLE code_mob.bmb_match_queue (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  tournament_id uuid NOT NULL,
+  bot_ids uuid[] NOT NULL,
+  grid_seed text,
+  position integer NOT NULL,
+  status text NOT NULL DEFAULT 'pending' CHECK (status = ANY (ARRAY['pending', 'playing', 'completed'])),
+  winner_bot_id uuid,
+  results jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT bmb_match_queue_pkey PRIMARY KEY (id),
+  CONSTRAINT bmb_match_queue_tournament_id_fkey FOREIGN KEY (tournament_id) REFERENCES code_mob.bmb_tournaments(id)
+);

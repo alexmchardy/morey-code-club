@@ -175,8 +175,8 @@
       <div class="panel-body">
         <div class="inline-row" style="margin-bottom:14px;">
           <div>
-            <label class="label">Add Name</label>
-            <input type="text" id="new-name" placeholder="e.g. Alex" maxlength="30">
+            <label class="label">Add Names (comma or newline separated)</label>
+            <textarea id="new-name" rows="4" placeholder="Alex&#10;Jordan, Sam&#10;Riley" style="width:100%;resize:vertical;"></textarea>
           </div>
           <div style="flex:0;">
             <label class="label">&nbsp;</label>
@@ -337,14 +337,16 @@
 
   async function addName() {
     const input = document.getElementById('new-name');
-    const name = input.value.trim();
-    if (!name) return;
+    const names = input.value.split(/[,\n\r]+/).map(s => s.trim()).filter(Boolean);
+    if (!names.length) return;
     if (!TOURNAMENT_ID) { feedback('names-feedback', 'Create a tournament first', 'err'); return; }
 
-    const { error } = await db.from('bmb_approved_names').insert({ tournament_id: TOURNAMENT_ID, name });
+    const rows = names.map(name => ({ tournament_id: TOURNAMENT_ID, name }));
+    const { error } = await db.from('bmb_approved_names').upsert(rows, { onConflict: 'tournament_id,name', ignoreDuplicates: true });
     if (error) { feedback('names-feedback', 'Error: ' + error.message, 'err'); return; }
 
     input.value = '';
+    feedback('names-feedback', `Added ${names.length} name${names.length !== 1 ? 's' : ''}`, 'ok');
     await loadApprovedNames();
   }
 
@@ -450,7 +452,7 @@
 
   // ── Enter on name input ───────────────────────────────────────────────────
   document.getElementById('new-name').addEventListener('keydown', e => {
-    if (e.key === 'Enter') addName();
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) addName();
   });
 
   // ── Boot ──────────────────────────────────────────────────────────────────

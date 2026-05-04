@@ -200,13 +200,20 @@ class GameEngine {
   }
 
   /**
-   * Returns what the bot sees in the given relative direction.
+   * Returns what the bot sees in the given relative direction at n steps away.
    * @param {Bot} bot
    * @param {'forward'|'left'|'right'} relDir
+   * @param {number} [n=1]
    * @returns {''|'wall'|'good'|'bad'|'power'}
    */
-  lookResult(bot, relDir) {
-    const { x, y } = bot.lookDir(relDir);
+  lookResult(bot, relDir, n = 1) {
+    let d;
+    if (relDir === 'left') d = bot.leftDir();
+    else if (relDir === 'right') d = bot.rightDir();
+    else d = bot.dir;
+    const x = bot.x + DX[d] * n;
+    const y = bot.y + DY[d] * n;
+
     const starPowered = bot.powerUp === 'star';
     const mushroomPowered = bot.powerUp === 'mushroom';
 
@@ -229,10 +236,7 @@ class GameEngine {
 
     // Item on tile
     const item = this.grid.getItem(x, y);
-    if (item) {
-      const cat = lookCategory(itemType(item));
-      return cat;
-    }
+    if (item) return lookCategory(itemType(item));
 
     return '';
   }

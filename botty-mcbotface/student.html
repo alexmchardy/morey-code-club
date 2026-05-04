@@ -698,8 +698,8 @@
         <div><span class="fn">turn_left()</span></div>
         <div><span class="fn">turn_right()</span></div>
         <div><span class="fn">look()</span> <span class="comment">— ahead</span></div>
-        <div><span class="fn">look(<span class="ret">"left"</span>)</span></div>
-        <div><span class="fn">look(<span class="ret">"right"</span>)</span></div>
+        <div><span class="fn">look(<span class="ret">"left"</span>)</span> <span class="comment">— or look("left", 2)</span></div>
+        <div><span class="fn">look(<span class="ret">"right"</span>)</span> <span class="comment">— or look("right", 2)</span></div>
         <div style="margin-top:8px;"><span class="comment">Returns:</span></div>
         <div><span class="ret">""</span> <span class="comment">empty / safe</span></div>
         <div><span class="ret">"wall"</span></div>
@@ -1084,10 +1084,19 @@ for i in range(10):
       const turns = n !== undefined ? Sk.ffi.remapToJs(n) : 1;
       return makeSuspend('turn', { direction: 'right', turns: Math.max(1, Math.min(4, turns | 0)) });
     });
-    Sk.builtins.look = new Sk.builtin.func(dir => {
+    Sk.builtins.look = new Sk.builtin.func((arg1, arg2) => {
       if (!engine || !currentBot || !currentBot.alive) return new Sk.builtin.str('');
-      const d = dir ? Sk.ffi.remapToJs(dir) : 'forward';
-      return new Sk.builtin.str(engine.lookResult(currentBot, d));
+      let dir = 'forward', n = 1;
+      if (arg1 !== undefined) {
+        const v1 = Sk.ffi.remapToJs(arg1);
+        if (typeof v1 === 'number') {
+          n = Math.max(1, v1 | 0);
+        } else {
+          dir = v1;
+          if (arg2 !== undefined) n = Math.max(1, Sk.ffi.remapToJs(arg2) | 0);
+        }
+      }
+      return new Sk.builtin.str(engine.lookResult(currentBot, dir, n));
     });
   }
 

@@ -215,6 +215,99 @@
       box-shadow: 0 0 8px rgba(191, 0, 255, 0.4);
     }
 
+    /* ── Emoji picker button & modal ─────────────────────────────────────── */
+    .emoji-picker-btn {
+      width: 42px;
+      height: 42px;
+      font-size: 22px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      padding: 0;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .emoji-picker-btn:hover {
+      border-color: var(--neon-purple);
+      background: rgba(191, 0, 255, 0.08);
+    }
+
+    .bot-name-row {
+      display: flex;
+      gap: 6px;
+      align-items: stretch;
+    }
+
+    .emoji-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 3, 16, 0.85);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .emoji-modal-overlay.hidden {
+      display: none;
+    }
+
+    .emoji-modal {
+      background: var(--surface);
+      border: 2px solid var(--neon-purple);
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 0 40px rgba(191, 0, 255, 0.3);
+      width: min(520px, 90vw);
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .emoji-modal-grid {
+      overflow-y: auto;
+    }
+
+    .emoji-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .emoji-modal-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      color: var(--neon-purple);
+      letter-spacing: 1px;
+    }
+
+    .emoji-modal-close {
+      font-size: 16px;
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 3px;
+    }
+
+    .emoji-modal-close:hover {
+      color: var(--text);
+      background: var(--surface2);
+    }
+
+    .emoji-modal-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+      gap: 6px;
+    }
+
     /* API reference */
     .api-ref {
       background: var(--surface2);
@@ -248,18 +341,108 @@
       display: block;
     }
 
-    .steps-panel {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 12px 14px;
-      margin-bottom: 10px;
+    .steps-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
     }
 
-    .hints-container {
+    .step-item {
       display: flex;
-      flex-direction: column;
-      gap: 8px;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      background: var(--surface2);
+      border-radius: 4px;
+      border-left: 3px solid var(--border);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      transition: border-color 0.2s;
+    }
+
+    .step-item.completed {
+      border-left-color: var(--neon-green);
+    }
+
+    .step-item.manual {
+      cursor: pointer;
+    }
+
+    .step-item.manual:hover {
+      background: rgba(191, 0, 255, 0.1);
+    }
+
+    .step-checkbox {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-radius: 3px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .step-item.completed .step-checkbox {
+      border-color: var(--neon-green);
+      color: var(--neon-green);
+    }
+
+    .step-item.completed .step-checkbox::after {
+      content: '✓';
+      display: block;
+      text-align: center;
+      line-height: 12px;
+      font-size: 11px;
+    }
+
+    .step-text {
+      flex: 1;
+      line-height: 1.4;
+    }
+
+    .step-badge {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9px;
+      color: var(--text-dim);
+      background: var(--surface);
+      padding: 2px 6px;
+      border-radius: 3px;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
+    .hint-item {
+      margin-bottom: 8px;
+    }
+
+    .hint-title {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 13px;
+      color: var(--neon-orange);
+      cursor: pointer;
+      padding: 8px 12px;
+      background: var(--surface2);
+      border-radius: 4px;
+      transition: background 0.15s;
+      list-style: none;
+      user-select: none;
+    }
+
+    .hint-title:hover {
+      background: rgba(255, 140, 0, 0.1);
+    }
+
+    .hint-content {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      color: var(--text);
+      background: var(--bg);
+      padding: 12px;
+      margin-top: 4px;
+      border-radius: 4px;
+      border-left: 2px solid var(--neon-orange);
+      white-space: pre-wrap;
+      overflow-x: auto;
     }
 
     /* ── Main panel ──────────────────────────────────────────────────────── */
@@ -641,7 +824,9 @@
       .stats-panel {
         width: 100%;
       }
+    }
 
+    @media (max-width: 1249px) {
       .editor-grid-row {
         flex-direction: column;
       }
@@ -653,6 +838,17 @@
   </style>
 </head>
 <body>
+
+<!-- Emoji picker modal -->
+<div class="emoji-modal-overlay hidden" id="emoji-modal-overlay">
+  <div class="emoji-modal">
+    <div class="emoji-modal-header">
+      <span class="emoji-modal-title">PICK YOUR BOT</span>
+      <button class="emoji-modal-close" id="emoji-modal-close">✕</button>
+    </div>
+    <div class="emoji-modal-grid" id="emoji-modal-grid"></div>
+  </div>
+</div>
 
 <!-- Name selection overlay -->
 <div class="name-overlay" id="name-overlay">
@@ -680,14 +876,6 @@
     <div class="name-badge">
       <span class="name-badge-label">Coder</span>
       <span class="name-badge-value" id="display-name">...</span>
-    </div>
-
-    <!-- Emoji picker -->
-    <div>
-      <div class="section-label">Pick Your Bot</div>
-      <div class="emoji-picker" id="emoji-picker">
-        <!-- 20 bot emoji buttons rendered by JS -->
-      </div>
     </div>
 
     <!-- API Reference -->
@@ -725,7 +913,10 @@
     <div class="controls-row">
       <div>
         <label class="label">Bot Name</label>
-        <input type="text" id="bot-name" placeholder="e.g. SpeedBot" maxlength="20">
+        <div class="bot-name-row">
+          <input type="text" id="bot-name" placeholder="e.g. SpeedBot" maxlength="20">
+          <button class="emoji-picker-btn" id="emoji-picker-btn" title="Pick your bot emoji">🤖</button>
+        </div>
       </div>
       <div>
         <label class="label">Level</label>
@@ -827,7 +1018,40 @@
 <script type="module">
   const SUPABASE_URL = 'https://facwrgpgbffgrriolgcy.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhY3dyZ3BnYmZmZ3JyaW9sZ2N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzkyODYsImV4cCI6MjA4OTcxNTI4Nn0.G8tmDmDmmMa7O6y-CPd16na4RzOjk-nwnkE4HF383js';
-  const BOT_EMOJIS = ['🤖','👾','🦾','🎮','🕹️','⚡','🚀','💫','🌟','🎯','🦄','🐉','🔥','💎','🏆','🛸','🤠','👽','🦊','🐼'];
+  const BOT_EMOJIS = [
+    // Robots & sci-fi
+    '🤖','👾','🦾','🛸','👽','🚀','🛰️','🔭','💻','⌨️',
+    // Space & energy
+    '⚡','💫','🌟','🎯','☄️','🌀','🌈','💥','✨','🔥',
+    // Big cats & canines
+    '🦁','🐯','🐺','🦊','🐼','🐻','🐨','🦝','🐱','🦔',
+    // Reptiles & water critters
+    '🐉','🦖','🦕','🐸','🐊','🐢','🦎','🐙','🦑','🦈',
+    // Birds & bugs
+    '🦅','🦜','🦩','🦚','🦋','🐝','🪲','🦂','🐞','🪳',
+    // Sea & safari
+    '🐬','🐳','🦭','🦏','🦛','🦘','🐘','🦒','🦓','🦌',
+    // Fantasy & heroes
+    '🦄','🧙','🧚','🧜','🧞','🐲','🦸','🥷','🧟','👹',
+    // Spooky & silly
+    '👻','💀','🎃','😈','🤠','🎭','🤡','💩','🫠','🧌',
+    // Games & trophies
+    '💎','🏆','🎮','🕹️','🎲','🧩','🔮','🏹','⚔️','🛡️',
+    // Nature & weather
+    '🌊','🌋','🌪️','❄️','🧊','🌙','☀️','🍄','🌵','🌴',
+    // Food & treats
+    '🍕','🍔','🌮','🍩','🎂','🧁','🍪','🍦','🍣','🍜',
+    // Music & arts
+    '🎸','🎺','🥁','🎹','🎵','🎨','🎬','🎪','🎠','🎡',
+    // Tools & power-ups
+    '🔑','🧲','🔧','⚙️','🪄','🧪','🔬','💡','🪬','🧿',
+    // Vehicles
+    '🏎️','🚂','🚁','🛺','🚤','🏍️','🚒','🛻','🚀','🛥️',
+    // Flowers & plants
+    '🌸','🌺','🌻','🌹','🍀','🌿','🌱','🎋','🪴','🎍',
+    // Gems & glory
+    '👑','💍','🥇','🏅','🎖️','💰','🪙','💎','🌠','🏔️',
+  ];
   const DIR_ARROWS = ['▲','▶','▼','◀'];
   const SUBMIT_THROTTLE_MS = 20000;
   const STARTER_CODE = `# Move your bot and collect items!
@@ -891,21 +1115,26 @@ for i in range(10):
   }
 
   // ── Emoji picker ─────────────────────────────────────────────────────────
+  function openEmojiModal() { document.getElementById('emoji-modal-overlay').classList.remove('hidden'); }
+  function closeEmojiModal() { document.getElementById('emoji-modal-overlay').classList.add('hidden'); }
+
   function initEmojiPicker() {
-    const picker = document.getElementById('emoji-picker');
-    picker.innerHTML = '';
+    const grid = document.getElementById('emoji-modal-grid');
+    grid.innerHTML = '';
     BOT_EMOJIS.forEach(emoji => {
       const btn = document.createElement('button');
       btn.className = 'emoji-btn' + (emoji === BOT_EMOJI ? ' selected' : '');
       btn.textContent = emoji;
-      btn.addEventListener('click', () => selectEmoji(emoji));
-      picker.appendChild(btn);
+      btn.addEventListener('click', () => { selectEmoji(emoji); closeEmojiModal(); });
+      grid.appendChild(btn);
     });
+    document.getElementById('emoji-picker-btn').textContent = BOT_EMOJI;
   }
   function selectEmoji(emoji) {
     BOT_EMOJI = emoji;
     if (STUDENT_NAME) localStorage.setItem(`bmb-bot-emoji-${STUDENT_NAME}`, emoji);
-    document.querySelectorAll('.emoji-btn').forEach(b => b.classList.toggle('selected', b.textContent === emoji));
+    document.querySelectorAll('#emoji-modal-grid .emoji-btn').forEach(b => b.classList.toggle('selected', b.textContent === emoji));
+    document.getElementById('emoji-picker-btn').textContent = emoji;
     if (currentBot) { currentBot.emoji = emoji; renderGrid(); }
   }
 
@@ -945,16 +1174,32 @@ for i in range(10):
   }
 
   // ── Tutorial steps ────────────────────────────────────────────────────────
-  function hideTutorialSteps() { document.getElementById('steps-section').style.display = 'none'; }
+  function hideTutorialSteps() { document.getElementById('steps-section').classList.remove('visible'); }
   function showTutorialSteps(level) {
     if (!level.steps || !level.steps.length) { hideTutorialSteps(); return; }
-    document.getElementById('steps-section').style.display = '';
-    document.getElementById('steps-panel').innerHTML = level.steps.map(s =>
-      `<div class="step-item" data-step="${escapeHtml(s.id)}"><span class="step-check">☐</span><span>${escapeHtml(s.text)}</span></div>`
-    ).join('');
-    document.getElementById('hints-container').innerHTML = (level.hints || []).map(h =>
-      `<div><button class="hint-toggle" onclick="this.nextElementSibling.classList.toggle('visible')">💡 ${escapeHtml(h.title)}</button><pre class="hint-content">${escapeHtml(h.content)}</pre></div>`
-    ).join('');
+    document.getElementById('steps-section').classList.add('visible');
+    document.getElementById('steps-panel').innerHTML =
+      `<ul class="steps-list">` +
+      level.steps.map(s =>
+        `<li class="step-item${s.manual ? ' manual' : ''}" data-step="${escapeHtml(s.id)}">` +
+        `<div class="step-checkbox"></div>` +
+        `<span class="step-text">${s.text}</span>` +
+        (s.manual ? `<span class="step-badge">tap to toggle</span>` : '') +
+        `</li>`
+      ).join('') +
+      `</ul>`;
+    document.querySelectorAll('.step-item.manual').forEach(el => {
+      el.addEventListener('click', () => el.classList.toggle('completed'));
+    });
+    document.getElementById('hints-container').innerHTML =
+      (level.hints && level.hints.length
+        ? `<div class="section-label" style="margin-top:8px;">Hints</div>` : '') +
+      (level.hints || []).map(h =>
+        `<details class="hint-item">` +
+        `<summary class="hint-title">💡 ${escapeHtml(h.title)}</summary>` +
+        `<div class="hint-content">${escapeHtml(h.content)}</div>` +
+        `</details>`
+      ).join('');
     updateTutorialSteps();
   }
   function updateTutorialSteps() {
@@ -966,8 +1211,7 @@ for i in range(10):
       const el = document.querySelector(`.step-item[data-step="${s.id}"]`);
       if (!el) return;
       const done = s.detect(code);
-      el.classList.toggle('done', done);
-      el.querySelector('.step-check').textContent = done ? '☑' : '☐';
+      el.classList.toggle('completed', done);
     });
   }
 
@@ -995,7 +1239,7 @@ for i in range(10):
           arrow.textContent = DIR_ARROWS[currentBot.dir];
           div.appendChild(arrow);
         } else if (cell.wall) {
-          div.textContent = '🧱';
+          div.textContent = '🟫';
         } else if (cell.item) {
           div.textContent = cell.item;
         }
@@ -1155,14 +1399,15 @@ for i in range(10):
     if (!currentBot.alive) {
       setStatus('Out of energy!');
     } else if (engine.grid.countGoodItems() === 0) {
-      setStatus('All items collected! 🎉'); runSucceeded = true;
+      setStatus('All items collected! 🎉');
     } else if (engine.turnCount >= engine.maxTurns) {
-      setStatus('Max turns reached'); runSucceeded = true;
+      setStatus('Max turns reached');
     } else if (userStopped) {
       setStatus('Stopped');
     } else {
-      setStatus('Done'); runSucceeded = true;
+      setStatus('Done');
     }
+    runSucceeded = currentBot.collected >= 2;
 
     running = false;
     document.getElementById('run-btn').style.display = '';
@@ -1201,19 +1446,17 @@ for i in range(10):
     const botName = document.getElementById('bot-name').value.trim();
     if (!botName) { showError('Please enter a bot name first'); return; }
     try {
-      const { data: existing } = await db.from('bmb_bots').select('id, version')
-        .eq('tournament_id', TOURNAMENT_ID).eq('student_name', STUDENT_NAME)
-        .eq('bot_name', botName).eq('is_archived', false)
-        .order('version', { ascending: false }).limit(1).maybeSingle();
-      const newVersion = existing ? existing.version + 1 : 1;
-      if (existing) await db.from('bmb_bots').update({ is_archived: true }).eq('id', existing.id);
-      const { error } = await db.from('bmb_bots').insert({
-        tournament_id: TOURNAMENT_ID, student_name: STUDENT_NAME,
-        bot_name: botName, bot_emoji: BOT_EMOJI, version: newVersion, code: editor.getValue(),
+      const { data, error } = await db.rpc('submit_bmb_bot', {
+        p_tournament_id: TOURNAMENT_ID,
+        p_student_name: STUDENT_NAME,
+        p_bot_name: botName,
+        p_bot_emoji: BOT_EMOJI,
+        p_code: editor.getValue(),
       });
       if (error) throw new Error(error.message);
+      if (data.error) throw new Error(data.error);
       lastSubmitTime = Date.now(); runSucceeded = false; updateSubmitButton();
-      setStatus(`"${botName}" v${newVersion} submitted! ✓`);
+      setStatus(`"${botName}" v${data.version} submitted! ✓`);
     } catch (e) { showError('Submit failed: ' + e.message); }
   }
 
@@ -1272,6 +1515,9 @@ for i in range(10):
   document.getElementById('reset-btn').addEventListener('click', resetLevel);
   document.getElementById('submit-btn').addEventListener('click', submitBot);
   document.getElementById('console-clear-btn').addEventListener('click', clearConsole);
+  document.getElementById('emoji-picker-btn').addEventListener('click', openEmojiModal);
+  document.getElementById('emoji-modal-close').addEventListener('click', closeEmojiModal);
+  document.getElementById('emoji-modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeEmojiModal(); });
 
   // ── Boot ──────────────────────────────────────────────────────────────────
   initEmojiPicker();

@@ -344,6 +344,7 @@ class GameEngine {
       bot.x = tx;
       bot.y = ty;
       this.decrementPowerUp(bot);
+      pushEvent({ botId: bot.id, botName: bot.name, botEmoji: bot.emoji, type: 'move' });
     }
 
     // ---- Collect item if present ----

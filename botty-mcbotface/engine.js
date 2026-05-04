@@ -210,10 +210,11 @@ class GameEngine {
     const starPowered = bot.powerUp === 'star';
     const mushroomPowered = bot.powerUp === 'mushroom';
 
-    // Out of bounds or wall tile
+    // Out of bounds — always impassable, even with star power
     if (!this.grid.inBounds(x, y)) {
-      return starPowered ? '' : 'wall';
+      return 'wall';
     }
+    // Interior wall tile — star power can pass through
     if (this.grid.isWall(x, y)) {
       return starPowered ? '' : 'wall';
     }
@@ -261,7 +262,9 @@ class GameEngine {
 
     // ---- Hitting a solid wall (out of bounds or wall tile) ----
     if (isOutOfBounds || isWallTile) {
-      if (!starPowered) {
+      // Out-of-bounds is always impassable — even star-powered bots cannot leave the grid.
+      // Star power only passes through interior wall tiles (isWallTile && !isOutOfBounds).
+      if (isOutOfBounds || !starPowered) {
         // Stays put
         const evt = pushEvent({
           botId: bot.id,
@@ -272,8 +275,7 @@ class GameEngine {
         this.checkEnergy(bot);
         return evt;
       }
-      // Star-powered: pass through (wrap to same tile — just moves into the wall)
-      // Per spec: "moves to target, decrements power-up moves"
+      // Star-powered interior wall: pass through
       bot.x = tx;
       bot.y = ty;
       this.decrementPowerUp(bot);

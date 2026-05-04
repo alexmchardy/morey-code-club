@@ -42,6 +42,13 @@ Central hub that links to interactive games and coding projects for club members
 │   ├── room.html           # Battle arena display — animated encounter narration
 │   ├── admin.html          # Admin interface — tournament and encounter management
 │   └── shared.css          # Shared styles for all Character Clash pages
+├── botty-mcbotface/        # Botty McBotface (see below)
+│   ├── student.html        # Student interface — write bot code and practice on levels
+│   ├── room.html           # Match display — runs bots against each other, animated
+│   ├── admin.html          # Admin interface — tournament management
+│   ├── engine.js           # Game engine (Grid, Bot, GameEngine classes) — shared global
+│   ├── levels.js           # Level definitions and random grid generator
+│   └── shared.css          # Shared styles for all Botty McBotface pages
 ├── python-playground/      # Python Playground (see below)
 │   ├── index.html          # Main playground with editor and terminal
 │   ├── shared.css          # Styles for the playground
@@ -120,6 +127,53 @@ Key tables in the `code_mob` schema:
 - `cc_characters` — Student-submitted character code with versioning
 - `cc_encounter_queue` — Pending/playing/completed encounters
 - `cc_approved_names` — Whitelist of student names per tournament
+
+## Botty McBotface
+
+A grid-based bot programming game where students write code to control a robot that collects items, avoids hazards, and competes against other bots in tournaments.
+
+### How It Works
+
+1. **Students** write a `move_bot()` function (JS or Python) that calls `move()`, `turn_left()`, `turn_right()`, and `look()` to control their bot
+2. **Levels** teach the API progressively — students practice solo before entering tournaments
+3. **Bots** are submitted to the current tournament via Supabase
+4. **Admin** queues matches between submitted bots
+5. **Room display** runs both bot functions client-side in a shared grid, animates the match, and records results
+
+### Game Mechanics
+
+- Bots navigate a grid collecting **good items** (+10 energy each) and avoiding **bad items** (-10 energy)
+- Each move costs 1 energy; bots die at 0 energy
+- **Power-ups** (optional, admin-configurable): ⭐ Star (pass through walls/bots, steal energy) and 🍄 Mushroom (push unpowered bots, steal energy) — each lasts 30 moves
+- Winner is the bot with the most collected items (energy as tiebreaker)
+- Game ends when all good items are collected, all bots are dead, or max turns is reached
+
+### Tech Stack
+
+- **Supabase** — Real-time database, `code_mob` schema
+- **Skulpt** — Python execution in the browser
+- **CodeMirror 5.65.16** — Code editor in student.html
+- **Web Audio API** — Retro sound effects (engine.js `createSounds()`)
+
+### Database Schema
+
+Key tables in the `code_mob` schema:
+
+- `bmb_tournaments` — Tournament config (grid size, item counts, power-up settings, energy, max turns)
+- `bmb_bots` — Student-submitted bot code with versioning and win/loss stats
+- `bmb_match_queue` — Pending/playing/completed matches with results
+- `bmb_approved_names` — Whitelist of student names per tournament
+
+Key columns on `bmb_tournaments`:
+- `good_item_count`, `bad_item_count`, `wall_count` — item placement counts
+- `power_ups_enabled` (bool), `power_up_count` (int, default 2) — ⭐/🍄 items placed alternating
+- `starting_energy`, `max_turns`, `max_bots_per_student`
+
+### Key RPCs
+
+- `submit_bmb_bot` — student bot submission (validates tournament, approved name, bot limit)
+- `complete_bmb_match` — room calls this to record results and update win/loss stats
+- `archive_bmb_bot` — student archives their own bot to free a slot
 
 ## Python Playground
 

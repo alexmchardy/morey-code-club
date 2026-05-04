@@ -710,6 +710,436 @@
 
 </div>
 
-<script type="module" id="main-script">// JS added in Task 7</script>
+<script type="module">
+  const SUPABASE_URL = 'https://facwrgpgbffgrriolgcy.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhY3dyZ3BnYmZmZ3JyaW9sZ2N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzkyODYsImV4cCI6MjA4OTcxNTI4Nn0.G8tmDmDmmMa7O6y-CPd16na4RzOjk-nwnkE4HF383js';
+  const BOT_EMOJIS = ['🤖','👾','🦾','🎮','🕹️','⚡','🚀','💫','🌟','🎯','🦄','🐉','🔥','💎','🏆','🛸','🤠','👽','🦊','🐼'];
+  const DIR_ARROWS = ['▲','▶','▼','◀'];
+  const SUBMIT_THROTTLE_MS = 20000;
+  const STARTER_CODE = `# Move your bot and collect items!
+# Use: move(), turn_left(), turn_right(), look()
+
+for i in range(10):
+    move()
+`;
+
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { db: { schema: 'code_mob' } });
+
+  let TOURNAMENT_ID = null, TOURNAMENT_CONFIG = null, STUDENT_NAME = null, BOT_EMOJI = '🤖';
+  let lastSubmitTime = 0, throttleIntervalId = null;
+  let engine = null, currentBot = null;
+  let running = false, stopRequested = false, pythonFinished = false, runSucceeded = false;
+  let sounds = null, pendingAction = null, actionSignalResolve = null;
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── CodeMirror ──────────────────────────────────────────────────────────
+  function insertSpacesTab(cm) {
+    if (cm.somethingSelected()) { cm.indentSelection('add'); return; }
+    cm.replaceSelection(' '.repeat(cm.getOption('indentUnit') || 4), 'end', '+input');
+  }
+  function dedentWhitespaceBeforeCursor(cm) {
+    const cur = cm.getCursor(), line = cm.getLine(cur.line), ch = cur.ch;
+    if (ch === 0) return CodeMirror.Pass;
+    const prefix = line.slice(0, ch);
+    if (!/^\s+$/.test(prefix)) return CodeMirror.Pass;
+    const unit = cm.getOption('indentUnit') || 4;
+    const targetCh = Math.floor((ch - 1) / unit) * unit;
+    if (targetCh >= ch) return CodeMirror.Pass;
+    cm.replaceRange('', { line: cur.line, ch: targetCh }, { line: cur.line, ch });
+    cm.setCursor({ line: cur.line, ch: targetCh });
+  }
+  const editor = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
+    mode: 'python', theme: 'material-darker', lineNumbers: true,
+    indentUnit: 4, tabSize: 4, indentWithTabs: false, autofocus: false,
+    extraKeys: {
+      Tab: insertSpacesTab,
+      Backspace: dedentWhitespaceBeforeCursor,
+      'Shift-Tab': 'indentLess',
+      'Ctrl-Enter': () => runCode(),
+      'Cmd-Enter': () => runCode(),
+    },
+  });
+  editor.on('change', () => { saveCodeToStorage(); updateTutorialSteps(); });
+
+  // ── Storage ──────────────────────────────────────────────────────────────
+  const getCodeKey = () => `bmb-code-${STUDENT_NAME}-${TOURNAMENT_ID || 'local'}`;
+  function saveCodeToStorage() {
+    if (!STUDENT_NAME) return;
+    try { localStorage.setItem(getCodeKey(), editor.getValue()); } catch {}
+  }
+  function loadCodeFromStorage() {
+    if (!STUDENT_NAME) return null;
+    try { return localStorage.getItem(getCodeKey()); } catch { return null; }
+  }
+
+  // ── Emoji picker ─────────────────────────────────────────────────────────
+  function initEmojiPicker() {
+    const picker = document.getElementById('emoji-picker');
+    picker.innerHTML = '';
+    BOT_EMOJIS.forEach(emoji => {
+      const btn = document.createElement('button');
+      btn.className = 'emoji-btn' + (emoji === BOT_EMOJI ? ' selected' : '');
+      btn.textContent = emoji;
+      btn.addEventListener('click', () => selectEmoji(emoji));
+      picker.appendChild(btn);
+    });
+  }
+  function selectEmoji(emoji) {
+    BOT_EMOJI = emoji;
+    if (STUDENT_NAME) localStorage.setItem(`bmb-bot-emoji-${STUDENT_NAME}`, emoji);
+    document.querySelectorAll('.emoji-btn').forEach(b => b.classList.toggle('selected', b.textContent === emoji));
+    if (currentBot) { currentBot.emoji = emoji; renderGrid(); }
+  }
+
+  // ── Level / grid setup ───────────────────────────────────────────────────
+  function loadLevel() {
+    if (running) return;
+    const levelId = document.getElementById('level-select').value;
+    const energy = TOURNAMENT_CONFIG ? TOURNAMENT_CONFIG.starting_energy : 50;
+    const maxTurns = TOURNAMENT_CONFIG ? TOURNAMENT_CONFIG.max_turns : 200;
+    let grid, botX = 0, botY = 0, botDir = 1;
+
+    if (levelId.startsWith('random-')) {
+      const diff = levelId.replace('random-', '');
+      const w = TOURNAMENT_CONFIG ? TOURNAMENT_CONFIG.grid_width : 10;
+      const h = TOURNAMENT_CONFIG ? TOURNAMENT_CONFIG.grid_height : 10;
+      grid = generateRandomGrid(diff, w, h);
+      hideTutorialSteps();
+    } else {
+      const level = LEVELS.find(l => l.id === levelId);
+      if (!level) return;
+      grid = new Grid(level.width, level.height);
+      const tmp = { x: 0, y: 0, dir: 1 };
+      level.generate(grid, tmp);
+      botX = tmp.x; botY = tmp.y; botDir = tmp.dir;
+      showTutorialSteps(level);
+    }
+
+    const botName = document.getElementById('bot-name').value.trim() || 'Bot';
+    currentBot = new Bot('p1', botName, BOT_EMOJI, botX, botY, botDir, energy);
+    engine = new GameEngine(grid, [currentBot], { maxTurns });
+    runSucceeded = false;
+    clearError(); setStatus('Ready'); updateSubmitButton(); renderGrid(); updateStats();
+  }
+
+  function resetLevel() {
+    if (running) { stopCode(); setTimeout(loadLevel, 80); } else { loadLevel(); }
+  }
+
+  // ── Tutorial steps ────────────────────────────────────────────────────────
+  function hideTutorialSteps() { document.getElementById('steps-section').style.display = 'none'; }
+  function showTutorialSteps(level) {
+    if (!level.steps || !level.steps.length) { hideTutorialSteps(); return; }
+    document.getElementById('steps-section').style.display = '';
+    document.getElementById('steps-panel').innerHTML = level.steps.map(s =>
+      `<div class="step-item" data-step="${escapeHtml(s.id)}"><span class="step-check">☐</span><span>${escapeHtml(s.text)}</span></div>`
+    ).join('');
+    document.getElementById('hints-container').innerHTML = (level.hints || []).map(h =>
+      `<div><button class="hint-toggle" onclick="this.nextElementSibling.classList.toggle('visible')">💡 ${escapeHtml(h.title)}</button><pre class="hint-content">${escapeHtml(h.content)}</pre></div>`
+    ).join('');
+    updateTutorialSteps();
+  }
+  function updateTutorialSteps() {
+    const level = LEVELS.find(l => l.id === document.getElementById('level-select').value);
+    if (!level || !level.steps) return;
+    const code = editor.getValue();
+    level.steps.forEach(s => {
+      if (s.manual) return;
+      const el = document.querySelector(`.step-item[data-step="${s.id}"]`);
+      if (!el) return;
+      const done = s.detect(code);
+      el.classList.toggle('done', done);
+      el.querySelector('.step-check').textContent = done ? '☑' : '☐';
+    });
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  function renderGrid() {
+    const gridEl = document.getElementById('game-grid');
+    if (!engine) { gridEl.innerHTML = ''; return; }
+    const { width, height } = engine.grid;
+    gridEl.style.gridTemplateColumns = `repeat(${width}, 40px)`;
+    const frag = document.createDocumentFragment();
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const cell = engine.grid.cells[y][x];
+        const div = document.createElement('div');
+        div.className = 'cell' + (cell.wall ? ' wall' : '');
+        const isBot = currentBot && currentBot.alive && currentBot.x === x && currentBot.y === y;
+        if (isBot) {
+          const span = document.createElement('span');
+          span.textContent = currentBot.emoji;
+          if (currentBot.powerUp === 'star') span.className = 'bot-star';
+          else if (currentBot.powerUp === 'mushroom') span.className = 'bot-mushroom';
+          div.appendChild(span);
+          const arrow = document.createElement('span');
+          arrow.className = 'dir-indicator';
+          arrow.textContent = DIR_ARROWS[currentBot.dir];
+          div.appendChild(arrow);
+        } else if (cell.wall) {
+          div.textContent = '🧱';
+        } else if (cell.item) {
+          div.textContent = cell.item;
+        }
+        frag.appendChild(div);
+      }
+    }
+    gridEl.innerHTML = '';
+    gridEl.appendChild(frag);
+  }
+
+  // ── Stats / errors ────────────────────────────────────────────────────────
+  function updateStats() {
+    if (!currentBot) return;
+    const el = document.getElementById('stat-energy');
+    el.textContent = currentBot.energy;
+    el.className = 'stat-value' + (currentBot.energy <= 10 ? ' danger' : '');
+    document.getElementById('stat-collected').textContent = currentBot.collected;
+    document.getElementById('stat-moves').textContent = engine ? engine.turnCount : 0;
+  }
+  function setStatus(msg) { document.getElementById('stat-status').textContent = msg; }
+  function showError(msg) {
+    const el = document.getElementById('error-area');
+    el.textContent = msg; el.classList.add('visible');
+  }
+  function clearError() {
+    const el = document.getElementById('error-area');
+    el.textContent = ''; el.classList.remove('visible');
+  }
+
+  // ── Sound ─────────────────────────────────────────────────────────────────
+  function playEventSound(event) {
+    if (!sounds || !event) return;
+    const map = { move:'move', hit_wall:'hitWall', collect_good:'collectGood',
+      collect_bad:'collectBad', collect_star:'starPower', collect_mushroom:'mushroomPower',
+      star_steal:'steal', mushroom_steal:'steal', turn:'turn' };
+    const fn = map[event.type];
+    if (fn && sounds[fn]) sounds[fn]();
+  }
+
+  // ── Skulkt suspension ──────────────────────────────────────────────────────
+  function signalAction() {
+    if (actionSignalResolve) { const r = actionSignalResolve; actionSignalResolve = null; r(); }
+  }
+  function waitForNextAction() {
+    return new Promise(resolve => {
+      if (pendingAction || pythonFinished || stopRequested) resolve();
+      else actionSignalResolve = resolve;
+    });
+  }
+  function makeSuspend(type, params) {
+    if (stopRequested) throw new Error('__bmb_stopped__');
+    return new Sk.misceval.promiseToSuspension(
+      new Promise(resolve => { pendingAction = { type, params, resolve }; signalAction(); })
+    );
+  }
+
+  function setupSkulkt() {
+    Sk.configure({
+      output: () => {},
+      read: f => {
+        if (!Sk.builtinFiles || !Sk.builtinFiles['files'][f]) throw new Error(`File not found: '${f}'`);
+        return Sk.builtinFiles['files'][f];
+      },
+      execLimit: 500000,
+    });
+    Sk.builtins.move = new Sk.builtin.func(() => makeSuspend('move', {}));
+    Sk.builtins.turn_left = new Sk.builtin.func(n => {
+      const turns = n !== undefined ? Sk.ffi.remapToJs(n) : 1;
+      return makeSuspend('turn', { direction: 'left', turns: Math.max(1, Math.min(4, turns | 0)) });
+    });
+    Sk.builtins.turn_right = new Sk.builtin.func(n => {
+      const turns = n !== undefined ? Sk.ffi.remapToJs(n) : 1;
+      return makeSuspend('turn', { direction: 'right', turns: Math.max(1, Math.min(4, turns | 0)) });
+    });
+    Sk.builtins.look = new Sk.builtin.func(dir => {
+      if (!engine || !currentBot || !currentBot.alive) return new Sk.builtin.str('');
+      const d = dir ? Sk.ffi.remapToJs(dir) : 'forward';
+      return new Sk.builtin.str(engine.lookResult(currentBot, d));
+    });
+  }
+
+  async function runCode() {
+    if (running) return;
+    if (!engine || !currentBot) { loadLevel(); return; }
+    if (!sounds) sounds = createSounds();
+
+    running = true; stopRequested = false; pythonFinished = false;
+    pendingAction = null; actionSignalResolve = null; runSucceeded = false;
+
+    clearError(); setStatus('Running...');
+    document.getElementById('run-btn').style.display = 'none';
+    document.getElementById('stop-btn').style.display = '';
+    document.getElementById('submit-btn').disabled = true;
+
+    setupSkulkt();
+
+    Sk.misceval.asyncToPromise(() =>
+      Sk.importMainWithBody('<stdin>', false, editor.getValue(), true)
+    ).then(() => {
+      pythonFinished = true; signalAction();
+    }).catch(err => {
+      const msg = err && err.toString();
+      if (msg && !msg.includes('__bmb_stopped__') && !stopRequested) showError('Python error: ' + msg);
+      pythonFinished = true; signalAction();
+    });
+
+    while (!stopRequested && !engine.isFinished()) {
+      await waitForNextAction();
+      if (stopRequested || (!pendingAction && pythonFinished)) break;
+      if (!pendingAction) break;
+
+      const action = pendingAction;
+      pendingAction = null;
+
+      let event;
+      if (action.type === 'move') {
+        event = engine.processMove(currentBot);
+        engine.turnCount++;
+      } else if (action.type === 'turn') {
+        event = engine.processTurn(currentBot, action.params.turns, action.params.direction);
+      }
+
+      renderGrid(); updateStats(); playEventSound(event);
+      await new Promise(r => setTimeout(r, parseInt(document.getElementById('speed-select').value, 10)));
+      action.resolve();
+      if (!currentBot.alive) { if (sounds) sounds.gameOver(); break; }
+    }
+
+    const userStopped = stopRequested;
+    stopRequested = true;
+    if (pendingAction) { const r = pendingAction.resolve; pendingAction = null; r(); }
+    signalAction();
+
+    if (!currentBot.alive) {
+      setStatus('Out of energy!');
+    } else if (engine.grid.countGoodItems() === 0) {
+      setStatus('All items collected! 🎉'); runSucceeded = true;
+    } else if (engine.turnCount >= engine.maxTurns) {
+      setStatus('Max turns reached'); runSucceeded = true;
+    } else if (userStopped) {
+      setStatus('Stopped');
+    } else {
+      setStatus('Done'); runSucceeded = true;
+    }
+
+    running = false;
+    document.getElementById('run-btn').style.display = '';
+    document.getElementById('stop-btn').style.display = 'none';
+    updateSubmitButton();
+  }
+
+  function stopCode() {
+    if (!running) return;
+    stopRequested = true;
+    if (pendingAction) { const r = pendingAction.resolve; pendingAction = null; r(); }
+    signalAction();
+  }
+
+  // ── Submit ────────────────────────────────────────────────────────────────
+  function updateSubmitButton() {
+    const btn = document.getElementById('submit-btn');
+    if (throttleIntervalId) { clearInterval(throttleIntervalId); throttleIntervalId = null; }
+    if (!runSucceeded) { btn.disabled = true; btn.innerHTML = '<span>&#10003;</span> SUBMIT'; return; }
+    const remaining = SUBMIT_THROTTLE_MS - (Date.now() - lastSubmitTime);
+    if (remaining > 0) {
+      btn.disabled = true;
+      const tick = () => {
+        const s = Math.ceil((SUBMIT_THROTTLE_MS - (Date.now() - lastSubmitTime)) / 1000);
+        if (s <= 0) { clearInterval(throttleIntervalId); throttleIntervalId = null; btn.disabled = false; btn.innerHTML = '<span>&#10003;</span> SUBMIT'; }
+        else btn.innerHTML = `<span>&#10003;</span> SUBMIT (${s}s)`;
+      };
+      tick(); throttleIntervalId = setInterval(tick, 1000);
+    } else { btn.disabled = false; btn.innerHTML = '<span>&#10003;</span> SUBMIT'; }
+  }
+
+  async function submitBot() {
+    if (running || !runSucceeded) return;
+    if (Date.now() - lastSubmitTime < SUBMIT_THROTTLE_MS) { showError('Please wait before submitting again'); return; }
+    if (!TOURNAMENT_ID) { showError('No active tournament'); return; }
+    const botName = document.getElementById('bot-name').value.trim();
+    if (!botName) { showError('Please enter a bot name first'); return; }
+    try {
+      const { data: existing } = await db.from('bmb_bots').select('id, version')
+        .eq('tournament_id', TOURNAMENT_ID).eq('student_name', STUDENT_NAME)
+        .eq('bot_name', botName).eq('is_archived', false)
+        .order('version', { ascending: false }).limit(1).maybeSingle();
+      const newVersion = existing ? existing.version + 1 : 1;
+      if (existing) await db.from('bmb_bots').update({ is_archived: true }).eq('id', existing.id);
+      const { error } = await db.from('bmb_bots').insert({
+        tournament_id: TOURNAMENT_ID, student_name: STUDENT_NAME,
+        bot_name: botName, bot_emoji: BOT_EMOJI, version: newVersion, code: editor.getValue(),
+      });
+      if (error) throw new Error(error.message);
+      lastSubmitTime = Date.now(); runSucceeded = false; updateSubmitButton();
+      setStatus(`"${botName}" v${newVersion} submitted! ✓`);
+    } catch (e) { showError('Submit failed: ' + e.message); }
+  }
+
+  // ── Tournament / name picker ──────────────────────────────────────────────
+  async function loadTournament() {
+    const { data, error } = await db.from('bmb_tournaments').select('*')
+      .eq('is_active', true).order('created_at', { ascending: false }).limit(1).maybeSingle();
+    if (error || !data) {
+      document.getElementById('name-select').innerHTML = '<option value="">No active tournament</option>';
+      return false;
+    }
+    TOURNAMENT_ID = data.id; TOURNAMENT_CONFIG = data; return true;
+  }
+
+  async function loadApprovedNames() {
+    if (!TOURNAMENT_ID) return;
+    const { data, error } = await db.from('bmb_approved_names').select('name')
+      .eq('tournament_id', TOURNAMENT_ID).order('name');
+    const select = document.getElementById('name-select');
+    if (error || !data || !data.length) { select.innerHTML = '<option value="">No approved names yet</option>'; return; }
+    select.innerHTML = '<option value="">Select your name...</option>' +
+      data.map(n => `<option value="${escapeHtml(n.name)}">${escapeHtml(n.name)}</option>`).join('');
+    const saved = localStorage.getItem('bmb-student-name');
+    if (saved && data.some(n => n.name === saved)) {
+      select.value = saved;
+      document.getElementById('name-submit-btn').disabled = false;
+    }
+  }
+
+  // ── Event wiring ──────────────────────────────────────────────────────────
+  document.getElementById('name-select').addEventListener('change', e => {
+    document.getElementById('name-submit-btn').disabled = !e.target.value;
+  });
+
+  document.getElementById('name-submit-btn').addEventListener('click', () => {
+    const name = document.getElementById('name-select').value;
+    if (!name) return;
+    STUDENT_NAME = name;
+    localStorage.setItem('bmb-student-name', name);
+    document.getElementById('display-name').textContent = name;
+    document.getElementById('name-overlay').classList.add('hidden');
+    const savedEmoji = localStorage.getItem(`bmb-bot-emoji-${name}`);
+    if (savedEmoji && BOT_EMOJIS.includes(savedEmoji)) { BOT_EMOJI = savedEmoji; initEmojiPicker(); }
+    const saved = loadCodeFromStorage();
+    editor.setValue(saved && saved.trim() ? saved : STARTER_CODE);
+    editor.focus();
+    loadLevel();
+  });
+
+  document.getElementById('level-select').addEventListener('change', loadLevel);
+  document.getElementById('bot-name').addEventListener('change', () => {
+    if (currentBot) currentBot.name = document.getElementById('bot-name').value.trim() || 'Bot';
+  });
+  document.getElementById('run-btn').addEventListener('click', runCode);
+  document.getElementById('stop-btn').addEventListener('click', stopCode);
+  document.getElementById('reset-btn').addEventListener('click', resetLevel);
+  document.getElementById('submit-btn').addEventListener('click', submitBot);
+
+  // ── Boot ──────────────────────────────────────────────────────────────────
+  initEmojiPicker();
+  editor.setValue(STARTER_CODE);
+  loadLevel();
+  (async () => { const ok = await loadTournament(); if (ok) await loadApprovedNames(); })();
+</script>
 </body>
 </html>

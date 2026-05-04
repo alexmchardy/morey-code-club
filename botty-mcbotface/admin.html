@@ -228,6 +228,33 @@
 
   let TOURNAMENT_ID = null;
   let selectedBotIds = new Set();
+  let botsChannel = null;
+  let queueChannel = null;
+
+  function subscribeToRealtime() {
+    if (!TOURNAMENT_ID) return;
+    if (botsChannel) { db.removeChannel(botsChannel); botsChannel = null; }
+    if (queueChannel) { db.removeChannel(queueChannel); queueChannel = null; }
+
+    botsChannel = db.channel('admin-bots')
+      .on('postgres_changes',
+        { event: '*', schema: 'code_mob', table: 'bmb_bots', filter: `tournament_id=eq.${TOURNAMENT_ID}` },
+        () => loadBots()
+      )
+      .subscribe(status => {
+        if (status === 'SUBSCRIBED') {
+          document.getElementById('conn-dot').className = 'conn-dot green';
+          document.getElementById('conn-text').textContent = 'Live';
+        }
+      });
+
+    queueChannel = db.channel('admin-queue')
+      .on('postgres_changes',
+        { event: '*', schema: 'code_mob', table: 'bmb_match_queue', filter: `tournament_id=eq.${TOURNAMENT_ID}` },
+        () => loadQueue()
+      )
+      .subscribe();
+  }
 
   function escapeHtml(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -278,6 +305,7 @@
     document.getElementById('t-maxbots').value = data.max_bots_per_student;
     document.getElementById('t-powerups').checked = data.power_ups_enabled;
 
+    subscribeToRealtime();
     await loadApprovedNames();
     await loadBots();
     await loadQueue();
@@ -313,6 +341,7 @@
     document.getElementById('tournament-badge').style.display = '';
     feedback('t-feedback', `Tournament "${name}" created!`, 'ok');
     selectedBotIds.clear();
+    subscribeToRealtime();
     await loadApprovedNames();
     await loadBots();
     await loadQueue();

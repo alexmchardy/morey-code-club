@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Botty McBotface — Admin</title>
+  <link rel="stylesheet" href="shared.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    body { padding: 16px; min-height: 100vh; }
+
+    .admin-header {
+      display: flex; align-items: center; gap: 16px;
+      margin-bottom: 20px; padding-bottom: 16px;
+      border-bottom: 1px solid var(--border); flex-wrap: wrap;
+    }
+    .admin-title {
+      font-family: 'Press Start 2P', monospace; font-size: 12px;
+      color: var(--neon-purple); text-shadow: 0 0 16px var(--neon-purple);
+      letter-spacing: 2px; margin: 0;
+    }
+    .status-bar { display: flex; align-items: center; margin-left: auto; flex-wrap: wrap; gap: 8px; }
+    .conn-indicator { display: flex; align-items: center; gap: 6px; font-family: 'Press Start 2P', monospace; font-size: 7px; color: var(--text-dim); }
+    .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--neon-red); flex-shrink: 0; }
+    .conn-dot.green { background: var(--neon-green); box-shadow: 0 0 6px var(--neon-green); }
+    .conn-dot.red { background: var(--neon-red); box-shadow: 0 0 6px var(--neon-red); }
+    .tournament-badge { font-family: 'Press Start 2P', monospace; font-size: 8px; color: var(--neon-purple); border: 1px solid var(--neon-purple); padding: 4px 10px; border-radius: 3px; }
+
+    .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 1000px) { .grid-layout { grid-template-columns: 1fr; } }
+    .left-col, .right-col { display: flex; flex-direction: column; gap: 16px; }
+
+    .form-row { margin-bottom: 14px; }
+    .form-row:last-child { margin-bottom: 0; }
+    .inline-row { display: flex; gap: 12px; align-items: flex-end; }
+    .inline-row > div { flex: 1; }
+    input, select { width: 100%; }
+    .btn-row { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+
+    /* Bots grid */
+    .bots-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px; max-height: 320px; overflow-y: auto;
+    }
+    .bot-card {
+      background: var(--surface2); border: 2px solid var(--border);
+      border-radius: 6px; padding: 12px; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .bot-card:hover { border-color: var(--neon-purple); }
+    .bot-card.selected { border-color: var(--neon-green); background: rgba(57,255,20,0.08); }
+    .bot-card-emoji { font-size: 28px; margin-bottom: 4px; }
+    .bot-card-name { font-family: 'Press Start 2P', monospace; font-size: 9px; color: var(--neon-purple); margin-bottom: 4px; word-break: break-word; }
+    .bot-card.selected .bot-card-name { color: var(--neon-green); }
+    .bot-card-student { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--text-dim); }
+    .bot-card-meta { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+
+    /* Match queue */
+    .match-queue { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
+    .match-item {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 4px; padding: 10px 12px;
+    }
+    .match-item.playing { border-color: var(--neon-yellow); background: rgba(255,190,11,0.08); }
+    .match-item.completed { opacity: 0.5; }
+    .match-bots { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--text); flex: 1; }
+    .match-status { font-family: 'Press Start 2P', monospace; font-size: 7px; margin-left: auto; }
+    .match-status.pending { color: var(--text-dim); }
+    .match-status.playing { color: var(--neon-yellow); }
+    .match-status.completed { color: var(--neon-green); }
+    .match-remove { font-family: 'Press Start 2P', monospace; font-size: 7px; color: var(--neon-red); background: transparent; border: 1px solid var(--neon-red); border-radius: 2px; padding: 3px 6px; cursor: pointer; }
+    .match-remove:hover { background: rgba(255,68,68,0.1); }
+
+    /* Names list */
+    .names-list { display: flex; flex-wrap: wrap; gap: 6px; min-height: 32px; }
+    .name-tag { display: flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 4px 10px; font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--text); }
+    .name-tag-remove { cursor: pointer; color: var(--neon-red); font-size: 14px; line-height: 1; }
+    .name-tag-remove:hover { color: #ff8888; }
+
+    /* Feedback */
+    .feedback { font-family: 'Share Tech Mono', monospace; font-size: 12px; padding: 8px 10px; border-radius: 3px; margin-top: 8px; display: none; }
+    .feedback.visible { display: block; }
+    .feedback.ok { color: var(--neon-green); background: rgba(57,255,20,0.08); border: 1px solid var(--neon-green); }
+    .feedback.err { color: var(--neon-red); background: rgba(255,68,68,0.08); border: 1px solid var(--neon-red); }
+
+    .queue-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+    .selected-count { font-family: 'Press Start 2P', monospace; font-size: 7px; color: var(--neon-green); }
+    .no-items { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--text-dim); padding: 12px 0; }
+
+    .toggle-row { display: flex; align-items: center; gap: 10px; }
+    .toggle-label { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--text); }
+    input[type="checkbox"] { width: auto; accent-color: var(--neon-purple); }
+  </style>
+</head>
+<body>
+
+<div class="admin-header">
+  <h1 class="admin-title">BOTTY MCBOTFACE — ADMIN</h1>
+  <div class="status-bar">
+    <div class="conn-indicator">
+      <div class="conn-dot" id="conn-dot"></div>
+      <span id="conn-text">Connecting...</span>
+    </div>
+    <div class="tournament-badge" id="tournament-badge" style="display:none;"></div>
+  </div>
+</div>
+
+<div class="grid-layout">
+  <div class="left-col">
+
+    <!-- Tournament -->
+    <div class="panel">
+      <div class="panel-header">TOURNAMENT</div>
+      <div class="panel-body">
+        <div class="form-row">
+          <label class="label">Name</label>
+          <input type="text" id="t-name" placeholder="e.g. Spring 2026 Tournament">
+        </div>
+        <div class="inline-row">
+          <div>
+            <label class="label">Grid Width</label>
+            <input type="number" id="t-width" value="10" min="5" max="20">
+          </div>
+          <div>
+            <label class="label">Grid Height</label>
+            <input type="number" id="t-height" value="10" min="5" max="20">
+          </div>
+        </div>
+        <div class="inline-row" style="margin-top:14px;">
+          <div>
+            <label class="label">Good Items</label>
+            <input type="number" id="t-good" value="10" min="0" max="50">
+          </div>
+          <div>
+            <label class="label">Bad Items</label>
+            <input type="number" id="t-bad" value="5" min="0" max="50">
+          </div>
+          <div>
+            <label class="label">Walls</label>
+            <input type="number" id="t-walls" value="10" min="0" max="60">
+          </div>
+        </div>
+        <div class="inline-row" style="margin-top:14px;">
+          <div>
+            <label class="label">Starting Energy</label>
+            <input type="number" id="t-energy" value="50" min="10" max="500">
+          </div>
+          <div>
+            <label class="label">Max Turns</label>
+            <input type="number" id="t-maxturns" value="200" min="50" max="1000">
+          </div>
+          <div>
+            <label class="label">Max Bots/Student</label>
+            <input type="number" id="t-maxbots" value="3" min="1" max="10">
+          </div>
+        </div>
+        <div class="form-row" style="margin-top:14px;">
+          <div class="toggle-row">
+            <input type="checkbox" id="t-powerups">
+            <label class="toggle-label" for="t-powerups">Enable Power-Ups (⭐ 🍄)</label>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-green" onclick="createTournament()">CREATE TOURNAMENT</button>
+          <button class="btn" onclick="loadTournament()">REFRESH</button>
+        </div>
+        <div class="feedback" id="t-feedback"></div>
+      </div>
+    </div>
+
+    <!-- Approved Names -->
+    <div class="panel">
+      <div class="panel-header">APPROVED NAMES</div>
+      <div class="panel-body">
+        <div class="inline-row" style="margin-bottom:14px;">
+          <div>
+            <label class="label">Add Name</label>
+            <input type="text" id="new-name" placeholder="e.g. Alex" maxlength="30">
+          </div>
+          <div style="flex:0;">
+            <label class="label">&nbsp;</label>
+            <button class="btn btn-green" onclick="addName()">ADD</button>
+          </div>
+        </div>
+        <div class="names-list" id="names-list"><span class="no-items">No names yet</span></div>
+        <div class="feedback" id="names-feedback"></div>
+      </div>
+    </div>
+
+  </div>
+  <div class="right-col">
+
+    <!-- Bots -->
+    <div class="panel">
+      <div class="panel-header">SUBMITTED BOTS</div>
+      <div class="panel-body">
+        <div class="queue-controls">
+          <span class="selected-count" id="selected-count">0 selected</span>
+          <button class="btn btn-green" onclick="queueMatch()">QUEUE MATCH</button>
+          <button class="btn" onclick="loadBots()">REFRESH</button>
+        </div>
+        <div class="bots-grid" id="bots-grid"><div class="no-items">No bots yet</div></div>
+        <div class="feedback" id="bots-feedback"></div>
+      </div>
+    </div>
+
+    <!-- Match Queue -->
+    <div class="panel">
+      <div class="panel-header">MATCH QUEUE</div>
+      <div class="panel-body">
+        <div style="margin-bottom:14px;">
+          <button class="btn" onclick="loadQueue()">REFRESH</button>
+        </div>
+        <div class="match-queue" id="match-queue"><div class="no-items">No matches queued</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://facwrgpgbffgrriolgcy.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhY3dyZ3BnYmZmZ3JyaW9sZ2N5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzkyODYsImV4cCI6MjA4OTcxNTI4Nn0.G8tmDmDmmMa7O6y-CPd16na4RzOjk-nwnkE4HF383js';
+
+  const { createClient } = supabase;
+  const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { db: { schema: 'code_mob' } });
+
+  let TOURNAMENT_ID = null;
+  let selectedBotIds = new Set();
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function feedback(id, msg, type) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = `feedback visible ${type}`;
+    setTimeout(() => el.classList.remove('visible'), 4000);
+  }
+
+  // ── Connection ────────────────────────────────────────────────────────────
+  async function checkConnection() {
+    try {
+      const { error } = await db.from('bmb_tournaments').select('id').limit(1);
+      const dot = document.getElementById('conn-dot');
+      const text = document.getElementById('conn-text');
+      if (error) { dot.className = 'conn-dot red'; text.textContent = 'Error: ' + error.message; }
+      else { dot.className = 'conn-dot green'; text.textContent = 'Connected'; }
+    } catch (e) {
+      document.getElementById('conn-dot').className = 'conn-dot red';
+      document.getElementById('conn-text').textContent = 'Failed';
+    }
+  }
+
+  // ── Tournament ────────────────────────────────────────────────────────────
+  async function loadTournament() {
+    const { data, error } = await db.from('bmb_tournaments').select('*')
+      .eq('is_active', true).order('created_at', { ascending: false }).limit(1).maybeSingle();
+
+    const badge = document.getElementById('tournament-badge');
+    if (error || !data) { badge.style.display = 'none'; TOURNAMENT_ID = null; return; }
+
+    TOURNAMENT_ID = data.id;
+    badge.textContent = data.name;
+    badge.style.display = '';
+
+    // Pre-fill form with current values
+    document.getElementById('t-name').value = data.name;
+    document.getElementById('t-width').value = data.grid_width;
+    document.getElementById('t-height').value = data.grid_height;
+    document.getElementById('t-good').value = data.good_item_count;
+    document.getElementById('t-bad').value = data.bad_item_count;
+    document.getElementById('t-walls').value = data.wall_count;
+    document.getElementById('t-energy').value = data.starting_energy;
+    document.getElementById('t-maxturns').value = data.max_turns;
+    document.getElementById('t-maxbots').value = data.max_bots_per_student;
+    document.getElementById('t-powerups').checked = data.power_ups_enabled;
+
+    await loadApprovedNames();
+    await loadBots();
+    await loadQueue();
+  }
+
+  async function createTournament() {
+    const name = document.getElementById('t-name').value.trim();
+    if (!name) { feedback('t-feedback', 'Tournament name required', 'err'); return; }
+
+    // Deactivate existing tournaments
+    if (TOURNAMENT_ID) {
+      await db.from('bmb_tournaments').update({ is_active: false }).eq('id', TOURNAMENT_ID);
+    }
+
+    const { data, error } = await db.from('bmb_tournaments').insert({
+      name,
+      grid_width: parseInt(document.getElementById('t-width').value) || 10,
+      grid_height: parseInt(document.getElementById('t-height').value) || 10,
+      good_item_count: parseInt(document.getElementById('t-good').value) || 10,
+      bad_item_count: parseInt(document.getElementById('t-bad').value) || 5,
+      wall_count: parseInt(document.getElementById('t-walls').value) || 10,
+      starting_energy: parseInt(document.getElementById('t-energy').value) || 50,
+      power_ups_enabled: document.getElementById('t-powerups').checked,
+      max_turns: parseInt(document.getElementById('t-maxturns').value) || 200,
+      max_bots_per_student: parseInt(document.getElementById('t-maxbots').value) || 3,
+      is_active: true,
+    }).select().single();
+
+    if (error) { feedback('t-feedback', 'Error: ' + error.message, 'err'); return; }
+
+    TOURNAMENT_ID = data.id;
+    document.getElementById('tournament-badge').textContent = name;
+    document.getElementById('tournament-badge').style.display = '';
+    feedback('t-feedback', `Tournament "${name}" created!`, 'ok');
+    selectedBotIds.clear();
+    await loadApprovedNames();
+    await loadBots();
+    await loadQueue();
+  }
+
+  // ── Approved Names ────────────────────────────────────────────────────────
+  async function loadApprovedNames() {
+    if (!TOURNAMENT_ID) return;
+    const { data, error } = await db.from('bmb_approved_names').select('name')
+      .eq('tournament_id', TOURNAMENT_ID).order('name');
+
+    const list = document.getElementById('names-list');
+    if (error || !data || !data.length) { list.innerHTML = '<span class="no-items">No names yet</span>'; return; }
+
+    list.innerHTML = data.map(n => `
+      <div class="name-tag">
+        <span>${escapeHtml(n.name)}</span>
+        <span class="name-tag-remove" onclick="removeName('${escapeHtml(n.name).replace(/'/g,"\\'")}')">✕</span>
+      </div>
+    `).join('');
+  }
+
+  async function addName() {
+    const input = document.getElementById('new-name');
+    const name = input.value.trim();
+    if (!name) return;
+    if (!TOURNAMENT_ID) { feedback('names-feedback', 'Create a tournament first', 'err'); return; }
+
+    const { error } = await db.from('bmb_approved_names').insert({ tournament_id: TOURNAMENT_ID, name });
+    if (error) { feedback('names-feedback', 'Error: ' + error.message, 'err'); return; }
+
+    input.value = '';
+    await loadApprovedNames();
+  }
+
+  async function removeName(name) {
+    if (!TOURNAMENT_ID) return;
+    await db.from('bmb_approved_names').delete().eq('tournament_id', TOURNAMENT_ID).eq('name', name);
+    await loadApprovedNames();
+  }
+
+  // ── Bots ──────────────────────────────────────────────────────────────────
+  let allBots = [];
+
+  async function loadBots() {
+    if (!TOURNAMENT_ID) { document.getElementById('bots-grid').innerHTML = '<div class="no-items">Create a tournament first</div>'; return; }
+    const { data, error } = await db.from('bmb_bots').select('id, student_name, bot_name, bot_emoji, version, match_wins, match_losses, total_collected, submitted_at')
+      .eq('tournament_id', TOURNAMENT_ID).eq('is_archived', false)
+      .order('submitted_at', { ascending: false });
+
+    const grid = document.getElementById('bots-grid');
+    if (error || !data || !data.length) { grid.innerHTML = '<div class="no-items">No bots submitted yet</div>'; allBots = []; return; }
+
+    allBots = data;
+    selectedBotIds = new Set([...selectedBotIds].filter(id => data.some(b => b.id === id)));
+    renderBots();
+  }
+
+  function renderBots() {
+    const grid = document.getElementById('bots-grid');
+    grid.innerHTML = allBots.map(b => `
+      <div class="bot-card ${selectedBotIds.has(b.id) ? 'selected' : ''}" onclick="toggleBot('${b.id}')">
+        <div class="bot-card-emoji">${escapeHtml(b.bot_emoji)}</div>
+        <div class="bot-card-name">${escapeHtml(b.bot_name)}</div>
+        <div class="bot-card-student">${escapeHtml(b.student_name)}</div>
+        <div class="bot-card-meta">v${b.version} · ${b.match_wins}W ${b.match_losses}L</div>
+      </div>
+    `).join('');
+    document.getElementById('selected-count').textContent = `${selectedBotIds.size} selected`;
+  }
+
+  function toggleBot(id) {
+    if (selectedBotIds.has(id)) selectedBotIds.delete(id);
+    else selectedBotIds.add(id);
+    renderBots();
+  }
+
+  // ── Match Queue ───────────────────────────────────────────────────────────
+  async function queueMatch() {
+    if (selectedBotIds.size < 2) { feedback('bots-feedback', 'Select at least 2 bots', 'err'); return; }
+    if (!TOURNAMENT_ID) { feedback('bots-feedback', 'No active tournament', 'err'); return; }
+
+    const { data: existing } = await db.from('bmb_match_queue').select('position')
+      .eq('tournament_id', TOURNAMENT_ID).order('position', { ascending: false }).limit(1).maybeSingle();
+    const nextPosition = existing ? existing.position + 1 : 1;
+
+    const { error } = await db.from('bmb_match_queue').insert({
+      tournament_id: TOURNAMENT_ID,
+      bot_ids: [...selectedBotIds],
+      position: nextPosition,
+      status: 'pending',
+    });
+
+    if (error) { feedback('bots-feedback', 'Error: ' + error.message, 'err'); return; }
+
+    feedback('bots-feedback', 'Match queued!', 'ok');
+    selectedBotIds.clear();
+    renderBots();
+    await loadQueue();
+  }
+
+  async function loadQueue() {
+    if (!TOURNAMENT_ID) return;
+    const { data, error } = await db.from('bmb_match_queue').select('id, bot_ids, position, status, results')
+      .eq('tournament_id', TOURNAMENT_ID).order('position');
+
+    const queueEl = document.getElementById('match-queue');
+    if (error || !data || !data.length) { queueEl.innerHTML = '<div class="no-items">No matches queued</div>'; return; }
+
+    queueEl.innerHTML = data.map(m => {
+      const botNames = (m.bot_ids || []).map(id => {
+        const bot = allBots.find(b => b.id === id);
+        return bot ? `${bot.bot_emoji} ${bot.bot_name}` : '?';
+      }).join(' vs ');
+
+      const winner = m.results && m.results.winner ? `🏆 ${m.results.winner}` : '';
+
+      return `
+        <div class="match-item ${m.status}">
+          <div style="flex:1;">
+            <div class="match-bots">${escapeHtml(botNames) || 'Unknown bots'}</div>
+            ${winner ? `<div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--neon-yellow);margin-top:2px;">${escapeHtml(winner)}</div>` : ''}
+          </div>
+          <span class="match-status ${m.status}">${m.status.toUpperCase()}</span>
+          ${m.status === 'pending' ? `<button class="match-remove" onclick="removeMatch('${m.id}')">✕</button>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function removeMatch(id) {
+    await db.from('bmb_match_queue').delete().eq('id', id);
+    await loadQueue();
+  }
+
+  // ── Enter on name input ───────────────────────────────────────────────────
+  document.getElementById('new-name').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addName();
+  });
+
+  // ── Boot ──────────────────────────────────────────────────────────────────
+  checkConnection();
+  loadTournament();
+</script>
+</body>
+</html>

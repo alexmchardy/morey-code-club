@@ -707,8 +707,14 @@
       animation: bot-star-glow 0.8s ease-in-out infinite;
     }
 
+    @keyframes bot-mushroom-pulse {
+      0%, 100% { transform: scale(1.9); }
+      50%       { transform: scale(2.1); }
+    }
+
     .bot-mushroom {
-      font-size: 28px;
+      display: inline-block;
+      animation: bot-mushroom-pulse 0.6s ease-in-out infinite;
     }
 
     /* ── Editor / grid side-by-side ─────────────────────────────────────── */
@@ -794,6 +800,85 @@
       content: 'print() output appears here…';
       color: var(--text-dim);
       font-style: italic;
+    }
+
+    /* ── My Bots panel ──────────────────────────────────────────────────── */
+    .my-bots-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .bots-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .bot-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .bot-card-info {
+      flex: 1;
+      min-width: 0;
+      cursor: pointer;
+      padding: 3px 4px;
+      margin: -3px -4px;
+      border-radius: 3px;
+      transition: background 0.15s;
+    }
+
+    .bot-card-info:hover {
+      background: rgba(191, 0, 255, 0.1);
+    }
+
+    .bot-card-name {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      color: var(--neon-purple);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bot-card-meta {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-top: 3px;
+    }
+
+    .bot-archive-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      color: var(--text-dim);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 4px 6px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+      flex-shrink: 0;
+    }
+
+    .bot-archive-btn:hover {
+      color: var(--neon-orange);
+      border-color: var(--neon-orange);
+    }
+
+    .no-bots {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+      text-align: center;
+      padding: 12px 8px;
     }
 
     /* ── Mobile ──────────────────────────────────────────────────────────── */
@@ -902,6 +987,14 @@
       <div class="section-label">Steps</div>
       <div class="steps-panel" id="steps-panel"></div>
       <div class="hints-container" id="hints-container"></div>
+    </div>
+
+    <!-- My Bots panel -->
+    <div class="my-bots-section">
+      <div class="section-label">My Bots <span id="bot-count"></span></div>
+      <div class="bots-list" id="bots-list">
+        <div class="no-bots">No bots submitted yet</div>
+      </div>
     </div>
 
   </aside>
@@ -1065,10 +1158,12 @@ for i in range(10):
   const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { db: { schema: 'code_mob' } });
 
   let TOURNAMENT_ID = null, TOURNAMENT_CONFIG = null, STUDENT_NAME = null, BOT_EMOJI = '🤖';
+  let MAX_BOTS_PER_STUDENT = 3;
   let lastSubmitTime = 0, throttleIntervalId = null;
   let engine = null, currentBot = null;
   let running = false, stopRequested = false, pythonFinished = false, runSucceeded = false;
   let sounds = null, pendingAction = null, actionSignalResolve = null;
+  let myBots = [];
 
   function escapeHtml(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -1457,6 +1552,7 @@ for i in range(10):
       if (data.error) throw new Error(data.error);
       lastSubmitTime = Date.now(); runSucceeded = false; updateSubmitButton();
       setStatus(`"${botName}" v${data.version} submitted! ✓`);
+      loadMyBots();
     } catch (e) { showError('Submit failed: ' + e.message); }
   }
 
@@ -1468,7 +1564,9 @@ for i in range(10):
       document.getElementById('name-select').innerHTML = '<option value="">No active tournament</option>';
       return false;
     }
-    TOURNAMENT_ID = data.id; TOURNAMENT_CONFIG = data; return true;
+    TOURNAMENT_ID = data.id; TOURNAMENT_CONFIG = data;
+    MAX_BOTS_PER_STUDENT = data.max_bots_per_student || 3;
+    return true;
   }
 
   async function loadApprovedNames() {
@@ -1504,6 +1602,7 @@ for i in range(10):
     editor.setValue(saved && saved.trim() ? saved : STARTER_CODE);
     editor.focus();
     loadLevel();
+    loadMyBots();
   });
 
   document.getElementById('level-select').addEventListener('change', loadLevel);
@@ -1518,6 +1617,81 @@ for i in range(10):
   document.getElementById('emoji-picker-btn').addEventListener('click', openEmojiModal);
   document.getElementById('emoji-modal-close').addEventListener('click', closeEmojiModal);
   document.getElementById('emoji-modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeEmojiModal(); });
+
+  // ── My Bots ───────────────────────────────────────────────────────────────
+  async function loadMyBots() {
+    if (!TOURNAMENT_ID || !STUDENT_NAME) return;
+    const { data, error } = await db
+      .from('bmb_bots')
+      .select('id, bot_name, bot_emoji, version, code, match_wins, match_losses, submitted_at')
+      .eq('tournament_id', TOURNAMENT_ID)
+      .eq('student_name', STUDENT_NAME)
+      .eq('is_archived', false)
+      .order('submitted_at', { ascending: false });
+
+    const list = document.getElementById('bots-list');
+    if (error || !data || data.length === 0) {
+      list.innerHTML = '<div class="no-bots">No bots submitted yet</div>';
+      myBots = [];
+      document.getElementById('bot-count').textContent = `(0/${MAX_BOTS_PER_STUDENT})`;
+      return;
+    }
+
+    myBots = data;
+    const activeCount = countActiveBots();
+    document.getElementById('bot-count').textContent = `(${activeCount}/${MAX_BOTS_PER_STUDENT})`;
+
+    list.innerHTML = data.map((bot, idx) => {
+      const statsText = (bot.match_wins > 0 || bot.match_losses > 0)
+        ? `${bot.match_wins}W / ${bot.match_losses}L`
+        : 'no matches yet';
+      return `
+        <div class="bot-card">
+          <div class="bot-card-info" onclick="loadBot(${idx})" title="Click to load into editor">
+            <div class="bot-card-name">${escapeHtml(bot.bot_emoji)} ${escapeHtml(bot.bot_name)}</div>
+            <div class="bot-card-meta">v${bot.version} · ${statsText}</div>
+          </div>
+          <button class="bot-archive-btn" onclick="archiveBot('${bot.id}')">ARCHIVE</button>
+        </div>`;
+    }).join('');
+  }
+
+  function countActiveBots() {
+    const names = new Set(myBots.map(b => b.bot_name));
+    return names.size;
+  }
+
+  function loadBot(idx) {
+    const bot = myBots[idx];
+    if (!bot) return;
+    document.getElementById('bot-name').value = bot.bot_name;
+    selectEmoji(bot.bot_emoji);
+    editor.setValue(bot.code);
+    saveCodeToStorage();
+    runSucceeded = false;
+    updateSubmitButton();
+    clearError();
+    setStatus(`Loaded "${bot.bot_name}" v${bot.version} — edit and run to submit`);
+    editor.focus();
+  }
+
+  async function archiveBot(botId) {
+    try {
+      const { data, error } = await db.rpc('archive_bmb_bot', {
+        p_bot_id: botId,
+        p_student_name: STUDENT_NAME,
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      loadMyBots();
+    } catch (e) {
+      showError('Failed to archive: ' + e.message);
+    }
+  }
+
+  // Expose bot panel handlers to window (needed for inline onclick in module script)
+  window.loadBot = loadBot;
+  window.archiveBot = archiveBot;
 
   // ── Boot ──────────────────────────────────────────────────────────────────
   initEmojiPicker();

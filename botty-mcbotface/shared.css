@@ -108,6 +108,16 @@ body {
   box-shadow: 0 0 12px rgba(255, 140, 0, 0.4);
 }
 
+.btn-yellow {
+  border-color: var(--neon-yellow);
+  color: var(--neon-yellow);
+}
+
+.btn-yellow:hover {
+  background: rgba(255, 190, 11, 0.1);
+  box-shadow: 0 0 12px rgba(255, 190, 11, 0.4);
+}
+
 /* Input styles */
 input, select, textarea {
   font-family: 'Share Tech Mono', monospace;

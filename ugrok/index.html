@@ -777,13 +777,109 @@
     }
 
     // ============================================================
-    // HELP BUTTON WIRING
+    // HELP SYSTEM
     // ============================================================
+
+    let helpCooldownTimer = null;
 
     document.getElementById('helpBtn').addEventListener('click', () => {
       const panel = document.getElementById('helpPanel');
       panel.classList.toggle('hidden');
+      if (!panel.classList.contains('hidden')) {
+        document.getElementById('helpTextarea').focus();
+      }
     });
+
+    document.getElementById('helpAskBtn').addEventListener('click', askHelp);
+    document.getElementById('helpTextarea').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        askHelp();
+      }
+    });
+
+    async function askHelp() {
+      const input = document.getElementById('helpTextarea');
+      const question = input.value.trim();
+      if (!question) return;
+
+      const responseEl = document.getElementById('helpResponse');
+      const askBtn = document.getElementById('helpAskBtn');
+      responseEl.textContent = 'Thinking...';
+      responseEl.classList.remove('hidden');
+      askBtn.disabled = true;
+
+      const exercise = currentGrokset.exercises[currentExerciseIndex];
+      const systemPrompt = buildHelpPrompt(exercise);
+
+      try {
+        const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${CEREBRAS_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'llama3.1-8b',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: question },
+            ],
+            max_tokens: 200,
+          }),
+        });
+
+        const data = await response.json();
+        responseEl.textContent = data.choices?.[0]?.message?.content || 'No response';
+      } catch (err) {
+        responseEl.textContent = 'Error: could not reach the help service.';
+      }
+
+      input.value = '';
+      startHelpCooldown();
+    }
+
+    function buildHelpPrompt(exercise) {
+      const topic = currentGrokset.title;
+
+      if (exercise.type === 'explanation' || exercise.type === 'stepper') {
+        return `You are a friendly coding tutor helping an elementary/middle school student understand Python. The student is learning about ${topic}. They are currently looking at this code:\n${exercise.code}\nAnswer their question simply and concisely. Use analogies when helpful. Keep responses under 3 sentences.`;
+      }
+
+      let prompt = `You are a friendly coding tutor. The student is working on this quiz question:\n${exercise.question}`;
+      if (exercise.code) prompt += `\n\nCode:\n${exercise.code}`;
+      prompt += `\n\nGive a helpful hint that guides them toward the answer WITHOUT giving it away. Use leading questions or point out what to focus on. Keep responses under 3 sentences.`;
+
+      if (exercise.type === 'quiz-code' && quizEditor) {
+        const studentCode = quizEditor.getValue();
+        if (studentCode && studentCode !== exercise.starterCode) {
+          prompt += `\n\nThe student's current code:\n${studentCode}`;
+        }
+      }
+
+      return prompt;
+    }
+
+    function startHelpCooldown() {
+      const askBtn = document.getElementById('helpAskBtn');
+      const cooldownEl = document.getElementById('helpCooldown');
+      askBtn.disabled = true;
+      cooldownEl.classList.remove('hidden');
+      let remaining = 10;
+      cooldownEl.textContent = `Wait ${remaining}s...`;
+      helpCooldownTimer = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+          clearInterval(helpCooldownTimer);
+          helpCooldownTimer = null;
+          askBtn.disabled = false;
+          cooldownEl.textContent = '';
+          cooldownEl.classList.add('hidden');
+        } else {
+          cooldownEl.textContent = `Wait ${remaining}s...`;
+        }
+      }, 1000);
+    }
 
     // ============================================================
     // BACK BUTTON WIRING

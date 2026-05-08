@@ -278,19 +278,172 @@
     }
 
     // ============================================================
-    // START GROKSET — placeholder
+    // START GROKSET
     // ============================================================
 
-    function startGrokset(groksetId) {
-      // Will be implemented in a future task
+    async function startGrokset(groksetId) {
+      const manifest = GROKSET_MANIFEST.find(m => m.id === groksetId);
+      if (!manifest) return;
+      currentGrokset = await fetchGrokset(manifest);
+      const prog = getGroksetProgress(groksetId);
+      // Resume at next incomplete exercise, or 0 if all done
+      if (prog) {
+        const progressArr = loadProgress(groksetId, currentGrokset.exercises.length);
+        const firstIncomplete = progressArr.findIndex(v => !v);
+        currentExerciseIndex = firstIncomplete >= 0 ? firstIncomplete : 0;
+      } else {
+        currentExerciseIndex = 0;
+      }
+
+      document.getElementById('landingScreen').classList.add('hidden');
+      document.getElementById('exerciseScreen').classList.remove('hidden');
+      document.getElementById('helpBtn').classList.remove('hidden');
+      document.getElementById('exerciseTitle').textContent = currentGrokset.title;
+
+      renderExercise();
     }
 
     // ============================================================
-    // RENDER EXERCISE — placeholder
+    // RENDER EXERCISE
     // ============================================================
 
-    function renderExercise(index) {
-      // Will be implemented in a future task
+    function renderExercise() {
+      if (quizEditor) { quizEditor.toTextArea(); quizEditor = null; }
+      const exercise = currentGrokset.exercises[currentExerciseIndex];
+      const total = currentGrokset.exercises.length;
+      const progressArr = loadProgress(currentGrokset.id, total);
+
+      // Counter
+      document.getElementById('exerciseCounter').textContent = `${currentExerciseIndex + 1} of ${total}`;
+
+      // Progress dots
+      const dotsContainer = document.getElementById('progressDots');
+      dotsContainer.innerHTML = '';
+      for (let i = 0; i < total; i++) {
+        const dot = document.createElement('span');
+        dot.className = 'progress-dot';
+        if (progressArr[i]) {
+          dot.classList.add('completed');
+          dot.addEventListener('click', () => goToExercise(i));
+        }
+        if (i === currentExerciseIndex) dot.classList.add('current');
+        dotsContainer.appendChild(dot);
+      }
+
+      // Help panel reset
+      document.getElementById('helpPanel').classList.add('hidden');
+      document.getElementById('helpResponse').textContent = '';
+      document.getElementById('helpResponse').classList.add('hidden');
+      document.getElementById('helpTextarea').value = '';
+
+      // Render by type
+      const content = document.getElementById('exerciseContent');
+      content.innerHTML = '';
+
+      switch (exercise.type) {
+        case 'explanation': renderExplanation(content, exercise); break;
+        case 'stepper': renderStepper(content, exercise); break;
+        case 'quiz-choice': renderQuizChoice(content, exercise); break;
+        case 'quiz-code': renderQuizCode(content, exercise); break;
+      }
+    }
+
+    // ============================================================
+    // NAVIGATION HELPERS
+    // ============================================================
+
+    function goToExercise(index) {
+      if (index < 0 || index >= currentGrokset.exercises.length) return;
+      currentExerciseIndex = index;
+      renderExercise();
+    }
+
+    function advanceExercise() {
+      markExerciseComplete(currentGrokset.id, currentExerciseIndex);
+      if (currentExerciseIndex + 1 >= currentGrokset.exercises.length) {
+        renderCelebration();
+        sounds.complete();
+      } else {
+        currentExerciseIndex++;
+        renderExercise();
+      }
+    }
+
+    function renderCelebration() {
+      document.getElementById('helpBtn').classList.add('hidden');
+      document.getElementById('progressDots').innerHTML = '';
+      document.getElementById('exerciseCounter').textContent = '';
+
+      const content = document.getElementById('exerciseContent');
+      content.innerHTML = `
+        <div class="celebration-screen">
+          <h2 class="celebration-title">GROKSET COMPLETE!</h2>
+          <p>You finished ${currentGrokset.title}!</p>
+          <button class="celebration-back-btn" id="celebrationBackBtn">BACK TO MENU</button>
+        </div>
+      `;
+      document.getElementById('celebrationBackBtn').addEventListener('click', () => {
+        document.getElementById('backBtn').click();
+      });
+    }
+
+    // ============================================================
+    // EXPLANATION RENDERER
+    // ============================================================
+
+    function escapeHTML(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function renderExplanation(container, exercise) {
+      const lines = exercise.code.split('\n');
+      const highlightedLines = new Set();
+      if (exercise.highlights) {
+        exercise.highlights.forEach(h => h.lines.forEach(l => highlightedLines.add(l)));
+      }
+
+      const codeHTML = lines.map((line, i) => {
+        const lineNum = i + 1;
+        const cls = highlightedLines.has(lineNum) ? 'code-line highlighted' : 'code-line';
+        return `<span class="${cls}">${escapeHTML(line) || ' '}</span>`;
+      }).join('\n');
+
+      const notesHTML = (exercise.highlights || []).map(h =>
+        `<div class="highlight-note">${escapeHTML(h.note)}</div>`
+      ).join('');
+
+      container.innerHTML = `
+        <div class="explanation-layout">
+          <div class="explanation-code-panel">
+            <pre class="code-font">${codeHTML}</pre>
+          </div>
+          <div class="explanation-text-panel">
+            <p>${exercise.content}</p>
+            ${notesHTML}
+          </div>
+        </div>
+        <button class="got-it-btn" id="gotItBtn">GOT IT</button>
+      `;
+
+      document.getElementById('gotItBtn').addEventListener('click', advanceExercise);
+    }
+
+    // ============================================================
+    // STUB RENDERERS (to be implemented in later tasks)
+    // ============================================================
+
+    function renderStepper(container, exercise) {
+      container.innerHTML = '<p>Stepper coming soon...</p>';
+    }
+
+    function renderQuizChoice(container, exercise) {
+      container.innerHTML = '<p>Quiz coming soon...</p>';
+    }
+
+    function renderQuizCode(container, exercise) {
+      container.innerHTML = '<p>Quiz coming soon...</p>';
     }
 
     // ============================================================

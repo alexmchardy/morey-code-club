@@ -3,5 +3,16 @@
   "title": "Conditionals",
   "description": "Learn how if, else, and elif control which code runs",
   "language": "python",
-  "exercises": []
+  "exercises": [
+    {
+      "type": "explanation",
+      "title": "The If Statement",
+      "content": "This is an 'if' statement. You can read it like this: 'If a equals b, print yes'. Notice that the print(\"yes\") is indented — that's important! Any lines indented under the 'if' statement are part of that statement.",
+      "code": "a = 5\nb = 5\nif a == b:\n    print(\"yes\")",
+      "highlights": [
+        { "lines": [3], "note": "The 'if' keyword starts a conditional check. The part after 'if' and before the colon is the condition." },
+        { "lines": [4], "note": "This line is indented with 4 spaces — it only runs if the condition is True." }
+      ]
+    }
+  ]
 }

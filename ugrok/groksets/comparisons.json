@@ -1,0 +1,7 @@
+{
+  "id": "comparisons",
+  "title": "Comparisons",
+  "description": "Comparison operators (==, !=, <, >, <=, >=) and True/False",
+  "language": "python",
+  "exercises": []
+}

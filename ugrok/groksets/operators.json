@@ -1,0 +1,7 @@
+{
+  "id": "operators",
+  "title": "Operators",
+  "description": "Arithmetic operators (+, -, *, /, %) and string concatenation",
+  "language": "python",
+  "exercises": []
+}

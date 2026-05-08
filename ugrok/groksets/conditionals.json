@@ -13,6 +13,17 @@
         { "lines": [3], "note": "The 'if' keyword starts a conditional check. The part after 'if' and before the colon is the condition." },
         { "lines": [4], "note": "This line is indented with 4 spaces — it only runs if the condition is True." }
       ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch It Run",
+      "code": "a = 5\nb = 5\nif a == b:\n    print(\"yes\")",
+      "trace": [
+        { "line": 1, "state": { "a": 5 }, "output": [], "eval": null },
+        { "line": 2, "state": { "a": 5, "b": 5 }, "output": [], "eval": null },
+        { "line": 3, "state": { "a": 5, "b": 5 }, "output": [], "eval": "a == b → 5 == 5 → True" },
+        { "line": 4, "state": { "a": 5, "b": 5 }, "output": ["yes"], "eval": null }
+      ]
     }
   ]
 }

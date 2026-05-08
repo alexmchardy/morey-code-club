@@ -435,7 +435,170 @@
     // ============================================================
 
     function renderStepper(container, exercise) {
-      container.innerHTML = '<p>Stepper coming soon...</p>';
+      const lines = exercise.code.split('\n');
+      const trace = exercise.trace;
+      let stepIndex = -1;  // -1 means "before first step"
+      let playing = false;
+      let playInterval = null;
+      const speeds = [1500, 800, 400]; // slow, normal, fast
+      let speedIndex = 1;
+
+      // Build code HTML with line numbers
+      const codeHTML = lines.map((line, i) => {
+        const lineNum = i + 1;
+        return `<div class="stepper-code-line" data-line="${lineNum}">
+          <span class="stepper-line-num">${lineNum}</span>
+          <span class="stepper-line-text">${escapeHTML(line) || ' '}</span>
+        </div>`;
+      }).join('');
+
+      container.innerHTML = `
+        <h3 style="font-size:0.7rem; margin-bottom:12px; color:var(--primary); font-family:'Press Start 2P',monospace;">${escapeHTML(exercise.title || 'Watch It Run')}</h3>
+        <div class="stepper-layout">
+          <div class="stepper-code-panel">
+            <pre>${codeHTML}</pre>
+          </div>
+          <div class="stepper-right-panel">
+            <div class="stepper-section">
+              <div class="stepper-section-title">VARIABLES</div>
+              <table class="stepper-vars-table" id="stepperVars"><tbody></tbody></table>
+            </div>
+            <div class="stepper-section">
+              <div class="stepper-section-title">EVALUATION</div>
+              <div class="stepper-eval" id="stepperEval"></div>
+            </div>
+            <div class="stepper-section">
+              <div class="stepper-section-title">OUTPUT</div>
+              <div class="stepper-output" id="stepperOutput"></div>
+            </div>
+          </div>
+        </div>
+        <div class="stepper-controls">
+          <button class="stepper-btn" id="stepResetBtn" title="Reset">⏮</button>
+          <button class="stepper-btn" id="stepBackBtn" title="Step Back">◀</button>
+          <button class="stepper-btn play" id="stepPlayBtn" title="Play/Pause">▶</button>
+          <button class="stepper-btn" id="stepFwdBtn" title="Step Forward">▶|</button>
+          <span class="stepper-speed-label">Speed</span>
+          <input type="range" min="0" max="2" value="1" class="stepper-speed" id="stepSpeedSlider">
+        </div>
+        <button class="got-it-btn" id="stepDoneBtn" style="margin-top:16px;">GOT IT</button>
+      `;
+
+      const varsEl = document.getElementById('stepperVars').querySelector('tbody');
+      const evalEl = document.getElementById('stepperEval');
+      const outputEl = document.getElementById('stepperOutput');
+      const playBtn = document.getElementById('stepPlayBtn');
+      const backBtn = document.getElementById('stepBackBtn');
+      const fwdBtn = document.getElementById('stepFwdBtn');
+      const resetBtn = document.getElementById('stepResetBtn');
+      const slider = document.getElementById('stepSpeedSlider');
+
+      function updateDisplay() {
+        // Highlight current line, dim executed lines
+        const codeLines = container.querySelectorAll('.stepper-code-line');
+        codeLines.forEach(el => {
+          const ln = parseInt(el.dataset.line);
+          el.classList.remove('current', 'executed');
+          if (stepIndex >= 0) {
+            const currentLine = trace[stepIndex].line;
+            if (ln === currentLine) {
+              el.classList.add('current');
+            } else {
+              const executedLines = new Set(trace.slice(0, stepIndex).map(s => s.line));
+              if (executedLines.has(ln)) el.classList.add('executed');
+            }
+          }
+        });
+
+        // Variables table
+        varsEl.innerHTML = '';
+        if (stepIndex >= 0) {
+          const state = trace[stepIndex].state;
+          const prevState = stepIndex > 0 ? trace[stepIndex - 1].state : {};
+          for (const [name, value] of Object.entries(state)) {
+            const changed = prevState[name] === undefined || prevState[name] !== value;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td class="var-name">${escapeHTML(name)}</td><td class="var-value${changed ? ' flash' : ''}">${escapeHTML(JSON.stringify(value))}</td>`;
+            varsEl.appendChild(tr);
+          }
+        }
+
+        // Evaluation
+        evalEl.textContent = (stepIndex >= 0 && trace[stepIndex].eval) ? trace[stepIndex].eval : '';
+
+        // Output
+        if (stepIndex >= 0) {
+          const output = trace[stepIndex].output;
+          const prevOutput = stepIndex > 0 ? trace[stepIndex - 1].output : [];
+          outputEl.innerHTML = output.map((line, i) => {
+            const isNew = i >= prevOutput.length;
+            return `<div class="${isNew ? 'output-new' : ''}">${escapeHTML(line)}</div>`;
+          }).join('');
+        } else {
+          outputEl.textContent = '';
+        }
+
+        // Button states
+        backBtn.disabled = stepIndex <= -1;
+        fwdBtn.disabled = stepIndex >= trace.length - 1;
+        resetBtn.disabled = stepIndex <= -1;
+      }
+
+      function stepForward() {
+        if (stepIndex < trace.length - 1) {
+          stepIndex++;
+          sounds.step();
+          updateDisplay();
+          if (stepIndex >= trace.length - 1) stopAutoPlay();
+        }
+      }
+
+      function stepBack() {
+        if (stepIndex > -1) {
+          stepIndex--;
+          updateDisplay();
+        }
+      }
+
+      function resetStepper() {
+        stopAutoPlay();
+        stepIndex = -1;
+        updateDisplay();
+      }
+
+      function startAutoPlay() {
+        playing = true;
+        playBtn.textContent = '⏸';
+        playInterval = setInterval(() => {
+          stepForward();
+          if (stepIndex >= trace.length - 1) stopAutoPlay();
+        }, speeds[speedIndex]);
+      }
+
+      function stopAutoPlay() {
+        playing = false;
+        playBtn.textContent = '▶';
+        if (playInterval) { clearInterval(playInterval); playInterval = null; }
+      }
+
+      function togglePlay() {
+        if (playing) { stopAutoPlay(); } else {
+          if (stepIndex >= trace.length - 1) { stepIndex = -1; }
+          startAutoPlay();
+        }
+      }
+
+      playBtn.addEventListener('click', togglePlay);
+      fwdBtn.addEventListener('click', () => { stopAutoPlay(); stepForward(); });
+      backBtn.addEventListener('click', () => { stopAutoPlay(); stepBack(); });
+      resetBtn.addEventListener('click', resetStepper);
+      slider.addEventListener('input', () => {
+        speedIndex = parseInt(slider.value);
+        if (playing) { stopAutoPlay(); startAutoPlay(); }
+      });
+      document.getElementById('stepDoneBtn').addEventListener('click', advanceExercise);
+
+      updateDisplay();
     }
 
     function renderQuizChoice(container, exercise) {

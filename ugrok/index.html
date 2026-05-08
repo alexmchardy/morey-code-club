@@ -388,6 +388,47 @@
     }
 
     // ============================================================
+    // SKULPT EXECUTION
+    // ============================================================
+
+    function builtinRead(filename) {
+      if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][filename] === undefined) {
+        throw "File not found: '" + filename + "'";
+      }
+      return Sk.builtinFiles["files"][filename];
+    }
+
+    async function runPython(code) {
+      const output = [];
+      Sk.configure({
+        output: (text) => output.push(text),
+        read: builtinRead,
+        __future__: Sk.python3,
+      });
+      Sk.execLimit = 5000;
+
+      try {
+        const module = await Sk.misceval.asyncToPromise(() => {
+          return Sk.importMainWithBody("<stdin>", false, code, true);
+        });
+
+        const state = {};
+        for (const key of Object.keys(module.$d)) {
+          if (key.startsWith('__')) continue;
+          try {
+            state[key] = Sk.ffi.remapToJs(module.$d[key]);
+          } catch {
+            state[key] = String(module.$d[key]);
+          }
+        }
+
+        return { success: true, output, state, error: null };
+      } catch (err) {
+        return { success: false, output, state: {}, error: err.toString() };
+      }
+    }
+
+    // ============================================================
     // EXPLANATION RENDERER
     // ============================================================
 
@@ -644,7 +685,95 @@
     }
 
     function renderQuizCode(container, exercise) {
-      container.innerHTML = '<p>Quiz coming soon...</p>';
+      const savedCode = loadStudentCode(currentGrokset.id, currentExerciseIndex);
+
+      container.innerHTML = `
+        <div class="quiz-code-layout">
+          <p class="quiz-question">${escapeHTML(exercise.question)}</p>
+          <div class="quiz-code-editor-wrap">
+            <textarea id="quizCodeArea">${savedCode || exercise.starterCode}</textarea>
+          </div>
+          <button class="run-btn" id="quizRunBtn">RUN</button>
+          <div class="code-result" id="quizResult" style="display:none"></div>
+          <div class="quiz-feedback" id="quizFeedback"></div>
+        </div>
+      `;
+
+      quizEditor = CodeMirror.fromTextArea(document.getElementById('quizCodeArea'), {
+        mode: 'python',
+        theme: 'material-darker',
+        lineNumbers: true,
+        indentUnit: 4,
+        tabSize: 4,
+        indentWithTabs: false,
+        extraKeys: {
+          Tab: (cm) => cm.replaceSelection('    '),
+        },
+      });
+
+      quizEditor.on('change', () => {
+        saveStudentCode(currentGrokset.id, currentExerciseIndex, quizEditor.getValue());
+      });
+
+      document.getElementById('quizRunBtn').addEventListener('click', async () => {
+        const code = quizEditor.getValue();
+        saveStudentCode(currentGrokset.id, currentExerciseIndex, code);
+
+        const resultEl = document.getElementById('quizResult');
+        const feedbackEl = document.getElementById('quizFeedback');
+        resultEl.style.display = '';
+        feedbackEl.textContent = '';
+        feedbackEl.className = 'quiz-feedback';
+
+        const result = await runPython(code);
+
+        if (!result.success) {
+          resultEl.textContent = result.error;
+          feedbackEl.textContent = 'Error running your code';
+          feedbackEl.classList.add('wrong');
+          sounds.wrong();
+          return;
+        }
+
+        const validation = exercise.validation;
+        let passed = false;
+
+        if (validation.type === 'output') {
+          const actualOutput = result.output.join('').split('\n').filter(l => l.length > 0);
+          const expected = validation.expected;
+          passed = expected.length === actualOutput.length &&
+            expected.every((exp, i) => actualOutput[i] === exp);
+
+          resultEl.textContent = `Output: ${actualOutput.join(', ') || '(nothing)'}`;
+          if (!passed) {
+            resultEl.textContent += `\nExpected: ${expected.join(', ')}`;
+          }
+        } else if (validation.type === 'state') {
+          passed = true;
+          const lines = [];
+          for (const [varName, expected] of Object.entries(validation.check)) {
+            const actual = result.state[varName];
+            if (actual !== expected) {
+              passed = false;
+              lines.push(`${varName} = ${JSON.stringify(actual)} (expected ${JSON.stringify(expected)})`);
+            } else {
+              lines.push(`${varName} = ${JSON.stringify(actual)} ✓`);
+            }
+          }
+          resultEl.textContent = lines.join('\n');
+        }
+
+        if (passed) {
+          feedbackEl.textContent = 'Correct!';
+          feedbackEl.classList.add('correct');
+          sounds.correct();
+          setTimeout(advanceExercise, 1200);
+        } else {
+          feedbackEl.textContent = 'Not quite — try again!';
+          feedbackEl.classList.add('wrong');
+          sounds.wrong();
+        }
+      });
     }
 
     // ============================================================

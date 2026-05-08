@@ -31,6 +31,24 @@
       "code": "x = 10\nif x > 5:\n    print(\"big\")\nelse:\n    print(\"small\")",
       "choices": ["big", "small", "big small", "nothing"],
       "answer": 0
+    },
+    {
+      "type": "quiz-code",
+      "question": "Write an if statement that prints \"yes\" if a equals b",
+      "starterCode": "a = 5\nb = 5\n# write your if statement below\n",
+      "validation": {
+        "type": "output",
+        "expected": ["yes"]
+      }
+    },
+    {
+      "type": "quiz-code",
+      "question": "Set result to \"even\" if x is even, or \"odd\" if x is odd. Hint: use x % 2",
+      "starterCode": "x = 7\n",
+      "validation": {
+        "type": "state",
+        "check": { "result": "odd" }
+      }
     }
   ]
 }

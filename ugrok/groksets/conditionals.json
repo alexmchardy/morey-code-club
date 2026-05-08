@@ -16,7 +16,7 @@
     },
     {
       "type": "stepper",
-      "title": "Watch It Run",
+      "title": "Watch: If (True)",
       "code": "a = 5\nb = 5\nif a == b:\n    print(\"yes\")",
       "trace": [
         { "line": 1, "state": { "a": 5 }, "output": [], "eval": null },
@@ -26,28 +26,169 @@
       ]
     },
     {
+      "type": "stepper",
+      "title": "Watch: If (False)",
+      "code": "a = 5\nb = 3\nif a == b:\n    print(\"yes\")\nprint(\"done\")",
+      "trace": [
+        { "line": 1, "state": { "a": 5 }, "output": [], "eval": null },
+        { "line": 2, "state": { "a": 5, "b": 3 }, "output": [], "eval": null },
+        { "line": 3, "state": { "a": 5, "b": 3 }, "output": [], "eval": "a == b → 5 == 3 → False" },
+        { "line": 5, "state": { "a": 5, "b": 3 }, "output": ["done"], "eval": null }
+      ]
+    },
+    {
       "type": "quiz-choice",
       "question": "What does this code print?",
-      "code": "x = 10\nif x > 5:\n    print(\"big\")\nelse:\n    print(\"small\")",
-      "choices": ["big", "small", "big small", "nothing"],
+      "code": "x = 10\nif x == 10:\n    print(\"match\")",
+      "choices": ["match", "nothing", "10", "error"],
+      "answer": 0
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "x = 5\nif x == 10:\n    print(\"match\")\nprint(\"end\")",
+      "choices": ["match", "end", "match end", "nothing"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-code",
+      "question": "Write an if statement that prints \"hello\" if greeting is True",
+      "starterCode": "greeting = True\n# write your if statement below\n",
+      "validation": {
+        "type": "output",
+        "expected": ["hello"]
+      }
+    },
+    {
+      "type": "explanation",
+      "title": "The Else Statement",
+      "content": "Sometimes you want to do one thing when a condition is True, and something different when it's False. That's what 'else' is for! The else block runs only when the if condition is False.",
+      "code": "age = 15\nif age >= 16:\n    print(\"You can drive!\")\nelse:\n    print(\"Not yet!\")",
+      "highlights": [
+        { "lines": [2, 3], "note": "The 'if' block runs when the condition is True." },
+        { "lines": [4, 5], "note": "The 'else' block runs when the condition is False. Notice it lines up with the 'if' — same indentation level." }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: If/Else (True branch)",
+      "code": "score = 85\nif score >= 70:\n    print(\"Pass!\")\nelse:\n    print(\"Fail\")",
+      "trace": [
+        { "line": 1, "state": { "score": 85 }, "output": [], "eval": null },
+        { "line": 2, "state": { "score": 85 }, "output": [], "eval": "score >= 70 → 85 >= 70 → True" },
+        { "line": 3, "state": { "score": 85 }, "output": ["Pass!"], "eval": null }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: If/Else (False branch)",
+      "code": "score = 50\nif score >= 70:\n    print(\"Pass!\")\nelse:\n    print(\"Fail\")",
+      "trace": [
+        { "line": 1, "state": { "score": 50 }, "output": [], "eval": null },
+        { "line": 2, "state": { "score": 50 }, "output": [], "eval": "score >= 70 → 50 >= 70 → False" },
+        { "line": 5, "state": { "score": 50 }, "output": ["Fail"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "temp = 95\nif temp > 90:\n    print(\"hot\")\nelse:\n    print(\"ok\")",
+      "choices": ["hot", "ok", "hot ok", "error"],
       "answer": 0
     },
     {
       "type": "quiz-code",
-      "question": "Write an if statement that prints \"yes\" if a equals b",
-      "starterCode": "a = 5\nb = 5\n# write your if statement below\n",
+      "question": "Write code: if lives equals 0, print \"Game Over\", otherwise print \"Keep going!\"",
+      "starterCode": "lives = 0\n",
       "validation": {
         "type": "output",
-        "expected": ["yes"]
+        "expected": ["Game Over"]
       }
     },
     {
+      "type": "explanation",
+      "title": "Comparison Operators",
+      "content": "So far we've used == (equals) and >= (greater than or equal). Here are all the comparison operators you can use in if statements. Each one compares two values and gives you True or False.",
+      "code": "a = 10\nb = 5\nprint(a == b)   # Equal? False\nprint(a != b)   # Not equal? True\nprint(a > b)    # Greater? True\nprint(a < b)    # Less? False\nprint(a >= b)   # Greater or equal? True\nprint(a <= b)   # Less or equal? False",
+      "highlights": [
+        { "lines": [3], "note": "== checks if two values are equal. Don't confuse with = which assigns a value!" },
+        { "lines": [4], "note": "!= checks if two values are NOT equal." },
+        { "lines": [5, 6, 7, 8], "note": ">, <, >=, <= compare which value is bigger or smaller." }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does x > 5 give when x is 5?",
+      "code": "x = 5\nprint(x > 5)",
+      "choices": ["True", "False", "5", "error"],
+      "answer": 1
+    },
+    {
       "type": "quiz-code",
-      "question": "Set result to \"even\" if x is even, or \"odd\" if x is odd. Hint: use x % 2",
-      "starterCode": "x = 7\n",
+      "question": "Write an if statement that prints \"big\" if x is greater than 100",
+      "starterCode": "x = 150\n# write your if statement below\n",
+      "validation": {
+        "type": "output",
+        "expected": ["big"]
+      }
+    },
+    {
+      "type": "explanation",
+      "title": "The Elif Statement",
+      "content": "What if you have more than two options? Use 'elif' (short for 'else if') to check another condition. Python checks each condition from top to bottom and runs the FIRST one that is True. The rest are skipped.",
+      "code": "grade = 85\nif grade >= 90:\n    print(\"A\")\nelif grade >= 80:\n    print(\"B\")\nelif grade >= 70:\n    print(\"C\")\nelse:\n    print(\"F\")",
+      "highlights": [
+        { "lines": [2, 3], "note": "First check: is grade >= 90? If True, print A and skip everything else." },
+        { "lines": [4, 5], "note": "'elif' means 'else if'. Only checked if the previous conditions were False." },
+        { "lines": [8, 9], "note": "The 'else' at the end catches everything that didn't match above." }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: If/Elif/Else",
+      "code": "grade = 85\nif grade >= 90:\n    print(\"A\")\nelif grade >= 80:\n    print(\"B\")\nelif grade >= 70:\n    print(\"C\")\nelse:\n    print(\"F\")",
+      "trace": [
+        { "line": 1, "state": { "grade": 85 }, "output": [], "eval": null },
+        { "line": 2, "state": { "grade": 85 }, "output": [], "eval": "grade >= 90 → 85 >= 90 → False" },
+        { "line": 4, "state": { "grade": 85 }, "output": [], "eval": "grade >= 80 → 85 >= 80 → True" },
+        { "line": 5, "state": { "grade": 85 }, "output": ["B"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "x = 15\nif x > 20:\n    print(\"high\")\nelif x > 10:\n    print(\"medium\")\nelse:\n    print(\"low\")",
+      "choices": ["high", "medium", "low", "medium low"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-code",
+      "question": "Write if/elif/else: if temp > 90 print \"hot\", elif temp > 60 print \"nice\", else print \"cold\"",
+      "starterCode": "temp = 75\n",
+      "validation": {
+        "type": "output",
+        "expected": ["nice"]
+      }
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Nested If",
+      "code": "age = 15\nhas_ticket = True\nif age >= 12:\n    if has_ticket:\n        print(\"Enjoy the movie!\")\n    else:\n        print(\"Buy a ticket first\")\nelse:\n    print(\"Too young\")",
+      "trace": [
+        { "line": 1, "state": { "age": 15 }, "output": [], "eval": null },
+        { "line": 2, "state": { "age": 15, "has_ticket": true }, "output": [], "eval": null },
+        { "line": 3, "state": { "age": 15, "has_ticket": true }, "output": [], "eval": "age >= 12 → 15 >= 12 → True" },
+        { "line": 4, "state": { "age": 15, "has_ticket": true }, "output": [], "eval": "has_ticket → True" },
+        { "line": 5, "state": { "age": 15, "has_ticket": true }, "output": ["Enjoy the movie!"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-code",
+      "question": "Final challenge! Set result to \"A\" if score >= 90, \"B\" if score >= 80, \"C\" if score >= 70, or \"F\" otherwise",
+      "starterCode": "score = 92\n",
       "validation": {
         "type": "state",
-        "check": { "result": "odd" }
+        "check": { "result": "A" }
       }
     }
   ]

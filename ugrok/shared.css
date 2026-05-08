@@ -1,0 +1,932 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&family=Fredoka:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #0a0a1a;
+  --surface: #141430;
+  --primary: #b388ff;
+  --secondary: #69f0ae;
+  --warning: #ffbe0b;
+  --error: #ff5252;
+  --text: #e0e0e0;
+  --code-bg: #1a1a3e;
+  --border: #2a2a50;
+  --text-dim: #7a7a9a;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Fredoka', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Press Start 2P', monospace;
+  font-weight: 400;
+}
+
+code, pre, .code-font {
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* CRT scanline overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    transparent, transparent 3px,
+    rgba(0, 0, 0, 0.04) 3px, rgba(0, 0, 0, 0.04) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* === LANDING SCREEN === */
+.landing-screen {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 60px 24px 40px;
+}
+
+.landing-screen h1 {
+  font-size: 40px;
+  color: var(--primary);
+  text-shadow: 0 0 30px rgba(179, 136, 255, 0.6), 0 0 60px rgba(179, 136, 255, 0.3);
+  text-align: center;
+  letter-spacing: 4px;
+  margin-bottom: 16px;
+}
+
+.tagline {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 18px;
+  color: var(--text-dim);
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.grokset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.grokset-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  padding: 18px 20px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  text-decoration: none;
+  color: inherit;
+}
+
+.grokset-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 0 20px rgba(179, 136, 255, 0.2);
+  background: rgba(179, 136, 255, 0.05);
+}
+
+.grokset-card.suggested {
+  border-color: var(--secondary);
+  box-shadow: 0 0 16px rgba(105, 240, 174, 0.2);
+}
+
+.grokset-card.suggested:hover {
+  box-shadow: 0 0 28px rgba(105, 240, 174, 0.35);
+}
+
+.grokset-card.complete {
+  border-color: var(--secondary);
+  opacity: 0.85;
+}
+
+.grokset-card.stub {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.grokset-card.stub:hover {
+  border-color: var(--border);
+  box-shadow: none;
+  background: var(--surface);
+}
+
+.grokset-number {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  width: 28px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.grokset-card.suggested .grokset-number {
+  color: var(--secondary);
+}
+
+.grokset-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.grokset-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  color: var(--text);
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.grokset-desc {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.grokset-progress {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.grokset-progress.done {
+  color: var(--secondary);
+  text-shadow: 0 0 8px rgba(105, 240, 174, 0.5);
+}
+
+.grokset-progress.in-progress {
+  color: var(--primary);
+}
+
+.coming-soon-badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  background: rgba(42, 42, 80, 0.8);
+  padding: 3px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* === EXERCISE SCREEN === */
+.exercise-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Top bar */
+.top-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  background: var(--surface);
+  border-bottom: 2px solid var(--border);
+  flex-shrink: 0;
+}
+
+.back-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  padding: 8px 14px;
+  background: transparent;
+  border: 2px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.back-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.top-bar-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  color: var(--primary);
+  text-shadow: 0 0 10px rgba(179, 136, 255, 0.5);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.exercise-counter {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+/* Progress dots */
+.progress-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.progress-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border);
+  border: 2px solid var(--border);
+  cursor: default;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  flex-shrink: 0;
+}
+
+.progress-dot.completed {
+  background: var(--secondary);
+  border-color: var(--secondary);
+  cursor: pointer;
+}
+
+.progress-dot.completed:hover {
+  box-shadow: 0 0 8px rgba(105, 240, 174, 0.6);
+}
+
+.progress-dot.current {
+  background: transparent;
+  border-color: var(--primary);
+  box-shadow: 0 0 8px rgba(179, 136, 255, 0.6);
+}
+
+/* Exercise content area */
+.exercise-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 20px;
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* === EXPLANATION EXERCISE === */
+.explanation-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.explanation-code-panel {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.explanation-code-panel pre {
+  padding: 20px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+  overflow-x: auto;
+}
+
+.code-line {
+  display: block;
+  padding: 0 4px;
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+
+.code-line.highlighted {
+  background: rgba(179, 136, 255, 0.2);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.explanation-text-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.explanation-title {
+  font-size: 12px;
+  color: var(--primary);
+  text-shadow: 0 0 10px rgba(179, 136, 255, 0.4);
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+.explanation-content {
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.7;
+}
+
+.highlight-note {
+  background: rgba(179, 136, 255, 0.08);
+  border-left: 3px solid var(--primary);
+  padding: 10px 14px;
+  border-radius: 0 4px 4px 0;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.highlight-note.active {
+  background: rgba(179, 136, 255, 0.15);
+  border-left-color: var(--secondary);
+}
+
+.got-it-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  padding: 14px 28px;
+  background: rgba(105, 240, 174, 0.1);
+  border: 2px solid var(--secondary);
+  color: var(--secondary);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+  margin-top: 16px;
+  align-self: flex-start;
+}
+
+.got-it-btn:hover {
+  background: rgba(105, 240, 174, 0.2);
+  box-shadow: 0 0 20px rgba(105, 240, 174, 0.4);
+}
+
+/* === STEPPER EXERCISE === */
+.stepper-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.stepper-code-panel {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.stepper-code-panel pre {
+  padding: 20px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--text);
+  overflow-x: auto;
+}
+
+.stepper-code-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+
+.stepper-line-num {
+  font-size: 11px;
+  color: var(--text-dim);
+  width: 20px;
+  text-align: right;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.stepper-line-text {
+  white-space: pre;
+}
+
+.stepper-code-line.current {
+  background: rgba(179, 136, 255, 0.2);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.stepper-code-line.current .stepper-line-num {
+  color: var(--primary);
+}
+
+.stepper-code-line.executed {
+  opacity: 0.5;
+}
+
+.stepper-right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stepper-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.stepper-section-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  padding: 8px 14px;
+  background: rgba(42, 42, 80, 0.5);
+  border-bottom: 1px solid var(--border);
+  letter-spacing: 1px;
+}
+
+.stepper-vars-table {
+  padding: 12px 14px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  min-height: 48px;
+}
+
+.var-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 0;
+}
+
+.var-name {
+  color: var(--primary);
+  min-width: 80px;
+}
+
+.var-equals {
+  color: var(--text-dim);
+}
+
+.var-value {
+  color: var(--secondary);
+  transition: color 0.3s;
+}
+
+.var-value.flash {
+  color: var(--warning);
+  text-shadow: 0 0 8px rgba(255, 190, 11, 0.6);
+}
+
+.stepper-eval {
+  padding: 12px 14px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  color: var(--warning);
+  min-height: 44px;
+  line-height: 1.5;
+}
+
+.stepper-output {
+  padding: 12px 14px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  color: var(--text);
+  min-height: 48px;
+  line-height: 1.6;
+}
+
+.output-line {
+  display: block;
+}
+
+.output-line.flash {
+  color: var(--secondary);
+  text-shadow: 0 0 8px rgba(105, 240, 174, 0.5);
+}
+
+/* Stepper controls */
+.stepper-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+
+.stepper-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  padding: 10px 14px;
+  background: transparent;
+  border: 2px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.stepper-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: 0 0 10px rgba(179, 136, 255, 0.3);
+}
+
+.stepper-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.stepper-btn.play {
+  border-color: var(--secondary);
+  color: var(--secondary);
+}
+
+.stepper-btn.play:hover:not(:disabled) {
+  border-color: var(--secondary);
+  color: var(--secondary);
+  box-shadow: 0 0 12px rgba(105, 240, 174, 0.4);
+}
+
+.stepper-speed-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.stepper-speed {
+  accent-color: var(--primary);
+  width: 80px;
+}
+
+/* === QUIZ-CHOICE EXERCISE === */
+.quiz-layout {
+  max-width: 640px;
+}
+
+.quiz-title {
+  font-size: 12px;
+  color: var(--primary);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.quiz-question {
+  font-size: 17px;
+  color: var(--text);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.quiz-code {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 20px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+  margin-bottom: 20px;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.quiz-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.choice-btn {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 16px;
+  padding: 14px 20px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.choice-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: rgba(179, 136, 255, 0.08);
+  box-shadow: 0 0 12px rgba(179, 136, 255, 0.2);
+}
+
+.choice-btn:disabled {
+  cursor: not-allowed;
+}
+
+.choice-btn.correct {
+  border-color: var(--secondary);
+  background: rgba(105, 240, 174, 0.1);
+  color: var(--secondary);
+}
+
+.choice-btn.wrong {
+  border-color: var(--error);
+  background: rgba(255, 82, 82, 0.1);
+  color: var(--error);
+}
+
+.quiz-feedback {
+  font-size: 15px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.quiz-feedback.correct {
+  background: rgba(105, 240, 174, 0.1);
+  border: 1px solid var(--secondary);
+  color: var(--secondary);
+}
+
+.quiz-feedback.wrong {
+  background: rgba(255, 82, 82, 0.08);
+  border: 1px solid var(--error);
+  color: var(--error);
+}
+
+/* === QUIZ-CODE EXERCISE === */
+.quiz-code-layout {
+  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.quiz-code-editor-wrap {
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.quiz-code-editor-wrap:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 12px rgba(179, 136, 255, 0.2);
+}
+
+.quiz-code-editor-wrap .CodeMirror {
+  height: auto;
+  min-height: 160px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+}
+
+.run-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  padding: 12px 28px;
+  background: rgba(105, 240, 174, 0.1);
+  border: 2px solid var(--secondary);
+  color: var(--secondary);
+  border-radius: 4px;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.run-btn:hover:not(:disabled) {
+  background: rgba(105, 240, 174, 0.2);
+  box-shadow: 0 0 18px rgba(105, 240, 174, 0.4);
+}
+
+.run-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.code-result {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 18px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  min-height: 48px;
+}
+
+.code-result.success {
+  border-color: var(--secondary);
+  background: rgba(105, 240, 174, 0.06);
+  color: var(--secondary);
+}
+
+.code-result.failure {
+  border-color: var(--error);
+  background: rgba(255, 82, 82, 0.06);
+  color: var(--error);
+}
+
+.code-result.output {
+  color: var(--text);
+}
+
+/* === HELP PANEL === */
+.help-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  width: 52px;
+  height: 52px;
+  background: rgba(255, 190, 11, 0.1);
+  border: 2px solid var(--warning);
+  color: var(--warning);
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 100;
+  transition: background 0.15s, box-shadow 0.15s;
+  box-shadow: 0 0 16px rgba(255, 190, 11, 0.25);
+}
+
+.help-btn:hover {
+  background: rgba(255, 190, 11, 0.2);
+  box-shadow: 0 0 28px rgba(255, 190, 11, 0.5);
+}
+
+.help-panel {
+  position: fixed;
+  bottom: 88px;
+  right: 24px;
+  width: 320px;
+  background: var(--surface);
+  border: 2px solid var(--warning);
+  border-radius: 8px;
+  padding: 16px;
+  z-index: 100;
+  box-shadow: 0 0 30px rgba(255, 190, 11, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.help-panel-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: var(--warning);
+  text-shadow: 0 0 8px rgba(255, 190, 11, 0.4);
+  letter-spacing: 1px;
+}
+
+.help-textarea {
+  width: 100%;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: 'Fredoka', sans-serif;
+  font-size: 14px;
+  padding: 10px 12px;
+  resize: vertical;
+  min-height: 72px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.help-textarea:focus {
+  border-color: var(--warning);
+}
+
+.help-ask-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  padding: 10px 16px;
+  background: rgba(255, 190, 11, 0.1);
+  border: 2px solid var(--warning);
+  color: var(--warning);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+  align-self: flex-end;
+}
+
+.help-ask-btn:hover:not(:disabled) {
+  background: rgba(255, 190, 11, 0.2);
+  box-shadow: 0 0 14px rgba(255, 190, 11, 0.4);
+}
+
+.help-ask-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.help-cooldown {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.help-response {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.6;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+/* === CELEBRATION SCREEN === */
+.celebration-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 40px 24px;
+  text-align: center;
+  gap: 20px;
+}
+
+.celebration-title {
+  font-size: 20px;
+  color: var(--secondary);
+  text-shadow: 0 0 30px rgba(105, 240, 174, 0.6), 0 0 60px rgba(105, 240, 174, 0.3);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.celebration-subtitle {
+  font-size: 18px;
+  color: var(--text);
+  margin-bottom: 24px;
+}
+
+.celebration-back-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  padding: 16px 32px;
+  background: rgba(179, 136, 255, 0.1);
+  border: 2px solid var(--primary);
+  color: var(--primary);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.celebration-back-btn:hover {
+  background: rgba(179, 136, 255, 0.2);
+  box-shadow: 0 0 24px rgba(179, 136, 255, 0.5);
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 700px) {
+  .explanation-layout,
+  .stepper-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-screen h1 {
+    font-size: 28px;
+  }
+
+  .grokset-card {
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .grokset-title {
+    font-size: 10px;
+  }
+
+  .help-panel {
+    width: calc(100vw - 48px);
+    right: 16px;
+    bottom: 80px;
+  }
+
+  .help-btn {
+    right: 16px;
+    bottom: 16px;
+  }
+}

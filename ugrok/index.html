@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ugrok</title>
+  <link rel="stylesheet" href="shared.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+</head>
+<body>
+
+  <!-- Landing Screen -->
+  <div id="landingScreen" class="landing-screen">
+    <h1>ugrok</h1>
+    <p class="tagline">See how your code really runs</p>
+    <div class="grokset-list" id="groksetList">
+      <!-- Grokset cards rendered by renderLanding() -->
+    </div>
+  </div>
+
+  <!-- Exercise Screen -->
+  <div id="exerciseScreen" class="exercise-screen hidden">
+    <!-- Top bar -->
+    <div class="top-bar">
+      <button class="back-btn" id="backBtn">&#8592; MENU</button>
+      <span class="top-bar-title" id="exerciseTitle"></span>
+      <span class="exercise-counter" id="exerciseCounter"></span>
+    </div>
+
+    <!-- Progress dots -->
+    <div class="progress-dots" id="progressDots"></div>
+
+    <!-- Exercise content -->
+    <div class="exercise-content" id="exerciseContent"></div>
+  </div>
+
+  <!-- Help button (hidden until exercise screen is active) -->
+  <button class="help-btn hidden" id="helpBtn">?</button>
+
+  <!-- Help panel (hidden by default) -->
+  <div class="help-panel hidden" id="helpPanel">
+    <div class="help-panel-title">ASK FOR HELP</div>
+    <textarea class="help-textarea" id="helpTextarea" placeholder="What are you confused about?"></textarea>
+    <button class="help-ask-btn" id="helpAskBtn">ASK</button>
+    <div class="help-cooldown hidden" id="helpCooldown"></div>
+    <div class="help-response hidden" id="helpResponse"></div>
+  </div>
+
+  <!-- Scripts: Skulpt -->
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+
+  <!-- Scripts: CodeMirror -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+
+  <script>
+    // ============================================================
+    // GROKSET MANIFEST
+    // ============================================================
+    const GROKSET_MANIFEST = [
+      { id: 'variables',    file: 'groksets/variables.json' },
+      { id: 'operators',    file: 'groksets/operators.json' },
+      { id: 'comparisons',  file: 'groksets/comparisons.json' },
+      { id: 'conditionals', file: 'groksets/conditionals.json' },
+      { id: 'loops',        file: 'groksets/loops.json' },
+      { id: 'functions',    file: 'groksets/functions.json' },
+    ];
+
+    const CEREBRAS_API_KEY = 'csk-ty3j49jp482cv58v3yeyy3nr6fdrfn2x3463x8mvnyx2dkhr';
+
+    // ============================================================
+    // STATE
+    // ============================================================
+    let currentGrokset = null;       // loaded grokset JSON object
+    let currentExerciseIndex = 0;    // 0-based index within grokset
+    let groksetCache = {};           // id -> grokset JSON
+    let quizEditor = null;           // CodeMirror instance for quiz-code exercises
+
+    // ============================================================
+    // LOCALSTORAGE HELPERS
+    // ============================================================
+
+    function progressKey(groksetId) {
+      return `ugrok_progress_${groksetId}`;
+    }
+
+    function codeKey(groksetId, exerciseIndex) {
+      return `ugrok_code_${groksetId}_${exerciseIndex}`;
+    }
+
+    /**
+     * Load progress for a grokset.
+     * Returns an array of booleans, one per exercise (true = completed).
+     * Length is padded/trimmed to match exerciseCount if provided.
+     */
+    function loadProgress(groksetId, exerciseCount) {
+      const raw = localStorage.getItem(progressKey(groksetId));
+      let arr = raw ? JSON.parse(raw) : [];
+      if (exerciseCount !== undefined) {
+        while (arr.length < exerciseCount) arr.push(false);
+        arr = arr.slice(0, exerciseCount);
+      }
+      return arr;
+    }
+
+    function saveProgress(groksetId, progressArr) {
+      localStorage.setItem(progressKey(groksetId), JSON.stringify(progressArr));
+    }
+
+    /**
+     * Returns a summary { done, total } for a grokset.
+     * Uses cached grokset if available, otherwise just reads stored progress length.
+     */
+    function getGroksetProgress(groksetId) {
+      const gs = groksetCache[groksetId];
+      if (!gs || !gs.exercises) return null;
+      const total = gs.exercises.length;
+      const arr = loadProgress(groksetId, total);
+      const done = arr.filter(Boolean).length;
+      return { done, total };
+    }
+
+    function markExerciseComplete(groksetId, exerciseIndex) {
+      const gs = groksetCache[groksetId];
+      if (!gs) return;
+      const arr = loadProgress(groksetId, gs.exercises.length);
+      arr[exerciseIndex] = true;
+      saveProgress(groksetId, arr);
+    }
+
+    function saveStudentCode(groksetId, exerciseIndex, code) {
+      localStorage.setItem(codeKey(groksetId, exerciseIndex), code);
+    }
+
+    function loadStudentCode(groksetId, exerciseIndex) {
+      return localStorage.getItem(codeKey(groksetId, exerciseIndex)) || null;
+    }
+
+    // ============================================================
+    // FETCH GROKSET
+    // ============================================================
+
+    async function fetchGrokset(entry) {
+      if (groksetCache[entry.id]) return groksetCache[entry.id];
+      try {
+        const res = await fetch(entry.file);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        groksetCache[entry.id] = data;
+        return data;
+      } catch (e) {
+        // Return a minimal stub so the card can still render
+        const stub = {
+          id: entry.id,
+          title: entry.id,
+          description: '',
+          exercises: [],
+          _stub: true,
+        };
+        groksetCache[entry.id] = stub;
+        return stub;
+      }
+    }
+
+    // ============================================================
+    // FIND SUGGESTED GROKSET
+    // ============================================================
+
+    /**
+     * Returns the index in GROKSET_MANIFEST of the first grokset that:
+     *  - has at least one exercise (not a stub)
+     *  - is not fully completed
+     * Falls back to 0 if everything is complete or all are stubs.
+     */
+    function findSuggestedIndex() {
+      for (let i = 0; i < GROKSET_MANIFEST.length; i++) {
+        const entry = GROKSET_MANIFEST[i];
+        const gs = groksetCache[entry.id];
+        if (!gs || gs._stub || gs.exercises.length === 0) continue;
+        const p = getGroksetProgress(entry.id);
+        if (p && p.done < p.total) return i;
+      }
+      // If all with exercises are done, suggest first one with exercises
+      for (let i = 0; i < GROKSET_MANIFEST.length; i++) {
+        const gs = groksetCache[GROKSET_MANIFEST[i].id];
+        if (gs && !gs._stub && gs.exercises.length > 0) return i;
+      }
+      return 0;
+    }
+
+    // ============================================================
+    // RENDER LANDING
+    // ============================================================
+
+    async function renderLanding() {
+      const list = document.getElementById('groksetList');
+      list.innerHTML = '<div style="font-family:\'Share Tech Mono\',monospace;font-size:13px;color:var(--text-dim);text-align:center;padding:20px;">Loading...</div>';
+
+      // Fetch all groksets (in parallel)
+      await Promise.all(GROKSET_MANIFEST.map(e => fetchGrokset(e)));
+
+      const suggestedIdx = findSuggestedIndex();
+
+      list.innerHTML = '';
+
+      GROKSET_MANIFEST.forEach((entry, idx) => {
+        const gs = groksetCache[entry.id];
+        const isStub = !gs || gs._stub || gs.exercises.length === 0;
+        const p = isStub ? null : getGroksetProgress(entry.id);
+        const isComplete = p && p.done === p.total;
+        const isSuggested = !isStub && idx === suggestedIdx;
+
+        const card = document.createElement('div');
+        card.className = 'grokset-card'
+          + (isSuggested ? ' suggested' : '')
+          + (isComplete ? ' complete' : '')
+          + (isStub ? ' stub' : '');
+
+        // Number
+        const numEl = document.createElement('div');
+        numEl.className = 'grokset-number';
+        numEl.textContent = idx + 1;
+        card.appendChild(numEl);
+
+        // Info
+        const info = document.createElement('div');
+        info.className = 'grokset-info';
+
+        const title = document.createElement('div');
+        title.className = 'grokset-title';
+        title.textContent = gs && gs.title ? gs.title : entry.id;
+        info.appendChild(title);
+
+        if (gs && gs.description) {
+          const desc = document.createElement('div');
+          desc.className = 'grokset-desc';
+          desc.textContent = gs.description;
+          info.appendChild(desc);
+        }
+
+        card.appendChild(info);
+
+        // Progress / badge
+        if (isStub) {
+          const badge = document.createElement('div');
+          badge.className = 'coming-soon-badge';
+          badge.textContent = 'Coming soon';
+          card.appendChild(badge);
+        } else if (isComplete) {
+          const prog = document.createElement('div');
+          prog.className = 'grokset-progress done';
+          prog.textContent = '✓ Done';
+          card.appendChild(prog);
+        } else if (p && p.done > 0) {
+          const prog = document.createElement('div');
+          prog.className = 'grokset-progress in-progress';
+          prog.textContent = `${p.done}/${p.total}`;
+          card.appendChild(prog);
+        } else if (p) {
+          const prog = document.createElement('div');
+          prog.className = 'grokset-progress';
+          prog.textContent = `0/${p.total}`;
+          card.appendChild(prog);
+        }
+
+        if (!isStub) {
+          card.addEventListener('click', () => startGrokset(entry.id));
+        }
+
+        list.appendChild(card);
+      });
+    }
+
+    // ============================================================
+    // START GROKSET — placeholder
+    // ============================================================
+
+    function startGrokset(groksetId) {
+      // Will be implemented in a future task
+    }
+
+    // ============================================================
+    // RENDER EXERCISE — placeholder
+    // ============================================================
+
+    function renderExercise(index) {
+      // Will be implemented in a future task
+    }
+
+    // ============================================================
+    // HELP BUTTON WIRING
+    // ============================================================
+
+    document.getElementById('helpBtn').addEventListener('click', () => {
+      const panel = document.getElementById('helpPanel');
+      panel.classList.toggle('hidden');
+    });
+
+    // ============================================================
+    // BACK BUTTON WIRING
+    // ============================================================
+
+    document.getElementById('backBtn').addEventListener('click', () => {
+      document.getElementById('exerciseScreen').classList.add('hidden');
+      document.getElementById('helpBtn').classList.add('hidden');
+      document.getElementById('helpPanel').classList.add('hidden');
+      document.getElementById('landingScreen').classList.remove('hidden');
+      currentGrokset = null;
+      currentExerciseIndex = 0;
+      if (quizEditor) {
+        quizEditor = null;
+      }
+      renderLanding();
+    });
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    renderLanding();
+  </script>
+</body>
+</html>

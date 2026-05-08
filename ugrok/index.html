@@ -321,6 +321,64 @@
     });
 
     // ============================================================
+    // SOUND EFFECTS
+    // ============================================================
+
+    function createSounds() {
+      let ctx;
+
+      function getCtx() {
+        if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+        return ctx;
+      }
+
+      function playTone(freq, duration, type = 'square', volume = 0.15) {
+        try {
+          const ac = getCtx();
+          const osc = ac.createOscillator();
+          const gain = ac.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, ac.currentTime);
+          gain.gain.setValueAtTime(volume, ac.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(ac.destination);
+          osc.start(ac.currentTime);
+          osc.stop(ac.currentTime + duration);
+        } catch (e) {}
+      }
+
+      function playNotes(notes, type = 'square', volume = 0.15) {
+        try {
+          const ac = getCtx();
+          let time = ac.currentTime;
+          for (const [freq, dur] of notes) {
+            const osc = ac.createOscillator();
+            const gain = ac.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, time);
+            gain.gain.setValueAtTime(volume, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+            osc.connect(gain);
+            gain.connect(ac.destination);
+            osc.start(time);
+            osc.stop(time + dur);
+            time += dur;
+          }
+        } catch (e) {}
+      }
+
+      return {
+        step()      { playTone(440, 0.06, 'sine', 0.05); },
+        correct()   { playNotes([[523, 0.08], [659, 0.08], [784, 0.12]], 'square', 0.12); },
+        wrong()     { playNotes([[300, 0.1], [200, 0.15]], 'sawtooth', 0.1); },
+        complete()  { playNotes([[523, 0.1], [659, 0.1], [784, 0.1], [1047, 0.2]], 'square', 0.15); },
+      };
+    }
+
+    const sounds = createSounds();
+
+    // ============================================================
     // INIT
     // ============================================================
     renderLanding();

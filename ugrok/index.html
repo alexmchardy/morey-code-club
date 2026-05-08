@@ -97,7 +97,11 @@
      */
     function loadProgress(groksetId, exerciseCount) {
       const raw = localStorage.getItem(progressKey(groksetId));
-      let arr = raw ? JSON.parse(raw) : [];
+      let arr;
+      try {
+        arr = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(arr)) arr = [];
+      } catch { arr = []; }
       if (exerciseCount !== undefined) {
         while (arr.length < exerciseCount) arr.push(false);
         arr = arr.slice(0, exerciseCount);
@@ -310,6 +314,7 @@
       currentGrokset = null;
       currentExerciseIndex = 0;
       if (quizEditor) {
+        quizEditor.toTextArea();
         quizEditor = null;
       }
       renderLanding();

@@ -602,7 +602,45 @@
     }
 
     function renderQuizChoice(container, exercise) {
-      container.innerHTML = '<p>Quiz coming soon...</p>';
+      const codeSection = exercise.code
+        ? `<div class="quiz-code"><pre class="code-font">${escapeHTML(exercise.code)}</pre></div>`
+        : '';
+
+      const choicesHTML = exercise.choices.map((choice, i) =>
+        `<button class="choice-btn" data-index="${i}">${escapeHTML(choice)}</button>`
+      ).join('');
+
+      container.innerHTML = `
+        <p class="quiz-question">${escapeHTML(exercise.question)}</p>
+        ${codeSection}
+        <div class="quiz-choices">${choicesHTML}</div>
+        <div class="quiz-feedback" id="quizFeedback"></div>
+      `;
+
+      let answered = false;
+      container.querySelectorAll('.choice-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (answered) return;
+          const index = parseInt(btn.dataset.index);
+          if (index === exercise.answer) {
+            answered = true;
+            btn.classList.add('correct');
+            sounds.correct();
+            document.getElementById('quizFeedback').innerHTML =
+              '<span style="color:var(--secondary)">Correct!</span>';
+            setTimeout(advanceExercise, 1000);
+          } else {
+            btn.classList.add('wrong');
+            sounds.wrong();
+            document.getElementById('quizFeedback').innerHTML =
+              '<span style="color:var(--error)">Not quite — try again!</span>';
+            setTimeout(() => {
+              btn.classList.remove('wrong');
+              document.getElementById('quizFeedback').textContent = '';
+            }, 1200);
+          }
+        });
+      });
     }
 
     function renderQuizCode(container, exercise) {

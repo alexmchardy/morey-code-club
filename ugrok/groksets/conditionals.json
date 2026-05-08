@@ -24,6 +24,13 @@
         { "line": 3, "state": { "a": 5, "b": 5 }, "output": [], "eval": "a == b → 5 == 5 → True" },
         { "line": 4, "state": { "a": 5, "b": 5 }, "output": ["yes"], "eval": null }
       ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "x = 10\nif x > 5:\n    print(\"big\")\nelse:\n    print(\"small\")",
+      "choices": ["big", "small", "big small", "nothing"],
+      "answer": 0
     }
   ]
 }

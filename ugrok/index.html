@@ -906,8 +906,7 @@
 
     async function askHelp() {
       const input = document.getElementById('helpTextarea');
-      const question = input.value.trim();
-      if (!question) return;
+      const question = input.value.trim() || 'Help me';
 
       const responseEl = document.getElementById('helpResponse');
       const askBtn = document.getElementById('helpAskBtn');

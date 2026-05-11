@@ -79,19 +79,17 @@
     },
     {
       "type": "quiz-code",
-      "question": "Create three variables: 'color' storing \"blue\", 'count' storing 7, and 'temp' storing 98.6. Print all three.",
-      "starterCode": "# create your three variables\n\n# print them\n",
+      "question": "Create two variables: 'color' storing \"blue\" and 'count' storing 7. Print both.",
+      "starterCode": "# create your two variables\n\n# print them\n",
       "validation": {
         "type": "output",
-        "expected": ["blue", "7", "98.6"]
+        "expected": ["blue", "7"]
       },
       "codeTests": [
         { "pattern": "color\\s*=", "message": "Create a variable called 'color'" },
         { "pattern": "count\\s*=", "message": "Create a variable called 'count'" },
-        { "pattern": "temp\\s*=", "message": "Create a variable called 'temp'" },
         { "pattern": "print\\s*\\(\\s*color\\s*\\)", "message": "Print the variable 'color'" },
-        { "pattern": "print\\s*\\(\\s*count\\s*\\)", "message": "Print the variable 'count'" },
-        { "pattern": "print\\s*\\(\\s*temp\\s*\\)", "message": "Print the variable 'temp'" }
+        { "pattern": "print\\s*\\(\\s*count\\s*\\)", "message": "Print the variable 'count'" }
       ]
     },
     {

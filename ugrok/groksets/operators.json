@@ -50,29 +50,24 @@
     },
     {
       "type": "explanation",
-      "title": "Floor Division and Remainder",
-      "content": "Python has two extra division operators. Floor division (//) divides and drops the decimal part — you get a whole number. The modulo operator (%) gives you the remainder after division. These are super useful for checking if numbers are even or odd!",
-      "code": "print(7 / 2)\nprint(7 // 2)\nprint(7 % 2)\n\nprint(10 // 3)\nprint(10 % 3)",
+      "title": "The Remainder Operator (%)",
+      "content": "The % operator (called modulo) gives you the remainder after division. For example, 7 % 2 = 1 because 7 divided by 2 is 3 with 1 left over. It's super useful for checking if numbers are even or odd!",
+      "code": "print(7 % 2)\nprint(10 % 3)\nprint(8 % 4)",
       "highlights": [
-        { "lines": [1], "note": "Regular division: 7 / 2 = 3.5" },
-        { "lines": [2], "note": "Floor division: 7 // 2 = 3 (drops the .5, keeps the whole number)" },
-        { "lines": [3], "note": "Remainder: 7 % 2 = 1 (7 divided by 2 is 3 remainder 1)" },
-        { "lines": [5, 6], "note": "10 // 3 = 3 (whole part), 10 % 3 = 1 (remainder). 3 × 3 + 1 = 10 ✓" }
+        { "lines": [1], "note": "7 % 2 = 1 — 7 ÷ 2 is 3 remainder 1" },
+        { "lines": [2], "note": "10 % 3 = 1 — 10 ÷ 3 is 3 remainder 1" },
+        { "lines": [3], "note": "8 % 4 = 0 — 8 ÷ 4 is exactly 2 with nothing left over" }
       ]
     },
     {
       "type": "stepper",
-      "title": "Watch: Floor Division vs Regular",
-      "code": "a = 13\nb = 4\nregular = a / b\nfloor = a // b\nremainder = a % b\nprint(regular)\nprint(floor)\nprint(remainder)",
+      "title": "Watch: The Remainder Operator",
+      "code": "a = 13\nb = 4\nremainder = a % b\nprint(remainder)",
       "trace": [
         { "line": 1, "state": { "a": 13 }, "output": [], "eval": null },
         { "line": 2, "state": { "a": 13, "b": 4 }, "output": [], "eval": null },
-        { "line": 3, "state": { "a": 13, "b": 4, "regular": 3.25 }, "output": [], "eval": "a / b → 13 / 4 → 3.25" },
-        { "line": 4, "state": { "a": 13, "b": 4, "regular": 3.25, "floor": 3 }, "output": [], "eval": "a // b → 13 // 4 → 3" },
-        { "line": 5, "state": { "a": 13, "b": 4, "regular": 3.25, "floor": 3, "remainder": 1 }, "output": [], "eval": "a % b → 13 % 4 → 1" },
-        { "line": 6, "state": { "a": 13, "b": 4, "regular": 3.25, "floor": 3, "remainder": 1 }, "output": ["3.25"], "eval": null },
-        { "line": 7, "state": { "a": 13, "b": 4, "regular": 3.25, "floor": 3, "remainder": 1 }, "output": ["3.25", "3"], "eval": null },
-        { "line": 8, "state": { "a": 13, "b": 4, "regular": 3.25, "floor": 3, "remainder": 1 }, "output": ["3.25", "3", "1"], "eval": null }
+        { "line": 3, "state": { "a": 13, "b": 4, "remainder": 1 }, "output": [], "eval": "a % b → 13 % 4 → 1  (4 goes into 13 three times, with 1 left over)" },
+        { "line": 4, "state": { "a": 13, "b": 4, "remainder": 1 }, "output": ["1"], "eval": null }
       ]
     },
     {
@@ -83,23 +78,15 @@
       "answer": 0
     },
     {
-      "type": "quiz-choice",
-      "question": "What does 20 // 6 give you?",
-      "code": "print(20 // 6)",
-      "choices": ["3.33", "3", "4", "2"],
-      "answer": 1
-    },
-    {
       "type": "quiz-code",
-      "question": "A box holds 5 apples. You have 17 apples. Print how many full boxes you can fill (use //), then print how many apples are left over (use %).",
-      "starterCode": "apples = 17\nbox_size = 5\n# how many full boxes?\n# how many left over?\n",
+      "question": "A box holds 5 apples. You have 17 apples. Print how many apples are left over after filling as many boxes as possible. (Hint: use %.)",
+      "starterCode": "apples = 17\nbox_size = 5\n# how many apples are left over?\n",
       "validation": {
         "type": "output",
-        "expected": ["3", "2"]
+        "expected": ["2"]
       },
       "codeTests": [
-        { "pattern": "apples\\s*//\\s*box_size|box_size\\s*//|//\\s*box_size|apples\\s*//", "message": "Use floor division (//) to find the number of full boxes" },
-        { "pattern": "apples\\s*%\\s*box_size|box_size\\s*%|%\\s*box_size|apples\\s*%", "message": "Use modulo (%) to find the leftover apples" }
+        { "pattern": "apples\\s*%\\s*box_size|box_size\\s*%|%\\s*box_size|apples\\s*%", "message": "Use % to find the leftover apples" }
       ]
     },
     {

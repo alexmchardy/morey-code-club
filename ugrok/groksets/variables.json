@@ -3,5 +3,231 @@
   "title": "Variables",
   "description": "Creating variables, types (string, number, boolean), and printing",
   "language": "python",
-  "exercises": []
+  "exercises": [
+    {
+      "type": "explanation",
+      "title": "What is a Variable?",
+      "content": "A variable is a named container that stores a value. In Python, you create one by writing a name, then =, then the value. No special keyword needed — just pick a name and assign!",
+      "code": "name = \"Morey\"\nage = 10\nprint(name)\nprint(age)",
+      "highlights": [
+        { "lines": [1], "note": "Creates a variable called 'name' and stores the text \"Morey\" in it." },
+        { "lines": [2], "note": "Creates a variable called 'age' and stores the number 10 in it. Numbers don't need quotes." },
+        { "lines": [3, 4], "note": "print() shows what's stored inside a variable." }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Creating Variables",
+      "code": "x = 5\ny = 10\nprint(x)\nprint(y)",
+      "trace": [
+        { "line": 1, "state": { "x": 5 }, "output": [], "eval": null },
+        { "line": 2, "state": { "x": 5, "y": 10 }, "output": [], "eval": null },
+        { "line": 3, "state": { "x": 5, "y": 10 }, "output": ["5"], "eval": null },
+        { "line": 4, "state": { "x": 5, "y": 10 }, "output": ["5", "10"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "pet = \"cat\"\nprint(pet)",
+      "choices": ["pet", "cat", "\"cat\"", "nothing"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-code",
+      "question": "Create a variable called 'greeting' that stores \"Hello\" and print it.",
+      "starterCode": "# create your variable and print it\n",
+      "validation": {
+        "type": "output",
+        "expected": ["Hello"]
+      },
+      "codeTests": [
+        { "pattern": "greeting\\s*=", "message": "Create a variable called 'greeting'" },
+        { "pattern": "print\\s*\\(\\s*greeting\\s*\\)", "message": "Print the variable 'greeting', not the hardcoded text" }
+      ]
+    },
+    {
+      "type": "explanation",
+      "title": "Types of Values",
+      "content": "Variables can store different types of values. The three main types are: strings (text in quotes), integers (whole numbers), and floats (decimal numbers). Python figures out the type automatically based on what you assign.",
+      "code": "name = \"Alice\"\nage = 12\nheight = 4.5\nprint(name)\nprint(age)\nprint(height)",
+      "highlights": [
+        { "lines": [1], "note": "Strings are text — always surrounded by quotes (single or double)." },
+        { "lines": [2], "note": "Integers are whole numbers — no quotes, no decimal point." },
+        { "lines": [3], "note": "Floats are decimal numbers — they have a dot in them." }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Different Types",
+      "code": "word = \"hi\"\ncount = 3\nprice = 2.50\nprint(word)\nprint(count)\nprint(price)",
+      "trace": [
+        { "line": 1, "state": { "word": "hi" }, "output": [], "eval": null },
+        { "line": 2, "state": { "word": "hi", "count": 3 }, "output": [], "eval": null },
+        { "line": 3, "state": { "word": "hi", "count": 3, "price": 2.5 }, "output": [], "eval": null },
+        { "line": 4, "state": { "word": "hi", "count": 3, "price": 2.5 }, "output": ["hi"], "eval": null },
+        { "line": 5, "state": { "word": "hi", "count": 3, "price": 2.5 }, "output": ["hi", "3"], "eval": null },
+        { "line": 6, "state": { "word": "hi", "count": 3, "price": 2.5 }, "output": ["hi", "3", "2.5"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "Which of these is a string?",
+      "code": "a = 42\nb = \"42\"\nc = 4.2",
+      "choices": ["a", "b", "c", "all of them"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-code",
+      "question": "Create three variables: 'color' storing \"blue\", 'count' storing 7, and 'temp' storing 98.6. Print all three.",
+      "starterCode": "# create your three variables\n\n# print them\n",
+      "validation": {
+        "type": "output",
+        "expected": ["blue", "7", "98.6"]
+      },
+      "codeTests": [
+        { "pattern": "color\\s*=", "message": "Create a variable called 'color'" },
+        { "pattern": "count\\s*=", "message": "Create a variable called 'count'" },
+        { "pattern": "temp\\s*=", "message": "Create a variable called 'temp'" },
+        { "pattern": "print\\s*\\(\\s*color\\s*\\)", "message": "Print the variable 'color'" },
+        { "pattern": "print\\s*\\(\\s*count\\s*\\)", "message": "Print the variable 'count'" },
+        { "pattern": "print\\s*\\(\\s*temp\\s*\\)", "message": "Print the variable 'temp'" }
+      ]
+    },
+    {
+      "type": "explanation",
+      "title": "Changing Variables",
+      "content": "You can change what's stored in a variable by assigning it a new value. The old value is gone — replaced by the new one. The variable always holds whatever was assigned to it most recently.",
+      "code": "score = 0\nprint(score)\nscore = 10\nprint(score)\nscore = 25\nprint(score)",
+      "highlights": [
+        { "lines": [1], "note": "score starts at 0." },
+        { "lines": [3], "note": "Now score is 10 — the 0 is gone forever." },
+        { "lines": [5], "note": "Now score is 25. A variable always holds its most recent value." }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Reassignment",
+      "code": "x = 1\nprint(x)\nx = 5\nprint(x)\nx = x + 2\nprint(x)",
+      "trace": [
+        { "line": 1, "state": { "x": 1 }, "output": [], "eval": null },
+        { "line": 2, "state": { "x": 1 }, "output": ["1"], "eval": null },
+        { "line": 3, "state": { "x": 5 }, "output": ["1"], "eval": null },
+        { "line": 4, "state": { "x": 5 }, "output": ["1", "5"], "eval": null },
+        { "line": 5, "state": { "x": 7 }, "output": ["1", "5"], "eval": "x + 2 → 5 + 2 → 7" },
+        { "line": 6, "state": { "x": 7 }, "output": ["1", "5", "7"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "a = 3\na = 7\nprint(a)",
+      "choices": ["3", "7", "3 7", "error"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "x = 10\nx = x + 5\nprint(x)",
+      "choices": ["10", "5", "15", "x + 5"],
+      "answer": 2
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Building Up a Value",
+      "code": "total = 0\ntotal = total + 10\ntotal = total + 5\ntotal = total + 3\nprint(total)",
+      "trace": [
+        { "line": 1, "state": { "total": 0 }, "output": [], "eval": null },
+        { "line": 2, "state": { "total": 10 }, "output": [], "eval": "total + 10 → 0 + 10 → 10" },
+        { "line": 3, "state": { "total": 15 }, "output": [], "eval": "total + 5 → 10 + 5 → 15" },
+        { "line": 4, "state": { "total": 18 }, "output": [], "eval": "total + 3 → 15 + 3 → 18" },
+        { "line": 5, "state": { "total": 18 }, "output": ["18"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-code",
+      "question": "Create a variable 'lives' starting at 3. Subtract 1 from it twice. Print the final value.",
+      "starterCode": "# start with 3 lives, lose 2\n",
+      "validation": {
+        "type": "output",
+        "expected": ["1"]
+      },
+      "codeTests": [
+        { "pattern": "lives\\s*=\\s*3", "message": "Start 'lives' at 3" },
+        { "pattern": "lives\\s*=\\s*lives\\s*-\\s*1|lives\\s*-=\\s*1", "message": "Subtract 1 from 'lives' (use lives = lives - 1 or lives -= 1)" },
+        { "pattern": "print\\s*\\(\\s*lives\\s*\\)", "message": "Print the variable 'lives'" }
+      ]
+    },
+    {
+      "type": "explanation",
+      "title": "Using Variables Together",
+      "content": "Variables can be used in calculations with other variables. Python reads the current value of each variable and does the math. You can also combine strings together using + (this is called concatenation).",
+      "code": "width = 4\nheight = 3\narea = width * height\nprint(area)\n\nfirst = \"Hello \"\nlast = \"world\"\nmessage = first + last\nprint(message)",
+      "highlights": [
+        { "lines": [3], "note": "Python reads width (4) and height (3), multiplies them, and stores 12 in 'area'." },
+        { "lines": [8], "note": "The + operator joins strings together. \"Hello \" + \"world\" becomes \"Hello world\"." }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Variables in Expressions",
+      "code": "a = 4\nb = 3\nc = a + b\nprint(c)\nd = a * b\nprint(d)",
+      "trace": [
+        { "line": 1, "state": { "a": 4 }, "output": [], "eval": null },
+        { "line": 2, "state": { "a": 4, "b": 3 }, "output": [], "eval": null },
+        { "line": 3, "state": { "a": 4, "b": 3, "c": 7 }, "output": [], "eval": "a + b → 4 + 3 → 7" },
+        { "line": 4, "state": { "a": 4, "b": 3, "c": 7 }, "output": ["7"], "eval": null },
+        { "line": 5, "state": { "a": 4, "b": 3, "c": 7, "d": 12 }, "output": ["7"], "eval": "a * b → 4 * 3 → 12" },
+        { "line": 6, "state": { "a": 4, "b": 3, "c": 7, "d": 12 }, "output": ["7", "12"], "eval": null }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: String Concatenation",
+      "code": "first = \"Good \"\nsecond = \"morning!\"\ngreeting = first + second\nprint(greeting)",
+      "trace": [
+        { "line": 1, "state": { "first": "Good " }, "output": [], "eval": null },
+        { "line": 2, "state": { "first": "Good ", "second": "morning!" }, "output": [], "eval": null },
+        { "line": 3, "state": { "first": "Good ", "second": "morning!", "greeting": "Good morning!" }, "output": [], "eval": "first + second → \"Good \" + \"morning!\" → \"Good morning!\"" },
+        { "line": 4, "state": { "first": "Good ", "second": "morning!", "greeting": "Good morning!" }, "output": ["Good morning!"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "a = \"3\"\nb = \"4\"\nprint(a + b)",
+      "choices": ["7", "34", "\"3\" + \"4\"", "error"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-code",
+      "question": "Create variables 'base' = 5 and 'height' = 8. Calculate the area of a triangle (base * height / 2) and store it in 'area'. Print area.",
+      "starterCode": "# calculate triangle area\n",
+      "validation": {
+        "type": "output",
+        "expected": ["20.0"]
+      },
+      "codeTests": [
+        { "pattern": "base\\s*=\\s*5", "message": "Set 'base' to 5" },
+        { "pattern": "height\\s*=\\s*8", "message": "Set 'height' to 8" },
+        { "pattern": "area\\s*=", "message": "Store the result in 'area'" },
+        { "pattern": "base\\s*\\*\\s*height|height\\s*\\*\\s*base", "message": "Calculate area using base * height" }
+      ]
+    },
+    {
+      "type": "quiz-code",
+      "question": "Final challenge! Create 'first_name' = \"Code\" and 'last_name' = \"Club\". Join them with a space in between and store in 'full_name'. Print full_name.",
+      "starterCode": "# join two names with a space\n",
+      "validation": {
+        "type": "output",
+        "expected": ["Code Club"]
+      },
+      "codeTests": [
+        { "pattern": "first_name\\s*=", "message": "Create a variable called 'first_name'" },
+        { "pattern": "last_name\\s*=", "message": "Create a variable called 'last_name'" },
+        { "pattern": "full_name\\s*=", "message": "Store the result in 'full_name'" },
+        { "pattern": "first_name\\s*\\+|\\+\\s*last_name", "message": "Join the names using the + operator" }
+      ]
+    }
+  ]
 }

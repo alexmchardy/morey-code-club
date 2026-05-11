@@ -3,5 +3,312 @@
   "title": "Functions",
   "description": "Defining functions with def, parameters, and return values",
   "language": "python",
-  "exercises": []
+  "exercises": [
+    {
+      "type": "explanation",
+      "title": "Defining a Function",
+      "content": "A function is a reusable block of code with a name. You define it with the 'def' keyword, then call it by writing its name with parentheses (). The code inside the function doesn't run until you call it!",
+      "code": "def say_hello():\n    print(\"Hello!\")\n    print(\"Nice to meet you!\")\n\nsay_hello()\nsay_hello()",
+      "highlights": [
+        { "lines": [1], "note": "'def' defines a function. The name is 'say_hello'. The parentheses and colon are required." },
+        { "lines": [2, 3], "note": "The indented lines are the function body. They only run when the function is called." },
+        { "lines": [5, 6], "note": "Calling the function twice runs the body twice — 4 lines of output from 2 lines of code!" }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Defining and Calling",
+      "code": "def greet():\n    print(\"Hi there!\")\n\nprint(\"before\")\ngreet()\nprint(\"after\")",
+      "trace": [
+        { "line": 1, "state": {}, "output": [], "eval": "def greet — function stored, not run yet" },
+        { "line": 4, "state": {}, "output": ["before"], "eval": null },
+        { "line": 5, "state": {}, "output": ["before"], "eval": "calling greet() — jump into function" },
+        { "line": 2, "state": {}, "output": ["before", "Hi there!"], "eval": null },
+        { "line": 5, "state": {}, "output": ["before", "Hi there!"], "eval": "greet() finished — back to caller" },
+        { "line": 6, "state": {}, "output": ["before", "Hi there!", "after"], "eval": null }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Calling Twice",
+      "code": "def cheer():\n    print(\"Go!\")\n    print(\"Go!\")\n\ncheer()\nprint(\"---\")\ncheer()",
+      "trace": [
+        { "line": 1, "state": {}, "output": [], "eval": "def cheer — function stored" },
+        { "line": 5, "state": {}, "output": [], "eval": "calling cheer()" },
+        { "line": 2, "state": {}, "output": ["Go!"], "eval": null },
+        { "line": 3, "state": {}, "output": ["Go!", "Go!"], "eval": null },
+        { "line": 5, "state": {}, "output": ["Go!", "Go!"], "eval": "cheer() finished" },
+        { "line": 6, "state": {}, "output": ["Go!", "Go!", "---"], "eval": null },
+        { "line": 7, "state": {}, "output": ["Go!", "Go!", "---"], "eval": "calling cheer()" },
+        { "line": 2, "state": {}, "output": ["Go!", "Go!", "---", "Go!"], "eval": null },
+        { "line": 3, "state": {}, "output": ["Go!", "Go!", "---", "Go!", "Go!"], "eval": null },
+        { "line": 7, "state": {}, "output": ["Go!", "Go!", "---", "Go!", "Go!"], "eval": "cheer() finished" }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "def hello():\n    print(\"hi\")\n\nprint(\"start\")\nhello()",
+      "choices": ["hi\\nstart", "start\\nhi", "hi", "start"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What happens when Python reads 'def my_func():' ?",
+      "code": "def my_func():\n    print(\"running\")\n\nprint(\"done\")",
+      "choices": ["It prints \"running\"", "It stores the function for later", "It prints \"running\" then \"done\"", "It causes an error"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-code",
+      "question": "Define a function called 'shout' that prints \"YEAH!\". Then call it.",
+      "starterCode": "# define your function\n\n# call it\n",
+      "validation": {
+        "type": "output",
+        "expected": ["YEAH!"]
+      },
+      "codeTests": [
+        { "pattern": "def\\s+shout\\s*\\(", "message": "Define a function called 'shout' using def" },
+        { "pattern": "shout\\s*\\(\\s*\\)", "message": "Call the function: shout()" }
+      ]
+    },
+    {
+      "type": "explanation",
+      "title": "Parameters",
+      "content": "Functions can accept inputs called parameters. You put the parameter name inside the parentheses when defining the function. When you call the function, you pass in a value — that value gets assigned to the parameter name inside the function.",
+      "code": "def greet(name):\n    print(\"Hello, \" + name + \"!\")\n\ngreet(\"Alice\")\ngreet(\"Bob\")",
+      "highlights": [
+        { "lines": [1], "note": "'name' is a parameter — a placeholder for whatever value gets passed in." },
+        { "lines": [4], "note": "Calling greet(\"Alice\") makes name = \"Alice\" inside the function." },
+        { "lines": [5], "note": "Calling greet(\"Bob\") makes name = \"Bob\" — same function, different input!" }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Function with Parameter",
+      "code": "def greet(name):\n    print(\"Hello, \" + name + \"!\")\n\ngreet(\"Alice\")\ngreet(\"Bob\")",
+      "trace": [
+        { "line": 1, "state": {}, "output": [], "eval": "def greet — function stored" },
+        { "line": 4, "state": {}, "output": [], "eval": "calling greet(\"Alice\")" },
+        { "line": 1, "state": { "name": "Alice" }, "output": [], "eval": "name = \"Alice\"" },
+        { "line": 2, "state": { "name": "Alice" }, "output": ["Hello, Alice!"], "eval": null },
+        { "line": 4, "state": {}, "output": ["Hello, Alice!"], "eval": "greet() finished" },
+        { "line": 5, "state": {}, "output": ["Hello, Alice!"], "eval": "calling greet(\"Bob\")" },
+        { "line": 1, "state": { "name": "Bob" }, "output": ["Hello, Alice!"], "eval": "name = \"Bob\"" },
+        { "line": 2, "state": { "name": "Bob" }, "output": ["Hello, Alice!", "Hello, Bob!"], "eval": null },
+        { "line": 5, "state": {}, "output": ["Hello, Alice!", "Hello, Bob!"], "eval": "greet() finished" }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Multiple Parameters",
+      "code": "def add(a, b):\n    result = a + b\n    print(result)\n\nadd(3, 4)\nadd(10, 20)",
+      "trace": [
+        { "line": 1, "state": {}, "output": [], "eval": "def add — function stored" },
+        { "line": 5, "state": {}, "output": [], "eval": "calling add(3, 4)" },
+        { "line": 1, "state": { "a": 3, "b": 4 }, "output": [], "eval": "a = 3, b = 4" },
+        { "line": 2, "state": { "a": 3, "b": 4, "result": 7 }, "output": [], "eval": "a + b → 3 + 4 → 7" },
+        { "line": 3, "state": { "a": 3, "b": 4, "result": 7 }, "output": ["7"], "eval": null },
+        { "line": 5, "state": {}, "output": ["7"], "eval": "add() finished" },
+        { "line": 6, "state": {}, "output": ["7"], "eval": "calling add(10, 20)" },
+        { "line": 1, "state": { "a": 10, "b": 20 }, "output": ["7"], "eval": "a = 10, b = 20" },
+        { "line": 2, "state": { "a": 10, "b": 20, "result": 30 }, "output": ["7"], "eval": "a + b → 10 + 20 → 30" },
+        { "line": 3, "state": { "a": 10, "b": 20, "result": 30 }, "output": ["7", "30"], "eval": null },
+        { "line": 6, "state": {}, "output": ["7", "30"], "eval": "add() finished" }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "def double(x):\n    print(x * 2)\n\ndouble(7)",
+      "choices": ["7", "14", "x * 2", "nothing"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-code",
+      "question": "Define a function called 'say_hi' that takes a parameter 'name' and prints \"Hi \" followed by the name. Call it with \"Morey\".",
+      "starterCode": "# define say_hi with a name parameter\n\n# call it with \"Morey\"\n",
+      "validation": {
+        "type": "output",
+        "expected": ["Hi Morey"]
+      },
+      "codeTests": [
+        { "pattern": "def\\s+say_hi\\s*\\(\\s*\\w+", "message": "Define 'say_hi' with a parameter (e.g. def say_hi(name))" },
+        { "pattern": "say_hi\\s*\\(\\s*[\"']Morey[\"']\\s*\\)", "message": "Call say_hi with \"Morey\" as the argument" }
+      ]
+    },
+    {
+      "type": "explanation",
+      "title": "Return Values",
+      "content": "A function can send a value back to the caller using 'return'. This is different from print — print shows text on screen, but return sends a value back that can be stored in a variable or used in an expression. Once return runs, the function immediately stops.",
+      "code": "def double(x):\n    return x * 2\n\nresult = double(5)\nprint(result)\nprint(double(3) + 1)",
+      "highlights": [
+        { "lines": [2], "note": "'return' sends x * 2 back to the caller. It does NOT print anything!" },
+        { "lines": [4], "note": "double(5) returns 10, which gets stored in 'result'." },
+        { "lines": [6], "note": "You can use the return value directly — double(3) returns 6, then 6 + 1 = 7." }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Return Value",
+      "code": "def double(x):\n    return x * 2\n\nresult = double(5)\nprint(result)",
+      "trace": [
+        { "line": 1, "state": {}, "output": [], "eval": "def double — function stored" },
+        { "line": 4, "state": {}, "output": [], "eval": "calling double(5)" },
+        { "line": 1, "state": { "x": 5 }, "output": [], "eval": "x = 5" },
+        { "line": 2, "state": { "x": 5 }, "output": [], "eval": "return x * 2 → return 10" },
+        { "line": 4, "state": { "result": 10 }, "output": [], "eval": "double(5) returned 10 → result = 10" },
+        { "line": 5, "state": { "result": 10 }, "output": ["10"], "eval": null }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Using Return Value in Expression",
+      "code": "def square(n):\n    return n * n\n\nanswer = square(3) + square(2)\nprint(answer)",
+      "trace": [
+        { "line": 1, "state": {}, "output": [], "eval": "def square — function stored" },
+        { "line": 4, "state": {}, "output": [], "eval": "calling square(3)" },
+        { "line": 1, "state": { "n": 3 }, "output": [], "eval": "n = 3" },
+        { "line": 2, "state": { "n": 3 }, "output": [], "eval": "return n * n → return 9" },
+        { "line": 4, "state": {}, "output": [], "eval": "square(3) returned 9 — now calling square(2)" },
+        { "line": 1, "state": { "n": 2 }, "output": [], "eval": "n = 2" },
+        { "line": 2, "state": { "n": 2 }, "output": [], "eval": "return n * n → return 4" },
+        { "line": 4, "state": { "answer": 13 }, "output": [], "eval": "9 + 4 → 13 → answer = 13" },
+        { "line": 5, "state": { "answer": 13 }, "output": ["13"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "def add(a, b):\n    return a + b\n\nx = add(2, 3)\nprint(x + 1)",
+      "choices": ["5", "6", "2 3", "nothing"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What's the difference between print and return?",
+      "code": "def mystery(x):\n    print(x)\n    return x * 2",
+      "choices": ["They do the same thing", "print shows on screen, return sends value back to caller", "return shows on screen, print sends value back", "print stops the function"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-code",
+      "question": "Define a function 'triple' that takes a number and returns it multiplied by 3. Then print the result of triple(4).",
+      "starterCode": "# define triple\n\n# print triple(4)\n",
+      "validation": {
+        "type": "output",
+        "expected": ["12"]
+      },
+      "codeTests": [
+        { "pattern": "def\\s+triple\\s*\\(", "message": "Define a function called 'triple'" },
+        { "pattern": "return", "message": "Use 'return' to send the value back" },
+        { "pattern": "\\*\\s*3|3\\s*\\*", "message": "Multiply by 3 inside the function" }
+      ]
+    },
+    {
+      "type": "explanation",
+      "title": "Functions with Conditionals",
+      "content": "Functions become really powerful when you combine them with if statements. A function can make decisions and return different values depending on its input. This lets you package up logic and reuse it.",
+      "code": "def check_age(age):\n    if age >= 18:\n        return \"adult\"\n    else:\n        return \"minor\"\n\nprint(check_age(21))\nprint(check_age(12))",
+      "highlights": [
+        { "lines": [2, 3], "note": "If age is 18 or more, return \"adult\" and stop." },
+        { "lines": [4, 5], "note": "Otherwise, return \"minor\". Only one return ever runs — the function stops at the first one it hits." }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Function with Conditional",
+      "code": "def is_positive(n):\n    if n > 0:\n        return True\n    else:\n        return False\n\nresult = is_positive(5)\nprint(result)\nresult = is_positive(-3)\nprint(result)",
+      "trace": [
+        { "line": 1, "state": {}, "output": [], "eval": "def is_positive — function stored" },
+        { "line": 7, "state": {}, "output": [], "eval": "calling is_positive(5)" },
+        { "line": 1, "state": { "n": 5 }, "output": [], "eval": "n = 5" },
+        { "line": 2, "state": { "n": 5 }, "output": [], "eval": "n > 0 → 5 > 0 → True" },
+        { "line": 3, "state": { "n": 5 }, "output": [], "eval": "return True" },
+        { "line": 7, "state": { "result": true }, "output": [], "eval": "is_positive(5) returned True → result = True" },
+        { "line": 8, "state": { "result": true }, "output": ["True"], "eval": null },
+        { "line": 9, "state": { "result": true }, "output": ["True"], "eval": "calling is_positive(-3)" },
+        { "line": 1, "state": { "n": -3 }, "output": ["True"], "eval": "n = -3" },
+        { "line": 2, "state": { "n": -3 }, "output": ["True"], "eval": "n > 0 → -3 > 0 → False" },
+        { "line": 5, "state": { "n": -3 }, "output": ["True"], "eval": "return False" },
+        { "line": 9, "state": { "result": false }, "output": ["True"], "eval": "is_positive(-3) returned False → result = False" },
+        { "line": 10, "state": { "result": false }, "output": ["True", "False"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "def bigger(a, b):\n    if a > b:\n        return a\n    else:\n        return b\n\nprint(bigger(10, 20))",
+      "choices": ["10", "20", "a", "10 20"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-code",
+      "question": "Define a function 'grade' that takes a score: return \"A\" if score >= 90, \"B\" if score >= 80, \"C\" if score >= 70, else \"F\". Print grade(85).",
+      "starterCode": "# define grade function\n\n# print grade(85)\n",
+      "validation": {
+        "type": "output",
+        "expected": ["B"]
+      },
+      "codeTests": [
+        { "pattern": "def\\s+grade\\s*\\(", "message": "Define a function called 'grade'" },
+        { "pattern": "return\\s+[\"']B[\"']", "message": "Return \"B\" for the right score range" },
+        { "pattern": "elif", "message": "Use elif to check each grade level" }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Function Called in a Loop",
+      "code": "def is_even(n):\n    return n % 2 == 0\n\nfor i in range(1, 5):\n    if is_even(i):\n        print(i)",
+      "trace": [
+        { "line": 1, "state": {}, "output": [], "eval": "def is_even — function stored" },
+        { "line": 4, "state": { "i": 1 }, "output": [], "eval": "i = 1 (item 1 of 4)" },
+        { "line": 5, "state": { "i": 1 }, "output": [], "eval": "calling is_even(1)" },
+        { "line": 2, "state": { "n": 1 }, "output": [], "eval": "n % 2 == 0 → 1 % 2 == 0 → False → return False" },
+        { "line": 5, "state": { "i": 1 }, "output": [], "eval": "is_even(1) → False" },
+        { "line": 4, "state": { "i": 2 }, "output": [], "eval": "i = 2 (item 2 of 4)" },
+        { "line": 5, "state": { "i": 2 }, "output": [], "eval": "calling is_even(2)" },
+        { "line": 2, "state": { "n": 2 }, "output": [], "eval": "n % 2 == 0 → 2 % 2 == 0 → True → return True" },
+        { "line": 5, "state": { "i": 2 }, "output": [], "eval": "is_even(2) → True" },
+        { "line": 6, "state": { "i": 2 }, "output": ["2"], "eval": null },
+        { "line": 4, "state": { "i": 3 }, "output": ["2"], "eval": "i = 3 (item 3 of 4)" },
+        { "line": 5, "state": { "i": 3 }, "output": ["2"], "eval": "calling is_even(3)" },
+        { "line": 2, "state": { "n": 3 }, "output": ["2"], "eval": "n % 2 == 0 → 3 % 2 == 0 → False → return False" },
+        { "line": 5, "state": { "i": 3 }, "output": ["2"], "eval": "is_even(3) → False" },
+        { "line": 4, "state": { "i": 4 }, "output": ["2"], "eval": "i = 4 (item 4 of 4)" },
+        { "line": 5, "state": { "i": 4 }, "output": ["2"], "eval": "calling is_even(4)" },
+        { "line": 2, "state": { "n": 4 }, "output": ["2"], "eval": "n % 2 == 0 → 4 % 2 == 0 → True → return True" },
+        { "line": 5, "state": { "i": 4 }, "output": ["2"], "eval": "is_even(4) → True" },
+        { "line": 6, "state": { "i": 4 }, "output": ["2", "4"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-code",
+      "question": "Define a function 'max_of_three' that takes three numbers and returns the largest. Print max_of_three(5, 12, 8).",
+      "starterCode": "# define max_of_three\n\n# print the result of calling it with 5, 12, 8\n",
+      "validation": {
+        "type": "output",
+        "expected": ["12"]
+      },
+      "codeTests": [
+        { "pattern": "def\\s+max_of_three\\s*\\(", "message": "Define a function called 'max_of_three'" },
+        { "pattern": "return", "message": "Use 'return' to send the largest value back" },
+        { "pattern": "if", "message": "Use if statements to compare the three values" }
+      ]
+    },
+    {
+      "type": "quiz-code",
+      "question": "Final challenge! Define a function 'count_vowels' that takes a word and returns how many vowels (a, e, i, o, u) it contains. Print count_vowels(\"hello\").",
+      "starterCode": "# define count_vowels\n\n# print count_vowels(\"hello\")\n",
+      "validation": {
+        "type": "output",
+        "expected": ["2"]
+      },
+      "codeTests": [
+        { "pattern": "def\\s+count_vowels\\s*\\(", "message": "Define a function called 'count_vowels'" },
+        { "pattern": "return", "message": "Use 'return' to send the count back" },
+        { "pattern": "for|in\\s+[\"'][aeiouAEIOU][\"']", "message": "Use a loop to check each letter in the word" }
+      ]
+    }
+  ]
 }

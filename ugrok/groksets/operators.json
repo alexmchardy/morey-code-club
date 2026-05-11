@@ -3,5 +3,247 @@
   "title": "Operators",
   "description": "Arithmetic operators (+, -, *, /, %) and string concatenation",
   "language": "python",
-  "exercises": []
+  "exercises": [
+    {
+      "type": "explanation",
+      "title": "Basic Math Operators",
+      "content": "Python can do math! Use + to add, - to subtract, * to multiply, and / to divide. These work just like a calculator, and you can use them with numbers or variables.",
+      "code": "print(10 + 3)\nprint(10 - 3)\nprint(10 * 3)\nprint(10 / 3)",
+      "highlights": [
+        { "lines": [1], "note": "Addition: 10 + 3 = 13" },
+        { "lines": [2], "note": "Subtraction: 10 - 3 = 7" },
+        { "lines": [3], "note": "Multiplication: uses * (asterisk), not ×. 10 * 3 = 30" },
+        { "lines": [4], "note": "Division: uses / (forward slash). 10 / 3 = 3.3333... (always gives a decimal!)" }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Math with Variables",
+      "code": "a = 8\nb = 3\nsum = a + b\ndiff = a - b\nprint(sum)\nprint(diff)",
+      "trace": [
+        { "line": 1, "state": { "a": 8 }, "output": [], "eval": null },
+        { "line": 2, "state": { "a": 8, "b": 3 }, "output": [], "eval": null },
+        { "line": 3, "state": { "a": 8, "b": 3, "sum": 11 }, "output": [], "eval": "a + b → 8 + 3 → 11" },
+        { "line": 4, "state": { "a": 8, "b": 3, "sum": 11, "diff": 5 }, "output": [], "eval": "a - b → 8 - 3 → 5" },
+        { "line": 5, "state": { "a": 8, "b": 3, "sum": 11, "diff": 5 }, "output": ["11"], "eval": null },
+        { "line": 6, "state": { "a": 8, "b": 3, "sum": 11, "diff": 5 }, "output": ["11", "5"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "x = 5\ny = 2\nprint(x * y)",
+      "choices": ["52", "10", "7", "3"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-code",
+      "question": "Calculate 15 + 27 and print the result.",
+      "starterCode": "# print the result of 15 + 27\n",
+      "validation": {
+        "type": "output",
+        "expected": ["42"]
+      },
+      "codeTests": [
+        { "pattern": "15\\s*\\+\\s*27|27\\s*\\+\\s*15", "message": "Use 15 + 27 in your code (don't just print 42)" }
+      ]
+    },
+    {
+      "type": "explanation",
+      "title": "Floor Division and Remainder",
+      "content": "Python has two extra division operators. Floor division (//) divides and drops the decimal part — you get a whole number. The modulo operator (%) gives you the remainder after division. These are super useful for checking if numbers are even or odd!",
+      "code": "print(7 / 2)\nprint(7 // 2)\nprint(7 % 2)\n\nprint(10 // 3)\nprint(10 % 3)",
+      "highlights": [
+        { "lines": [1], "note": "Regular division: 7 / 2 = 3.5" },
+        { "lines": [2], "note": "Floor division: 7 // 2 = 3 (drops the .5, keeps the whole number)" },
+        { "lines": [3], "note": "Remainder: 7 % 2 = 1 (7 divided by 2 is 3 remainder 1)" },
+        { "lines": [5, 6], "note": "10 // 3 = 3 (whole part), 10 % 3 = 1 (remainder). 3 × 3 + 1 = 10 ✓" }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Floor Division vs Regular",
+      "code": "a = 13\nb = 4\nregular = a / b\nfloor = a // b\nremainder = a % b\nprint(regular)\nprint(floor)\nprint(remainder)",
+      "trace": [
+        { "line": 1, "state": { "a": 13 }, "output": [], "eval": null },
+        { "line": 2, "state": { "a": 13, "b": 4 }, "output": [], "eval": null },
+        { "line": 3, "state": { "a": 13, "b": 4, "regular": 3.25 }, "output": [], "eval": "a / b → 13 / 4 → 3.25" },
+        { "line": 4, "state": { "a": 13, "b": 4, "regular": 3.25, "floor": 3 }, "output": [], "eval": "a // b → 13 // 4 → 3" },
+        { "line": 5, "state": { "a": 13, "b": 4, "regular": 3.25, "floor": 3, "remainder": 1 }, "output": [], "eval": "a % b → 13 % 4 → 1" },
+        { "line": 6, "state": { "a": 13, "b": 4, "regular": 3.25, "floor": 3, "remainder": 1 }, "output": ["3.25"], "eval": null },
+        { "line": 7, "state": { "a": 13, "b": 4, "regular": 3.25, "floor": 3, "remainder": 1 }, "output": ["3.25", "3"], "eval": null },
+        { "line": 8, "state": { "a": 13, "b": 4, "regular": 3.25, "floor": 3, "remainder": 1 }, "output": ["3.25", "3", "1"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does 15 % 4 give you?",
+      "code": "print(15 % 4)",
+      "choices": ["3", "3.75", "4", "1"],
+      "answer": 0
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does 20 // 6 give you?",
+      "code": "print(20 // 6)",
+      "choices": ["3.33", "3", "4", "2"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-code",
+      "question": "A box holds 5 apples. You have 17 apples. Print how many full boxes you can fill (use //), then print how many apples are left over (use %).",
+      "starterCode": "apples = 17\nbox_size = 5\n# how many full boxes?\n# how many left over?\n",
+      "validation": {
+        "type": "output",
+        "expected": ["3", "2"]
+      },
+      "codeTests": [
+        { "pattern": "apples\\s*//\\s*box_size|box_size\\s*//|//\\s*box_size|apples\\s*//", "message": "Use floor division (//) to find the number of full boxes" },
+        { "pattern": "apples\\s*%\\s*box_size|box_size\\s*%|%\\s*box_size|apples\\s*%", "message": "Use modulo (%) to find the leftover apples" }
+      ]
+    },
+    {
+      "type": "explanation",
+      "title": "Power Operator",
+      "content": "The ** operator raises a number to a power. 2 ** 3 means \"2 to the power of 3\" which is 2 × 2 × 2 = 8. This is also called exponentiation.",
+      "code": "print(2 ** 3)\nprint(5 ** 2)\nprint(10 ** 4)",
+      "highlights": [
+        { "lines": [1], "note": "2 ** 3 = 2 × 2 × 2 = 8" },
+        { "lines": [2], "note": "5 ** 2 = 5 × 5 = 25 (5 squared)" },
+        { "lines": [3], "note": "10 ** 4 = 10 × 10 × 10 × 10 = 10000" }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Powers",
+      "code": "base = 3\nresult = base ** 2\nprint(result)\nresult = base ** 3\nprint(result)",
+      "trace": [
+        { "line": 1, "state": { "base": 3 }, "output": [], "eval": null },
+        { "line": 2, "state": { "base": 3, "result": 9 }, "output": [], "eval": "base ** 2 → 3 ** 2 → 9" },
+        { "line": 3, "state": { "base": 3, "result": 9 }, "output": ["9"], "eval": null },
+        { "line": 4, "state": { "base": 3, "result": 27 }, "output": ["9"], "eval": "base ** 3 → 3 ** 3 → 27" },
+        { "line": 5, "state": { "base": 3, "result": 27 }, "output": ["9", "27"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-code",
+      "question": "Print 4 to the power of 3.",
+      "starterCode": "# print 4 cubed\n",
+      "validation": {
+        "type": "output",
+        "expected": ["64"]
+      },
+      "codeTests": [
+        { "pattern": "4\\s*\\*\\*\\s*3", "message": "Use the ** operator: 4 ** 3" }
+      ]
+    },
+    {
+      "type": "explanation",
+      "title": "Order of Operations",
+      "content": "Python follows math rules for order of operations: ** first, then * / // %, then + -. Use parentheses () to control which part happens first — just like in math class!",
+      "code": "print(2 + 3 * 4)\nprint((2 + 3) * 4)\nprint(10 - 2 ** 2)\nprint((10 - 2) ** 2)",
+      "highlights": [
+        { "lines": [1], "note": "Multiplication first: 3 * 4 = 12, then 2 + 12 = 14" },
+        { "lines": [2], "note": "Parentheses first: 2 + 3 = 5, then 5 * 4 = 20" },
+        { "lines": [3], "note": "Power first: 2 ** 2 = 4, then 10 - 4 = 6" },
+        { "lines": [4], "note": "Parentheses first: 10 - 2 = 8, then 8 ** 2 = 64" }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Order of Operations",
+      "code": "a = 2 + 3 * 4\nprint(a)\nb = (2 + 3) * 4\nprint(b)",
+      "trace": [
+        { "line": 1, "state": { "a": 14 }, "output": [], "eval": "2 + 3 * 4 → 2 + 12 → 14" },
+        { "line": 2, "state": { "a": 14 }, "output": ["14"], "eval": null },
+        { "line": 3, "state": { "a": 14, "b": 20 }, "output": ["14"], "eval": "(2 + 3) * 4 → 5 * 4 → 20" },
+        { "line": 4, "state": { "a": 14, "b": 20 }, "output": ["14", "20"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this print?",
+      "code": "print(1 + 2 * 3)",
+      "choices": ["9", "7", "6", "3"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this print?",
+      "code": "print((8 - 2) * (1 + 2))",
+      "choices": ["18", "9", "12", "3"],
+      "answer": 0
+    },
+    {
+      "type": "quiz-code",
+      "question": "Calculate the average of 10, 20, and 30. Store it in 'avg' and print it. (Hint: add them up, then divide by 3. Use parentheses!)",
+      "starterCode": "# calculate the average\n",
+      "validation": {
+        "type": "output",
+        "expected": ["20.0"]
+      },
+      "codeTests": [
+        { "pattern": "avg\\s*=", "message": "Store the result in a variable called 'avg'" },
+        { "pattern": "10.*\\+.*20|20.*\\+.*10", "message": "Add 10, 20, and 30 together" },
+        { "pattern": "/\\s*3", "message": "Divide by 3 to get the average" }
+      ]
+    },
+    {
+      "type": "explanation",
+      "title": "String Operators",
+      "content": "The + operator also works on strings — it joins them together (concatenation). And * repeats a string a given number of times! But you can't add a string to a number — you'd need to convert it first with str().",
+      "code": "greeting = \"Hello\" + \" \" + \"World\"\nprint(greeting)\n\nline = \"-\" * 10\nprint(line)\n\nage = 12\nprint(\"I am \" + str(age) + \" years old\")",
+      "highlights": [
+        { "lines": [1], "note": "+ joins strings end to end. Notice the space \" \" in the middle!" },
+        { "lines": [4], "note": "* repeats a string. \"-\" * 10 makes \"----------\"" },
+        { "lines": [7], "note": "str() converts a number to a string so you can concatenate it with text." }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: String Operations",
+      "code": "word = \"ha\"\nlaugh = word * 3\nprint(laugh)\nshout = laugh + \"!\"\nprint(shout)",
+      "trace": [
+        { "line": 1, "state": { "word": "ha" }, "output": [], "eval": null },
+        { "line": 2, "state": { "word": "ha", "laugh": "hahaha" }, "output": [], "eval": "word * 3 → \"ha\" * 3 → \"hahaha\"" },
+        { "line": 3, "state": { "word": "ha", "laugh": "hahaha" }, "output": ["hahaha"], "eval": null },
+        { "line": 4, "state": { "word": "ha", "laugh": "hahaha", "shout": "hahaha!" }, "output": ["hahaha"], "eval": "laugh + \"!\" → \"hahaha\" + \"!\" → \"hahaha!\"" },
+        { "line": 5, "state": { "word": "ha", "laugh": "hahaha", "shout": "hahaha!" }, "output": ["hahaha", "hahaha!"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this print?",
+      "code": "print(\"ab\" * 3)",
+      "choices": ["ab3", "ababab", "ab ab ab", "error"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-code",
+      "question": "Create a variable 'border' that contains \"*\" repeated 20 times. Print it. Then print \"Hello\" centered by adding spaces: print 7 spaces + \"Hello!\" + 7 spaces.",
+      "starterCode": "# make a border of 20 stars and print it\n# then print Hello! with 7 spaces on each side\n",
+      "validation": {
+        "type": "output",
+        "expected": ["********************", "       Hello!       "]
+      },
+      "codeTests": [
+        { "pattern": "border\\s*=", "message": "Store the border in a variable called 'border'" },
+        { "pattern": "\"\\*\"\\s*\\*\\s*20|'\\*'\\s*\\*\\s*20|20\\s*\\*\\s*\"\\*\"|20\\s*\\*\\s*'\\*'", "message": "Use \"*\" * 20 to create the border" },
+        { "pattern": "\"\\s{7}|'\\s{7}|\" {7}|' {7}|\\*\\s*7|7\\s*\\*\\s*\" \"|7\\s*\\*\\s*' '|\" \"\\s*\\*\\s*7|' '\\s*\\*\\s*7", "message": "Use 7 spaces on each side of Hello! (e.g. \" \" * 7)" }
+      ]
+    },
+    {
+      "type": "quiz-code",
+      "question": "Final challenge! A movie ticket costs $12.50. You buy 3 tickets and pay with $50. Calculate and print the change.",
+      "starterCode": "ticket_price = 12.50\ntickets = 3\npaid = 50\n# calculate and print the change\n",
+      "validation": {
+        "type": "output",
+        "expected": ["12.5"]
+      },
+      "codeTests": [
+        { "pattern": "ticket_price\\s*\\*\\s*tickets|tickets\\s*\\*\\s*ticket_price", "message": "Multiply ticket_price by tickets to get the total cost" },
+        { "pattern": "paid\\s*-", "message": "Subtract the total cost from 'paid' to get the change" }
+      ]
+    }
+  ]
 }

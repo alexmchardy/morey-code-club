@@ -1,0 +1,328 @@
+{
+  "id": "nesting",
+  "title": "Nesting",
+  "description": "Nested conditionals, conditionals inside loops, and nested loops",
+  "language": "python",
+  "exercises": [
+    {
+      "type": "explanation",
+      "title": "Nesting: Code Inside Code",
+      "content": "You already know if statements and loops. 'Nesting' means putting one inside another. The inner block is indented further — Python uses indentation to know what belongs where. You can put an if inside an if, an if inside a loop, or even a loop inside a loop!",
+      "code": "age = 15\nhas_ticket = True\nif age >= 12:\n    if has_ticket:\n        print(\"Enjoy!\")\n    else:\n        print(\"Buy a ticket\")\nelse:\n    print(\"Too young\")",
+      "highlights": [
+        { "lines": [3], "note": "Outer if — checks the first condition." },
+        { "lines": [4, 5, 6, 7], "note": "Inner if/else — only reached if the outer if is True. Notice the extra indentation." },
+        { "lines": [8, 9], "note": "Outer else — runs if the outer if is False. The inner if is never checked." }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Nested If (Both True)",
+      "code": "age = 15\nhas_ticket = True\nif age >= 12:\n    if has_ticket:\n        print(\"Enjoy!\")\n    else:\n        print(\"Buy a ticket\")\nelse:\n    print(\"Too young\")",
+      "trace": [
+        { "line": 1, "state": { "age": 15 }, "output": [], "eval": null },
+        { "line": 2, "state": { "age": 15, "has_ticket": true }, "output": [], "eval": null },
+        { "line": 3, "state": { "age": 15, "has_ticket": true }, "output": [], "eval": "age >= 12 → 15 >= 12 → True" },
+        { "line": 4, "state": { "age": 15, "has_ticket": true }, "output": [], "eval": "has_ticket → True" },
+        { "line": 5, "state": { "age": 15, "has_ticket": true }, "output": ["Enjoy!"], "eval": null }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Nested If (Outer True, Inner False)",
+      "code": "age = 15\nhas_ticket = False\nif age >= 12:\n    if has_ticket:\n        print(\"Enjoy!\")\n    else:\n        print(\"Buy a ticket\")\nelse:\n    print(\"Too young\")",
+      "trace": [
+        { "line": 1, "state": { "age": 15 }, "output": [], "eval": null },
+        { "line": 2, "state": { "age": 15, "has_ticket": false }, "output": [], "eval": null },
+        { "line": 3, "state": { "age": 15, "has_ticket": false }, "output": [], "eval": "age >= 12 → 15 >= 12 → True" },
+        { "line": 4, "state": { "age": 15, "has_ticket": false }, "output": [], "eval": "has_ticket → False" },
+        { "line": 7, "state": { "age": 15, "has_ticket": false }, "output": ["Buy a ticket"], "eval": null }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Nested If (Outer False)",
+      "code": "age = 10\nhas_ticket = True\nif age >= 12:\n    if has_ticket:\n        print(\"Enjoy!\")\n    else:\n        print(\"Buy a ticket\")\nelse:\n    print(\"Too young\")",
+      "trace": [
+        { "line": 1, "state": { "age": 10 }, "output": [], "eval": null },
+        { "line": 2, "state": { "age": 10, "has_ticket": true }, "output": [], "eval": null },
+        { "line": 3, "state": { "age": 10, "has_ticket": true }, "output": [], "eval": "age >= 12 → 10 >= 12 → False" },
+        { "line": 9, "state": { "age": 10, "has_ticket": true }, "output": ["Too young"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "x = 8\ny = 3\nif x > 5:\n    if y > 5:\n        print(\"both big\")\n    else:\n        print(\"only x big\")\nelse:\n    print(\"x small\")",
+      "choices": ["both big", "only x big", "x small", "nothing"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "level = 2\nhas_key = False\nif level >= 3:\n    print(\"boss fight\")\nelse:\n    if has_key:\n        print(\"unlock door\")\n    else:\n        print(\"find the key\")",
+      "choices": ["boss fight", "unlock door", "find the key", "nothing"],
+      "answer": 2
+    },
+    {
+      "type": "quiz-code",
+      "question": "Write nested if statements: if score >= 50, check if bonus is True. If both, print \"winner\". If score >= 50 but no bonus, print \"nice try\". If score < 50, print \"keep going\".",
+      "starterCode": "score = 75\nbonus = True\n",
+      "validation": {
+        "type": "output",
+        "expected": ["winner"]
+      },
+      "codeTests": [
+        { "pattern": "score\\s*>=?\\s*50|50\\s*<=?\\s*score", "message": "Check if score >= 50" },
+        { "pattern": "if\\s+bonus|bonus\\s*==\\s*True", "message": "Check the 'bonus' variable inside the if block" },
+        { "pattern": "if[\\s\\S]*if", "message": "Use nested if statements (one if inside another)" }
+      ]
+    },
+    {
+      "type": "explanation",
+      "title": "If Inside a Loop",
+      "content": "One of the most powerful patterns in programming: put an if statement inside a loop! The loop repeats, and on each pass, the if decides whether to do something. This lets you filter, search, or react differently to each item.",
+      "code": "for num in [1, 2, 3, 4, 5, 6]:\n    if num % 2 == 0:\n        print(num, \"is even\")",
+      "highlights": [
+        { "lines": [1], "note": "The loop gives us each number, one at a time." },
+        { "lines": [2], "note": "The if checks a condition on EACH number. The % operator gives the remainder — if remainder is 0, it's even." },
+        { "lines": [3], "note": "This only runs for even numbers (2, 4, 6)." }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: If Inside a Loop (Filter)",
+      "code": "for num in [1, 2, 3, 4]:\n    if num % 2 == 0:\n        print(num)",
+      "trace": [
+        { "line": 1, "state": { "num": 1 }, "output": [], "eval": "num = 1 (item 1 of 4)" },
+        { "line": 2, "state": { "num": 1 }, "output": [], "eval": "num % 2 == 0 → 1 % 2 == 0 → 1 == 0 → False" },
+        { "line": 1, "state": { "num": 2 }, "output": [], "eval": "num = 2 (item 2 of 4)" },
+        { "line": 2, "state": { "num": 2 }, "output": [], "eval": "num % 2 == 0 → 2 % 2 == 0 → 0 == 0 → True" },
+        { "line": 3, "state": { "num": 2 }, "output": ["2"], "eval": null },
+        { "line": 1, "state": { "num": 3 }, "output": ["2"], "eval": "num = 3 (item 3 of 4)" },
+        { "line": 2, "state": { "num": 3 }, "output": ["2"], "eval": "num % 2 == 0 → 3 % 2 == 0 → 1 == 0 → False" },
+        { "line": 1, "state": { "num": 4 }, "output": ["2"], "eval": "num = 4 (item 4 of 4)" },
+        { "line": 2, "state": { "num": 4 }, "output": ["2"], "eval": "num % 2 == 0 → 4 % 2 == 0 → 0 == 0 → True" },
+        { "line": 3, "state": { "num": 4 }, "output": ["2", "4"], "eval": null }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: If/Else Inside a Loop",
+      "code": "for n in range(1, 5):\n    if n > 2:\n        print(n, \"big\")\n    else:\n        print(n, \"small\")",
+      "trace": [
+        { "line": 1, "state": { "n": 1 }, "output": [], "eval": "n = 1 (item 1 of 4)" },
+        { "line": 2, "state": { "n": 1 }, "output": [], "eval": "n > 2 → 1 > 2 → False" },
+        { "line": 5, "state": { "n": 1 }, "output": ["1 small"], "eval": null },
+        { "line": 1, "state": { "n": 2 }, "output": ["1 small"], "eval": "n = 2 (item 2 of 4)" },
+        { "line": 2, "state": { "n": 2 }, "output": ["1 small"], "eval": "n > 2 → 2 > 2 → False" },
+        { "line": 5, "state": { "n": 2 }, "output": ["1 small", "2 small"], "eval": null },
+        { "line": 1, "state": { "n": 3 }, "output": ["1 small", "2 small"], "eval": "n = 3 (item 3 of 4)" },
+        { "line": 2, "state": { "n": 3 }, "output": ["1 small", "2 small"], "eval": "n > 2 → 3 > 2 → True" },
+        { "line": 3, "state": { "n": 3 }, "output": ["1 small", "2 small", "3 big"], "eval": null },
+        { "line": 1, "state": { "n": 4 }, "output": ["1 small", "2 small", "3 big"], "eval": "n = 4 (item 4 of 4)" },
+        { "line": 2, "state": { "n": 4 }, "output": ["1 small", "2 small", "3 big"], "eval": "n > 2 → 4 > 2 → True" },
+        { "line": 3, "state": { "n": 4 }, "output": ["1 small", "2 small", "3 big", "4 big"], "eval": null }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Counting with If in a Loop",
+      "code": "count = 0\nfor n in [3, 7, 2, 9, 5]:\n    if n > 4:\n        count = count + 1\nprint(count)",
+      "trace": [
+        { "line": 1, "state": { "count": 0 }, "output": [], "eval": null },
+        { "line": 2, "state": { "count": 0, "n": 3 }, "output": [], "eval": "n = 3 (item 1 of 5)" },
+        { "line": 3, "state": { "count": 0, "n": 3 }, "output": [], "eval": "n > 4 → 3 > 4 → False" },
+        { "line": 2, "state": { "count": 0, "n": 7 }, "output": [], "eval": "n = 7 (item 2 of 5)" },
+        { "line": 3, "state": { "count": 0, "n": 7 }, "output": [], "eval": "n > 4 → 7 > 4 → True" },
+        { "line": 4, "state": { "count": 1, "n": 7 }, "output": [], "eval": "count + 1 → 0 + 1 → 1" },
+        { "line": 2, "state": { "count": 1, "n": 2 }, "output": [], "eval": "n = 2 (item 3 of 5)" },
+        { "line": 3, "state": { "count": 1, "n": 2 }, "output": [], "eval": "n > 4 → 2 > 4 → False" },
+        { "line": 2, "state": { "count": 1, "n": 9 }, "output": [], "eval": "n = 9 (item 4 of 5)" },
+        { "line": 3, "state": { "count": 1, "n": 9 }, "output": [], "eval": "n > 4 → 9 > 4 → True" },
+        { "line": 4, "state": { "count": 2, "n": 9 }, "output": [], "eval": "count + 1 → 1 + 1 → 2" },
+        { "line": 2, "state": { "count": 2, "n": 5 }, "output": [], "eval": "n = 5 (item 5 of 5)" },
+        { "line": 3, "state": { "count": 2, "n": 5 }, "output": [], "eval": "n > 4 → 5 > 4 → True" },
+        { "line": 4, "state": { "count": 3, "n": 5 }, "output": [], "eval": "count + 1 → 2 + 1 → 3" },
+        { "line": 5, "state": { "count": 3, "n": 5 }, "output": ["3"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "for x in [10, 3, 8, 1]:\n    if x > 5:\n        print(x)",
+      "choices": ["10 3 8 1", "10 8", "3 1", "10"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What is the value of count after this runs?",
+      "code": "count = 0\nfor letter in \"hello\":\n    if letter == \"l\":\n        count = count + 1",
+      "choices": ["1", "2", "3", "5"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-code",
+      "question": "Loop through numbers 1 to 10 using range(). Print only the numbers greater than 6.",
+      "starterCode": "# print numbers from 1 to 10 that are greater than 6\n",
+      "validation": {
+        "type": "output",
+        "expected": ["7", "8", "9", "10"]
+      },
+      "codeTests": [
+        { "pattern": "for|while", "message": "Use a loop to go through the numbers" },
+        { "pattern": "range\\s*\\(", "message": "Use range() to generate numbers 1 to 10" },
+        { "pattern": "if", "message": "Use an if statement to filter numbers greater than 6" },
+        { "pattern": ">=?\\s*6|6\\s*<=?", "message": "Check if the number is greater than 6" }
+      ]
+    },
+    {
+      "type": "quiz-code",
+      "question": "Loop through the list and count how many names are longer than 4 letters. Store the count in 'long_names'. You can use 'len(name)' to get the number of letters in name.",
+      "starterCode": "names = [\"Al\", \"Sarah\", \"Bo\", \"Michael\", \"Jo\"]\nlong_names = 0\n# count names with more than 4 letters\n",
+      "validation": {
+        "type": "state",
+        "check": { "long_names": 2 }
+      },
+      "codeTests": [
+        { "pattern": "for\\s+\\w+\\s+in\\s+names", "message": "Use a for loop to iterate over 'names'" },
+        { "pattern": "if", "message": "Use an if statement to check name length" },
+        { "pattern": "len\\s*\\(", "message": "Use len() to find the length of each name" },
+        { "pattern": "long_names\\s*=\\s*long_names\\s*\\+\\s*1|long_names\\s*\\+=\\s*1", "message": "Increment 'long_names' when a name is long enough" }
+      ]
+    },
+    {
+      "type": "explanation",
+      "title": "Nested Loops",
+      "content": "A nested loop is a loop inside a loop. The inner loop runs ALL its iterations for EACH iteration of the outer loop. If the outer loop runs 3 times and the inner loop runs 4 times, the inner code runs 3 × 4 = 12 times total!",
+      "code": "for row in range(1, 4):\n    for col in range(1, 3):\n        print(row, col)",
+      "highlights": [
+        { "lines": [1], "note": "Outer loop: row goes 1, 2, 3." },
+        { "lines": [2], "note": "Inner loop: for EACH row, col goes 1, 2. The inner loop completely restarts each time the outer loop advances." },
+        { "lines": [3], "note": "Runs 3 × 2 = 6 times total." }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Nested Loop",
+      "code": "for row in range(1, 3):\n    for col in range(1, 4):\n        print(row, col)",
+      "trace": [
+        { "line": 1, "state": { "row": 1 }, "output": [], "eval": "row = 1 (item 1 of 2)" },
+        { "line": 2, "state": { "row": 1, "col": 1 }, "output": [], "eval": "col = 1 (item 1 of 3)" },
+        { "line": 3, "state": { "row": 1, "col": 1 }, "output": ["1 1"], "eval": null },
+        { "line": 2, "state": { "row": 1, "col": 2 }, "output": ["1 1"], "eval": "col = 2 (item 2 of 3)" },
+        { "line": 3, "state": { "row": 1, "col": 2 }, "output": ["1 1", "1 2"], "eval": null },
+        { "line": 2, "state": { "row": 1, "col": 3 }, "output": ["1 1", "1 2"], "eval": "col = 3 (item 3 of 3)" },
+        { "line": 3, "state": { "row": 1, "col": 3 }, "output": ["1 1", "1 2", "1 3"], "eval": null },
+        { "line": 1, "state": { "row": 2, "col": 3 }, "output": ["1 1", "1 2", "1 3"], "eval": "row = 2 (item 2 of 2)" },
+        { "line": 2, "state": { "row": 2, "col": 1 }, "output": ["1 1", "1 2", "1 3"], "eval": "col = 1 (item 1 of 3)" },
+        { "line": 3, "state": { "row": 2, "col": 1 }, "output": ["1 1", "1 2", "1 3", "2 1"], "eval": null },
+        { "line": 2, "state": { "row": 2, "col": 2 }, "output": ["1 1", "1 2", "1 3", "2 1"], "eval": "col = 2 (item 2 of 3)" },
+        { "line": 3, "state": { "row": 2, "col": 2 }, "output": ["1 1", "1 2", "1 3", "2 1", "2 2"], "eval": null },
+        { "line": 2, "state": { "row": 2, "col": 3 }, "output": ["1 1", "1 2", "1 3", "2 1", "2 2"], "eval": "col = 3 (item 3 of 3)" },
+        { "line": 3, "state": { "row": 2, "col": 3 }, "output": ["1 1", "1 2", "1 3", "2 1", "2 2", "2 3"], "eval": null }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Nested Loop with Accumulator",
+      "code": "total = 0\nfor i in range(1, 3):\n    for j in range(1, 3):\n        total = total + 1\nprint(total)",
+      "trace": [
+        { "line": 1, "state": { "total": 0 }, "output": [], "eval": null },
+        { "line": 2, "state": { "total": 0, "i": 1 }, "output": [], "eval": "i = 1 (item 1 of 2)" },
+        { "line": 3, "state": { "total": 0, "i": 1, "j": 1 }, "output": [], "eval": "j = 1 (item 1 of 2)" },
+        { "line": 4, "state": { "total": 1, "i": 1, "j": 1 }, "output": [], "eval": "total + 1 → 0 + 1 → 1" },
+        { "line": 3, "state": { "total": 1, "i": 1, "j": 2 }, "output": [], "eval": "j = 2 (item 2 of 2)" },
+        { "line": 4, "state": { "total": 2, "i": 1, "j": 2 }, "output": [], "eval": "total + 1 → 1 + 1 → 2" },
+        { "line": 2, "state": { "total": 2, "i": 2, "j": 2 }, "output": [], "eval": "i = 2 (item 2 of 2)" },
+        { "line": 3, "state": { "total": 2, "i": 2, "j": 1 }, "output": [], "eval": "j = 1 (item 1 of 2)" },
+        { "line": 4, "state": { "total": 3, "i": 2, "j": 1 }, "output": [], "eval": "total + 1 → 2 + 1 → 3" },
+        { "line": 3, "state": { "total": 3, "i": 2, "j": 2 }, "output": [], "eval": "j = 2 (item 2 of 2)" },
+        { "line": 4, "state": { "total": 4, "i": 2, "j": 2 }, "output": [], "eval": "total + 1 → 3 + 1 → 4" },
+        { "line": 5, "state": { "total": 4, "i": 2, "j": 2 }, "output": ["4"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "How many times does print() run?",
+      "code": "for i in range(3):\n    for j in range(4):\n        print(i, j)",
+      "choices": ["3 times", "4 times", "7 times", "12 times"],
+      "answer": 3
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "for i in range(1, 3):\n    for j in range(1, 3):\n        if i == j:\n            print(i, j)",
+      "choices": ["1 1  2 2", "1 1  1 2  2 1  2 2", "1 2  2 1", "2 2"],
+      "answer": 0
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Nested Loop + Conditional",
+      "code": "for i in range(1, 4):\n    for j in range(1, 4):\n        if i == j:\n            print(i, j)",
+      "trace": [
+        { "line": 1, "state": { "i": 1 }, "output": [], "eval": "i = 1 (item 1 of 3)" },
+        { "line": 2, "state": { "i": 1, "j": 1 }, "output": [], "eval": "j = 1 (item 1 of 3)" },
+        { "line": 3, "state": { "i": 1, "j": 1 }, "output": [], "eval": "i == j → 1 == 1 → True" },
+        { "line": 4, "state": { "i": 1, "j": 1 }, "output": ["1 1"], "eval": null },
+        { "line": 2, "state": { "i": 1, "j": 2 }, "output": ["1 1"], "eval": "j = 2 (item 2 of 3)" },
+        { "line": 3, "state": { "i": 1, "j": 2 }, "output": ["1 1"], "eval": "i == j → 1 == 2 → False" },
+        { "line": 2, "state": { "i": 1, "j": 3 }, "output": ["1 1"], "eval": "j = 3 (item 3 of 3)" },
+        { "line": 3, "state": { "i": 1, "j": 3 }, "output": ["1 1"], "eval": "i == j → 1 == 3 → False" },
+        { "line": 1, "state": { "i": 2, "j": 3 }, "output": ["1 1"], "eval": "i = 2 (item 2 of 3)" },
+        { "line": 2, "state": { "i": 2, "j": 1 }, "output": ["1 1"], "eval": "j = 1 (item 1 of 3)" },
+        { "line": 3, "state": { "i": 2, "j": 1 }, "output": ["1 1"], "eval": "i == j → 2 == 1 → False" },
+        { "line": 2, "state": { "i": 2, "j": 2 }, "output": ["1 1"], "eval": "j = 2 (item 2 of 3)" },
+        { "line": 3, "state": { "i": 2, "j": 2 }, "output": ["1 1"], "eval": "i == j → 2 == 2 → True" },
+        { "line": 4, "state": { "i": 2, "j": 2 }, "output": ["1 1", "2 2"], "eval": null },
+        { "line": 2, "state": { "i": 2, "j": 3 }, "output": ["1 1", "2 2"], "eval": "j = 3 (item 3 of 3)" },
+        { "line": 3, "state": { "i": 2, "j": 3 }, "output": ["1 1", "2 2"], "eval": "i == j → 2 == 3 → False" },
+        { "line": 1, "state": { "i": 3, "j": 3 }, "output": ["1 1", "2 2"], "eval": "i = 3 (item 3 of 3)" },
+        { "line": 2, "state": { "i": 3, "j": 1 }, "output": ["1 1", "2 2"], "eval": "j = 1 (item 1 of 3)" },
+        { "line": 3, "state": { "i": 3, "j": 1 }, "output": ["1 1", "2 2"], "eval": "i == j → 3 == 1 → False" },
+        { "line": 2, "state": { "i": 3, "j": 2 }, "output": ["1 1", "2 2"], "eval": "j = 2 (item 2 of 3)" },
+        { "line": 3, "state": { "i": 3, "j": 2 }, "output": ["1 1", "2 2"], "eval": "i == j → 3 == 2 → False" },
+        { "line": 2, "state": { "i": 3, "j": 3 }, "output": ["1 1", "2 2"], "eval": "j = 3 (item 3 of 3)" },
+        { "line": 3, "state": { "i": 3, "j": 3 }, "output": ["1 1", "2 2"], "eval": "i == j → 3 == 3 → True" },
+        { "line": 4, "state": { "i": 3, "j": 3 }, "output": ["1 1", "2 2", "3 3"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "for i in range(1, 4):\n    if i % 2 == 1:\n        for j in range(2):\n            print(i)",
+      "choices": ["1 1 3 3", "1 2 3", "1 1 2 2 3 3", "1 3"],
+      "answer": 0
+    },
+    {
+      "type": "quiz-code",
+      "question": "Use a nested loop to print all pairs where i goes 1-3 and j goes 1-2. Print each pair as i * j = result (e.g. \"1 * 1 = 1\").",
+      "starterCode": "# print multiplication pairs\n# example output line: \"1 * 1 = 1\"\n",
+      "validation": {
+        "type": "output",
+        "expected": ["1 * 1 = 1", "1 * 2 = 2", "2 * 1 = 2", "2 * 2 = 4", "3 * 1 = 3", "3 * 2 = 6"]
+      },
+      "codeTests": [
+        { "pattern": "for[\\s\\S]*for", "message": "Use nested loops (a for loop inside another for loop)" },
+        { "pattern": "range\\s*\\(\\s*1\\s*,\\s*4\\s*\\)", "message": "Use range(1, 4) for the outer loop (i goes 1-3)" },
+        { "pattern": "range\\s*\\(\\s*1\\s*,\\s*3\\s*\\)", "message": "Use range(1, 3) for the inner loop (j goes 1-2)" },
+        { "pattern": "i\\s*\\*\\s*j|j\\s*\\*\\s*i", "message": "Calculate i * j to get the result" }
+      ]
+    },
+    {
+      "type": "quiz-code",
+      "question": "Final challenge! Loop through numbers 1-20. For each number: if it's divisible by both 3 and 5, print \"FizzBuzz\". If only by 3, print \"Fizz\". If only by 5, print \"Buzz\". Otherwise print the number.",
+      "starterCode": "# FizzBuzz from 1 to 20\n",
+      "validation": {
+        "type": "output",
+        "expected": ["1", "2", "Fizz", "4", "Buzz", "Fizz", "7", "8", "Fizz", "Buzz", "11", "Fizz", "13", "14", "FizzBuzz", "16", "17", "Fizz", "19", "Buzz"]
+      },
+      "codeTests": [
+        { "pattern": "for|while", "message": "Use a loop to go through numbers 1-20" },
+        { "pattern": "%\\s*15|%\\s*3[^0-9].*%\\s*5|%\\s*5[^0-9].*%\\s*3", "message": "Check divisibility using % (modulo)" },
+        { "pattern": "FizzBuzz", "message": "Print \"FizzBuzz\" for numbers divisible by both 3 and 5" },
+        { "pattern": "elif", "message": "Use elif to check each condition (FizzBuzz, Fizz, Buzz) separately" }
+      ]
+    }
+  ]
+}

@@ -129,7 +129,7 @@ body::after {
 
 .grokset-number {
   font-family: 'Press Start 2P', monospace;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-dim);
   width: 28px;
   flex-shrink: 0;
@@ -147,21 +147,21 @@ body::after {
 
 .grokset-title {
   font-family: 'Press Start 2P', monospace;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text);
   margin-bottom: 6px;
   line-height: 1.4;
 }
 
 .grokset-desc {
-  font-size: 14px;
+  font-size: 16px;
   color: var(--text-dim);
   line-height: 1.4;
 }
 
 .grokset-progress {
   font-family: 'Share Tech Mono', monospace;
-  font-size: 12px;
+  font-size: 18px;
   color: var(--text-dim);
   flex-shrink: 0;
   text-align: right;
@@ -178,7 +178,7 @@ body::after {
 
 .coming-soon-badge {
   font-family: 'Share Tech Mono', monospace;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-dim);
   background: rgba(42, 42, 80, 0.8);
   padding: 3px 8px;
@@ -224,7 +224,7 @@ body::after {
 
 .top-bar-title {
   font-family: 'Press Start 2P', monospace;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--primary);
   text-shadow: 0 0 10px rgba(179, 136, 255, 0.5);
   flex: 1;
@@ -235,7 +235,7 @@ body::after {
 
 .exercise-counter {
   font-family: 'Share Tech Mono', monospace;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-dim);
   flex-shrink: 0;
 }
@@ -244,7 +244,7 @@ body::after {
 .progress-dots {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   padding: 12px 20px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
@@ -253,8 +253,8 @@ body::after {
 }
 
 .progress-dot {
-  width: 10px;
-  height: 10px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
   background: var(--border);
   border: 2px solid var(--border);
@@ -263,14 +263,21 @@ body::after {
   flex-shrink: 0;
 }
 
+.progress-dot.reachable {
+  cursor: pointer;
+}
+
 .progress-dot.completed {
   background: var(--secondary);
   border-color: var(--secondary);
-  cursor: pointer;
 }
 
 .progress-dot.completed:hover {
   box-shadow: 0 0 8px rgba(105, 240, 174, 0.6);
+}
+
+.progress-dot.reachable:not(.completed):hover {
+  border-color: var(--text-dim);
 }
 
 .progress-dot.current {
@@ -307,7 +314,7 @@ body::after {
 .explanation-code-panel pre {
   padding: 20px;
   font-family: 'Share Tech Mono', monospace;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.7;
   color: var(--text);
   overflow-x: auto;
@@ -315,24 +322,69 @@ body::after {
 
 .code-line {
   display: block;
-  padding: 0 4px;
-  border-radius: 3px;
-  transition: background 0.2s;
+  padding: 8px 6px;
+  border-radius: 4px;
+  transition: background 0.2s, opacity 0.2s;
+  position: relative;
+  white-space: pre;
+  border-left: 5px solid transparent;
 }
 
 .code-line.highlighted {
   background: rgba(179, 136, 255, 0.2);
-  box-shadow: inset 3px 0 0 var(--primary);
+  border-left: 5px solid var(--primary);
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.code-line.highlighted.group-start {
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+
+.code-line.highlighted.group-end {
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.code-line .highlight-badge {
+  position: absolute;
+  top: 8px;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--bg);
+  font-family: 'Fredoka', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  margin-right: 6px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.explanation-layout.has-focus .code-line.highlighted:not(.focus) {
+  opacity: 0.4;
+}
+
+.explanation-layout.has-focus .code-line.highlighted.focus {
+  background: rgba(179, 136, 255, 0.35);
+  border-left: 5px solid var(--secondary);
 }
 
 .explanation-text-panel {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  font-size: 18px;
 }
 
 .explanation-title {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--primary);
   text-shadow: 0 0 10px rgba(179, 136, 255, 0.4);
   line-height: 1.5;
@@ -340,7 +392,7 @@ body::after {
 }
 
 .explanation-content {
-  font-size: 15px;
+  font-size: 18px;
   color: var(--text);
   line-height: 1.7;
 }
@@ -350,14 +402,41 @@ body::after {
   border-left: 3px solid var(--primary);
   padding: 10px 14px;
   border-radius: 0 4px 4px 0;
-  font-size: 14px;
   color: var(--text);
   line-height: 1.5;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s, border-left-color 0.2s;
 }
 
-.highlight-note.active {
-  background: rgba(179, 136, 255, 0.15);
+.highlight-note .highlight-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--bg);
+  font-family: 'Fredoka', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 8px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.explanation-layout.has-focus .highlight-note:not(.focus) {
+  opacity: 0.4;
+}
+
+.explanation-layout.has-focus .highlight-note.focus {
+  background: rgba(179, 136, 255, 0.2);
   border-left-color: var(--secondary);
+}
+
+.explanation-layout.has-focus .highlight-note.focus .highlight-badge,
+.explanation-layout.has-focus .code-line.focus .highlight-badge {
+  background: var(--secondary);
 }
 
 .got-it-btn {
@@ -370,13 +449,17 @@ body::after {
   border-radius: 4px;
   cursor: pointer;
   transition: background 0.15s, box-shadow 0.15s;
-  margin-top: 16px;
   align-self: flex-start;
 }
 
-.got-it-btn:hover {
+.got-it-btn:hover:not(:disabled) {
   background: rgba(105, 240, 174, 0.2);
   box-shadow: 0 0 20px rgba(105, 240, 174, 0.4);
+}
+
+.got-it-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 /* === STEPPER EXERCISE === */
@@ -387,19 +470,16 @@ body::after {
   align-items: start;
 }
 
-.stepper-code-panel {
+.stepper-code-panel pre {
+  padding: 20px;
+  margin-bottom: 12px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px;
+  line-height: 1.9;
+  color: var(--text);
   background: var(--code-bg);
   border: 1px solid var(--border);
   border-radius: 6px;
-  overflow: hidden;
-}
-
-.stepper-code-panel pre {
-  padding: 20px;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 14px;
-  line-height: 1.9;
-  color: var(--text);
   overflow-x: auto;
 }
 
@@ -410,10 +490,11 @@ body::after {
   padding: 1px 4px;
   border-radius: 3px;
   transition: background 0.2s;
+  border-left: 4px solid transparent;
 }
 
 .stepper-line-num {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-dim);
   width: 20px;
   text-align: right;
@@ -427,7 +508,7 @@ body::after {
 
 .stepper-code-line.current {
   background: rgba(179, 136, 255, 0.2);
-  box-shadow: inset 3px 0 0 var(--primary);
+  border-left: 4px solid var(--primary);
 }
 
 .stepper-code-line.current .stepper-line-num {
@@ -464,7 +545,7 @@ body::after {
 .stepper-vars-table {
   padding: 12px 14px;
   font-family: 'Share Tech Mono', monospace;
-  font-size: 13px;
+  font-size: 18px;
   min-height: 48px;
 }
 
@@ -497,19 +578,19 @@ body::after {
 .stepper-eval {
   padding: 12px 14px;
   font-family: 'Share Tech Mono', monospace;
-  font-size: 13px;
+  font-size: 18px;
   color: var(--warning);
-  min-height: 44px;
-  line-height: 1.5;
+  min-height: 46px;
+  line-height: 1.2;
 }
 
 .stepper-output {
   padding: 12px 14px;
   font-family: 'Share Tech Mono', monospace;
-  font-size: 13px;
+  font-size: 18px;
   color: var(--text);
-  min-height: 48px;
-  line-height: 1.6;
+  min-height: 46px;
+  line-height: 1.2;
 }
 
 .output-line {
@@ -532,14 +613,18 @@ body::after {
 
 .stepper-btn {
   font-family: 'Press Start 2P', monospace;
-  font-size: 9px;
-  padding: 10px 14px;
+  font-size: 20px;
+  padding: 3px 14px 8px;
   background: transparent;
-  border: 2px solid var(--border);
-  color: var(--text-dim);
+  border: 2px solid var(--secondary);
+  color: var(--secondary);
   border-radius: 4px;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.stepper-btn.stepper-reset {
+  padding: 4px 14px;
 }
 
 .stepper-btn:hover:not(:disabled) {
@@ -553,27 +638,6 @@ body::after {
   cursor: not-allowed;
 }
 
-.stepper-btn.play {
-  border-color: var(--secondary);
-  color: var(--secondary);
-}
-
-.stepper-btn.play:hover:not(:disabled) {
-  border-color: var(--secondary);
-  color: var(--secondary);
-  box-shadow: 0 0 12px rgba(105, 240, 174, 0.4);
-}
-
-.stepper-speed-label {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 11px;
-  color: var(--text-dim);
-}
-
-.stepper-speed {
-  accent-color: var(--primary);
-  width: 80px;
-}
 
 /* === QUIZ-CHOICE EXERCISE === */
 .quiz-layout {
@@ -590,7 +654,6 @@ body::after {
 .quiz-question {
   font-size: 17px;
   color: var(--text);
-  margin-bottom: 20px;
   line-height: 1.6;
 }
 
@@ -600,7 +663,7 @@ body::after {
   border-radius: 6px;
   padding: 16px 20px;
   font-family: 'Share Tech Mono', monospace;
-  font-size: 14px;
+  font-size: 18px;
   line-height: 1.7;
   color: var(--text);
   margin-bottom: 20px;
@@ -654,7 +717,6 @@ body::after {
   font-size: 15px;
   padding: 12px 16px;
   border-radius: 6px;
-  margin-bottom: 16px;
   line-height: 1.5;
 }
 
@@ -694,7 +756,11 @@ body::after {
   height: auto;
   min-height: 160px;
   font-family: 'Share Tech Mono', monospace;
-  font-size: 14px;
+  font-size: 18px;
+}
+
+.quiz-code-area {
+  height: auto;
 }
 
 .run-btn {
@@ -729,6 +795,7 @@ body::after {
   font-size: 13px;
   line-height: 1.6;
   min-height: 48px;
+  white-space: pre-wrap;
 }
 
 .code-result.success {
@@ -745,6 +812,64 @@ body::after {
 
 .code-result.output {
   color: var(--text);
+}
+
+/* === WRONG-ANSWER NUDGE BUBBLE === */
+.wrong-help-bubble {
+  position: fixed;
+  bottom: 90px;
+  right: 8px;
+  width: 190px;
+  background: var(--surface);
+  border: 2px solid var(--error);
+  border-radius: 12px;
+  padding: 12px 14px;
+  z-index: 98;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 0 20px rgba(255, 68, 68, 0.2);
+  animation: bubbleIn 0.2s ease-out;
+}
+
+.wrong-help-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  right: 30px;
+  border: 9px solid transparent;
+  border-top-color: var(--error);
+  border-bottom: none;
+}
+
+@keyframes bubbleIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.wrong-bubble-review-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  line-height: 1.6;
+  padding: 8px 10px;
+  background: rgba(255, 68, 68, 0.1);
+  border: 1.5px solid var(--error);
+  border-radius: 8px;
+  color: var(--error);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.wrong-bubble-review-btn:hover {
+  background: rgba(255, 68, 68, 0.2);
+}
+
+.wrong-bubble-help-hint {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  line-height: 1.6;
+  color: var(--warning);
+  text-align: center;
 }
 
 /* === HELP PANEL === */
@@ -775,7 +900,7 @@ body::after {
   position: fixed;
   bottom: 88px;
   right: 24px;
-  width: 320px;
+  width: 450px;
   background: var(--surface);
   border: 2px solid var(--warning);
   border-radius: 8px;
@@ -789,7 +914,7 @@ body::after {
 
 .help-panel-title {
   font-family: 'Press Start 2P', monospace;
-  font-size: 9px;
+  font-size: 12px;
   color: var(--warning);
   text-shadow: 0 0 8px rgba(255, 190, 11, 0.4);
   letter-spacing: 1px;
@@ -802,7 +927,7 @@ body::after {
   border-radius: 4px;
   color: var(--text);
   font-family: 'Fredoka', sans-serif;
-  font-size: 14px;
+  font-size: 16px;
   padding: 10px 12px;
   resize: vertical;
   min-height: 72px;
@@ -816,7 +941,7 @@ body::after {
 
 .help-ask-btn {
   font-family: 'Press Start 2P', monospace;
-  font-size: 9px;
+  font-size: 12px;
   padding: 10px 16px;
   background: rgba(255, 190, 11, 0.1);
   border: 2px solid var(--warning);
@@ -845,7 +970,7 @@ body::after {
 }
 
 .help-response {
-  font-size: 14px;
+  font-size: 17px;
   color: var(--text);
   line-height: 1.6;
   background: var(--code-bg);

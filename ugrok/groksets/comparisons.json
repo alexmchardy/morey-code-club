@@ -3,5 +3,233 @@
   "title": "Comparisons",
   "description": "Comparison operators (==, !=, <, >, <=, >=) and True/False",
   "language": "python",
-  "exercises": []
+  "exercises": [
+    {
+      "type": "explanation",
+      "title": "True and False",
+      "content": "Python has a special type called a boolean — it can only be True or False (with capital letters!). Comparisons always give you a boolean result. These are the foundation for making decisions in code.",
+      "code": "print(True)\nprint(False)\nprint(type(True))\n\nis_raining = False\nprint(is_raining)",
+      "highlights": [
+        { "lines": [1, 2], "note": "True and False are special Python values — always capitalized!" },
+        { "lines": [5, 6], "note": "You can store True/False in variables too — great for on/off flags." }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Boolean Variables",
+      "code": "sunny = True\nhot = False\nprint(sunny)\nprint(hot)",
+      "trace": [
+        { "line": 1, "state": { "sunny": true }, "output": [], "eval": null },
+        { "line": 2, "state": { "sunny": true, "hot": false }, "output": [], "eval": null },
+        { "line": 3, "state": { "sunny": true, "hot": false }, "output": ["True"], "eval": null },
+        { "line": 4, "state": { "sunny": true, "hot": false }, "output": ["True", "False"], "eval": null }
+      ]
+    },
+    {
+      "type": "explanation",
+      "title": "Equal and Not Equal",
+      "content": "Use == to check if two values are equal. Use != to check if they are NOT equal. Important: = assigns a value, == checks equality — they're different! The result is always True or False.",
+      "code": "print(5 == 5)\nprint(5 == 3)\nprint(5 != 3)\nprint(\"cat\" == \"cat\")\nprint(\"cat\" == \"dog\")",
+      "highlights": [
+        { "lines": [1, 2], "note": "== asks 'are these equal?' — 5 == 5 is True, 5 == 3 is False." },
+        { "lines": [3], "note": "!= asks 'are these NOT equal?' — 5 != 3 is True (they're different)." },
+        { "lines": [4, 5], "note": "== works on strings too! \"cat\" == \"cat\" is True, \"cat\" == \"dog\" is False." }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Equal Comparisons",
+      "code": "x = 10\ny = 10\nresult = x == y\nprint(result)\ny = 5\nresult = x == y\nprint(result)",
+      "trace": [
+        { "line": 1, "state": { "x": 10 }, "output": [], "eval": null },
+        { "line": 2, "state": { "x": 10, "y": 10 }, "output": [], "eval": null },
+        { "line": 3, "state": { "x": 10, "y": 10, "result": true }, "output": [], "eval": "x == y → 10 == 10 → True" },
+        { "line": 4, "state": { "x": 10, "y": 10, "result": true }, "output": ["True"], "eval": null },
+        { "line": 5, "state": { "x": 10, "y": 5, "result": true }, "output": ["True"], "eval": null },
+        { "line": 6, "state": { "x": 10, "y": 5, "result": false }, "output": ["True"], "eval": "x == y → 10 == 5 → False" },
+        { "line": 7, "state": { "x": 10, "y": 5, "result": false }, "output": ["True", "False"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "a = 7\nb = 7\nprint(a == b)",
+      "choices": ["7", "True", "False", "a == b"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "name = \"Alice\"\nprint(name != \"Bob\")",
+      "choices": ["True", "False", "Alice", "Bob"],
+      "answer": 0
+    },
+    {
+      "type": "quiz-code",
+      "question": "Create two variables: x = 5 and y = 10. Print whether they are equal (use ==).",
+      "starterCode": "# create x and y, then print if they're equal\n",
+      "validation": {
+        "type": "output",
+        "expected": ["False"]
+      },
+      "codeTests": [
+        { "pattern": "x\\s*=\\s*5", "message": "Set x to 5" },
+        { "pattern": "y\\s*=\\s*10", "message": "Set y to 10" },
+        { "pattern": "x\\s*==\\s*y|y\\s*==\\s*x", "message": "Compare x and y using ==" }
+      ]
+    },
+    {
+      "type": "explanation",
+      "title": "Greater Than and Less Than",
+      "content": "Use > (greater than) and < (less than) to compare which value is bigger or smaller. These work on numbers and give you True or False.",
+      "code": "print(10 > 5)\nprint(3 > 8)\nprint(2 < 7)\nprint(9 < 4)",
+      "highlights": [
+        { "lines": [1], "note": "10 > 5 is True — 10 IS greater than 5." },
+        { "lines": [2], "note": "3 > 8 is False — 3 is NOT greater than 8." },
+        { "lines": [3], "note": "2 < 7 is True — 2 IS less than 7." },
+        { "lines": [4], "note": "9 < 4 is False — 9 is NOT less than 4." }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Greater/Less Than",
+      "code": "score = 85\npassing = 70\nresult = score > passing\nprint(result)\nresult = score < passing\nprint(result)",
+      "trace": [
+        { "line": 1, "state": { "score": 85 }, "output": [], "eval": null },
+        { "line": 2, "state": { "score": 85, "passing": 70 }, "output": [], "eval": null },
+        { "line": 3, "state": { "score": 85, "passing": 70, "result": true }, "output": [], "eval": "score > passing → 85 > 70 → True" },
+        { "line": 4, "state": { "score": 85, "passing": 70, "result": true }, "output": ["True"], "eval": null },
+        { "line": 5, "state": { "score": 85, "passing": 70, "result": false }, "output": ["True"], "eval": "score < passing → 85 < 70 → False" },
+        { "line": 6, "state": { "score": 85, "passing": 70, "result": false }, "output": ["True", "False"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this print?",
+      "code": "x = 5\nprint(x > 5)",
+      "choices": ["True", "False", "5", "error"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this print?",
+      "code": "a = 3\nb = 8\nprint(a < b)",
+      "choices": ["True", "False", "3", "8"],
+      "answer": 0
+    },
+    {
+      "type": "explanation",
+      "title": "Greater/Less Than or Equal To",
+      "content": "Use >= (greater than or equal to) and <= (less than or equal to) when you want to include the equal case. The key difference: 5 > 5 is False, but 5 >= 5 is True!",
+      "code": "print(5 > 5)\nprint(5 >= 5)\nprint(3 < 3)\nprint(3 <= 3)",
+      "highlights": [
+        { "lines": [1, 2], "note": "5 is NOT greater than 5 (False), but it IS greater than OR equal to 5 (True)." },
+        { "lines": [3, 4], "note": "3 is NOT less than 3 (False), but it IS less than OR equal to 3 (True)." }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Boundary Comparisons",
+      "code": "age = 18\nmin_age = 18\nprint(age > min_age)\nprint(age >= min_age)\nprint(age < min_age)\nprint(age <= min_age)",
+      "trace": [
+        { "line": 1, "state": { "age": 18 }, "output": [], "eval": null },
+        { "line": 2, "state": { "age": 18, "min_age": 18 }, "output": [], "eval": null },
+        { "line": 3, "state": { "age": 18, "min_age": 18 }, "output": ["False"], "eval": "age > min_age → 18 > 18 → False" },
+        { "line": 4, "state": { "age": 18, "min_age": 18 }, "output": ["False", "True"], "eval": "age >= min_age → 18 >= 18 → True" },
+        { "line": 5, "state": { "age": 18, "min_age": 18 }, "output": ["False", "True", "False"], "eval": "age < min_age → 18 < 18 → False" },
+        { "line": 6, "state": { "age": 18, "min_age": 18 }, "output": ["False", "True", "False", "True"], "eval": "age <= min_age → 18 <= 18 → True" }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does 10 >= 10 give you?",
+      "code": "print(10 >= 10)",
+      "choices": ["True", "False"],
+      "answer": 0
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does 7 <= 5 give you?",
+      "code": "print(7 <= 5)",
+      "choices": ["True", "False"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-code",
+      "question": "Create variables 'temperature' = 100 and 'boiling' = 100. Print whether temperature is greater than or equal to boiling.",
+      "starterCode": "# check if temperature >= boiling\n",
+      "validation": {
+        "type": "output",
+        "expected": ["True"]
+      },
+      "codeTests": [
+        { "pattern": "temperature\\s*=\\s*100", "message": "Set 'temperature' to 100" },
+        { "pattern": "boiling\\s*=\\s*100", "message": "Set 'boiling' to 100" },
+        { "pattern": "temperature\\s*>=\\s*boiling|boiling\\s*<=\\s*temperature", "message": "Compare temperature >= boiling (using the variable names)" }
+      ]
+    },
+    {
+      "type": "explanation",
+      "title": "Comparing with Variables",
+      "content": "You can store comparison results in variables — they become True or False. This is useful for making your code more readable by giving names to conditions.",
+      "code": "age = 15\nis_teen = age >= 13 and age <= 19\nprint(is_teen)\n\nscore = 95\nis_perfect = score == 100\nprint(is_perfect)",
+      "highlights": [
+        { "lines": [2], "note": "Store the comparison result in a descriptive variable name — makes code easier to read!" },
+        { "lines": [6], "note": "is_perfect will be True only if score is exactly 100." }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Stored Comparisons",
+      "code": "price = 25\nbudget = 30\ncan_afford = price <= budget\nprint(can_afford)\nprice = 50\ncan_afford = price <= budget\nprint(can_afford)",
+      "trace": [
+        { "line": 1, "state": { "price": 25 }, "output": [], "eval": null },
+        { "line": 2, "state": { "price": 25, "budget": 30 }, "output": [], "eval": null },
+        { "line": 3, "state": { "price": 25, "budget": 30, "can_afford": true }, "output": [], "eval": "price <= budget → 25 <= 30 → True" },
+        { "line": 4, "state": { "price": 25, "budget": 30, "can_afford": true }, "output": ["True"], "eval": null },
+        { "line": 5, "state": { "price": 50, "budget": 30, "can_afford": true }, "output": ["True"], "eval": null },
+        { "line": 6, "state": { "price": 50, "budget": 30, "can_afford": false }, "output": ["True"], "eval": "price <= budget → 50 <= 30 → False" },
+        { "line": 7, "state": { "price": 50, "budget": 30, "can_afford": false }, "output": ["True", "False"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does 'result' hold after this code?",
+      "code": "x = 4\ny = 9\nresult = x * 2 > y",
+      "choices": ["True", "False", "8", "9"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-code",
+      "question": "Create a variable 'speed' = 65 and 'limit' = 60. Store whether speed > limit in a variable called 'speeding'. Print speeding.",
+      "starterCode": "# are you speeding?\n",
+      "validation": {
+        "type": "output",
+        "expected": ["True"]
+      },
+      "codeTests": [
+        { "pattern": "speed\\s*=\\s*65", "message": "Set 'speed' to 65" },
+        { "pattern": "limit\\s*=\\s*60", "message": "Set 'limit' to 60" },
+        { "pattern": "speeding\\s*=", "message": "Store the comparison in a variable called 'speeding'" },
+        { "pattern": "speed\\s*>\\s*limit", "message": "Compare speed > limit" }
+      ]
+    },
+    {
+      "type": "quiz-code",
+      "question": "Final challenge! Create score = 88. Store comparisons in three variables: 'is_a' (score >= 90), 'is_b' (score >= 80), 'is_passing' (score >= 60). Print all three.",
+      "starterCode": "score = 88\n# create is_a, is_b, is_passing and print them\n",
+      "validation": {
+        "type": "output",
+        "expected": ["False", "True", "True"]
+      },
+      "codeTests": [
+        { "pattern": "is_a\\s*=", "message": "Create a variable called 'is_a'" },
+        { "pattern": "is_b\\s*=", "message": "Create a variable called 'is_b'" },
+        { "pattern": "is_passing\\s*=", "message": "Create a variable called 'is_passing'" },
+        { "pattern": "score\\s*>=\\s*90", "message": "Check score >= 90 for is_a" },
+        { "pattern": "score\\s*>=\\s*80", "message": "Check score >= 80 for is_b" },
+        { "pattern": "score\\s*>=\\s*60", "message": "Check score >= 60 for is_passing" }
+      ]
+    }
+  ]
 }

@@ -37,7 +37,6 @@ ugrok/
 - **Sound effects** via Web Audio API using the same `createSounds()` pattern from `botty-mcbotface/engine.js`.
 - **Progress** saved to localStorage — which groksets are complete, which exercise the student is on within each.
 - **Student code** for quiz-code exercises saved to localStorage keyed by grokset ID and exercise index, restored when the student returns.
-- **No Supabase** — this is a self-paced learning tool, no multiplayer/tournament component.
 
 ## Grokset JSON Format
 
@@ -279,12 +278,13 @@ Purple/green retro theme — same family as Code Quest but distinct identity.
 
 | Order | ID | Title | Topics | Status |
 |-------|----|-------|--------|--------|
-| 1 | `variables` | Variables | Creating variables, types, printing | Stub |
-| 2 | `operators` | Operators | +, -, *, /, %, string concatenation | Stub |
-| 3 | `comparisons` | Comparisons | ==, !=, <, >, <=, >= | Stub |
+| 1 | `variables` | Variables | Creating variables, types, printing | **Fully implemented** |
+| 2 | `operators` | Operators | +, -, *, /, %, string concatenation | **Fully implemented** |
+| 3 | `comparisons` | Comparisons | ==, !=, <, >, <=, >= | **Fully implemented** |
 | 4 | `conditionals` | Conditionals | if, else, elif, nested conditions | **Fully implemented** |
-| 5 | `loops` | Loops | while, for, range(), break | Stub |
-| 6 | `functions` | Functions | def, parameters, return, calling | Stub |
+| 5 | `loops` | Loops | while, for, range(), break | **Fully implemented** |
+| 6 | `nesting` | Nesting | Nested conditionals, if in loops, nested loops | **Fully implemented** |
+| 7 | `functions` | Functions | def, parameters, return, calling | **Fully implemented** |
 
 ### Conditionals Grokset (~20 exercises)
 

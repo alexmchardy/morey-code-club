@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="shared.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 </head>
 <body>
 
@@ -47,6 +48,9 @@
     <div class="help-response hidden" id="helpResponse"></div>
   </div>
 
+  <!-- Wrong-answer nudge bubble -->
+  <div class="wrong-help-bubble hidden" id="wrongHelpBubble"></div>
+
   <!-- Scripts: Skulpt -->
   <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
@@ -65,6 +69,7 @@
       { id: 'comparisons',  file: 'groksets/comparisons.json' },
       { id: 'conditionals', file: 'groksets/conditionals.json' },
       { id: 'loops',        file: 'groksets/loops.json' },
+      { id: 'nesting',      file: 'groksets/nesting.json' },
       { id: 'functions',    file: 'groksets/functions.json' },
     ];
 
@@ -77,6 +82,9 @@
     let currentExerciseIndex = 0;    // 0-based index within grokset
     let groksetCache = {};           // id -> grokset JSON
     let quizEditor = null;           // CodeMirror instance for quiz-code exercises
+    let quizRunning = false;         // prevents re-entrant runs in quiz-code exercises
+    let lastQuizError = null;        // last Python error from a quiz-code run, for help context
+    let maxReachedIndex = 0;         // furthest exercise index visited in current grokset
 
     // ============================================================
     // LOCALSTORAGE HELPERS
@@ -294,6 +302,7 @@
       } else {
         currentExerciseIndex = 0;
       }
+      maxReachedIndex = currentExerciseIndex;
 
       document.getElementById('landingScreen').classList.add('hidden');
       document.getElementById('exerciseScreen').classList.remove('hidden');
@@ -307,8 +316,37 @@
     // RENDER EXERCISE
     // ============================================================
 
+    function showWrongBubble() {
+      let explanationIdx = -1;
+      for (let i = currentExerciseIndex - 1; i >= 0; i--) {
+        const t = currentGrokset.exercises[i].type;
+        if (t === 'explanation' || t === 'stepper') { explanationIdx = i; break; }
+      }
+
+      const bubble = document.getElementById('wrongHelpBubble');
+      bubble.innerHTML = (explanationIdx >= 0
+        ? `<button class="wrong-bubble-review-btn" id="wrongBubbleReviewBtn">&#x21E6; See explanation again</button>`
+        : '')
+        + `<div class="wrong-bubble-help-hint">&#x2193; Ask for help below</div>`;
+
+      if (explanationIdx >= 0) {
+        document.getElementById('wrongBubbleReviewBtn').addEventListener('click', () => {
+          currentExerciseIndex = explanationIdx;
+          hideWrongBubble();
+          renderExercise();
+        });
+      }
+      bubble.classList.remove('hidden');
+    }
+
+    function hideWrongBubble() {
+      document.getElementById('wrongHelpBubble').classList.add('hidden');
+    }
+
     function renderExercise() {
       if (quizEditor) { quizEditor.toTextArea(); quizEditor = null; }
+      lastQuizError = null;
+      hideWrongBubble();
       const exercise = currentGrokset.exercises[currentExerciseIndex];
       const total = currentGrokset.exercises.length;
       const progressArr = loadProgress(currentGrokset.id, total);
@@ -317,13 +355,16 @@
       document.getElementById('exerciseCounter').textContent = `${currentExerciseIndex + 1} of ${total}`;
 
       // Progress dots
+      if (currentExerciseIndex > maxReachedIndex) maxReachedIndex = currentExerciseIndex;
+
       const dotsContainer = document.getElementById('progressDots');
       dotsContainer.innerHTML = '';
       for (let i = 0; i < total; i++) {
         const dot = document.createElement('span');
         dot.className = 'progress-dot';
-        if (progressArr[i]) {
-          dot.classList.add('completed');
+        if (progressArr[i]) dot.classList.add('completed');
+        if (i <= maxReachedIndex) {
+          dot.classList.add('reachable');
           dot.addEventListener('click', () => goToExercise(i));
         }
         if (i === currentExerciseIndex) dot.classList.add('current');
@@ -385,6 +426,13 @@
       document.getElementById('celebrationBackBtn').addEventListener('click', () => {
         document.getElementById('backBtn').click();
       });
+
+      const defaults = { startVelocity: 30, spread: 70, ticks: 80, zIndex: 10000 };
+      confetti({ ...defaults, particleCount: 80, origin: { x: 0.15, y: 0.6 }, angle: 60 });
+      confetti({ ...defaults, particleCount: 80, origin: { x: 0.85, y: 0.6 }, angle: 120 });
+      setTimeout(() => {
+        confetti({ ...defaults, particleCount: 50, origin: { x: 0.5, y: 0.3 }, angle: 90, spread: 120 });
+      }, 300);
     }
 
     // ============================================================
@@ -440,25 +488,34 @@
 
     function renderExplanation(container, exercise) {
       const lines = exercise.code.split('\n');
-      const highlightedLines = new Set();
-      if (exercise.highlights) {
-        exercise.highlights.forEach(h => h.lines.forEach(l => highlightedLines.add(l)));
-      }
+      const highlights = exercise.highlights || [];
+
+      // Map line numbers to their highlight group index
+      const lineToGroup = {};
+      highlights.forEach((h, gi) => h.lines.forEach(l => { lineToGroup[l] = gi; }));
 
       const codeHTML = lines.map((line, i) => {
         const lineNum = i + 1;
-        const cls = highlightedLines.has(lineNum) ? 'code-line highlighted' : 'code-line';
-        return `<span class="${cls}">${escapeHTML(line) || ' '}</span>`;
+        const gi = lineToGroup[lineNum];
+        if (gi !== undefined) {
+          const groupLines = highlights[gi].lines;
+          const isFirst = lineNum === groupLines[0];
+          const isLast = lineNum === groupLines[groupLines.length - 1];
+          const extra = (isFirst ? ' group-start' : '') + (isLast ? ' group-end' : '');
+          const badge = isFirst ? `<span class="highlight-badge">${gi + 1}</span>` : '';
+          return `<span class="code-line highlighted${extra}" data-group="${gi}">${badge}${escapeHTML(line) || ' '}</span>`;
+        }
+        return `<span class="code-line">${escapeHTML(line) || ' '}</span>`;
       }).join('\n');
 
-      const notesHTML = (exercise.highlights || []).map(h =>
-        `<div class="highlight-note">${escapeHTML(h.note)}</div>`
+      const notesHTML = highlights.map((h, gi) =>
+        `<div class="highlight-note" data-group="${gi}"><span class="highlight-badge">${gi + 1}</span>${escapeHTML(h.note)}</div>`
       ).join('');
 
       container.innerHTML = `
-        <div class="explanation-layout">
+        <div class="explanation-layout" id="explanationLayout">
           <div class="explanation-code-panel">
-            <pre class="code-font">${codeHTML}</pre>
+            <div class="code-font">${codeHTML}</div>
           </div>
           <div class="explanation-text-panel">
             <p>${exercise.content}</p>
@@ -467,6 +524,32 @@
         </div>
         <button class="got-it-btn" id="gotItBtn">GOT IT</button>
       `;
+
+      // Interactive highlight pairing
+      const layout = document.getElementById('explanationLayout');
+      const allCodeLines = layout.querySelectorAll('.code-line.highlighted');
+      const allNotes = layout.querySelectorAll('.highlight-note');
+
+      function setFocus(groupIndex) {
+        layout.classList.add('has-focus');
+        allCodeLines.forEach(el => el.classList.toggle('focus', el.dataset.group == groupIndex));
+        allNotes.forEach(el => el.classList.toggle('focus', el.dataset.group == groupIndex));
+      }
+
+      function clearFocus() {
+        layout.classList.remove('has-focus');
+        allCodeLines.forEach(el => el.classList.remove('focus'));
+        allNotes.forEach(el => el.classList.remove('focus'));
+      }
+
+      allCodeLines.forEach(el => {
+        el.addEventListener('mouseenter', () => setFocus(el.dataset.group));
+        el.addEventListener('mouseleave', clearFocus);
+      });
+      allNotes.forEach(el => {
+        el.addEventListener('mouseenter', () => setFocus(el.dataset.group));
+        el.addEventListener('mouseleave', clearFocus);
+      });
 
       document.getElementById('gotItBtn').addEventListener('click', advanceExercise);
     }
@@ -479,10 +562,6 @@
       const lines = exercise.code.split('\n');
       const trace = exercise.trace;
       let stepIndex = -1;  // -1 means "before first step"
-      let playing = false;
-      let playInterval = null;
-      const speeds = [1500, 800, 400]; // slow, normal, fast
-      let speedIndex = 1;
 
       // Build code HTML with line numbers
       const codeHTML = lines.map((line, i) => {
@@ -498,6 +577,12 @@
         <div class="stepper-layout">
           <div class="stepper-code-panel">
             <pre>${codeHTML}</pre>
+            <div class="stepper-controls">
+              <button class="stepper-btn stepper-reset" id="stepResetBtn" title="Reset">⏮</button>
+              <button class="stepper-btn" id="stepBackBtn" title="Step Back">◀</button>
+              <button class="stepper-btn" id="stepFwdBtn" title="Step Forward">▶</button>
+            </div>
+            <button class="got-it-btn" id="stepDoneBtn" style="margin-top:16px;" disabled>GOT IT</button>
           </div>
           <div class="stepper-right-panel">
             <div class="stepper-section">
@@ -514,25 +599,15 @@
             </div>
           </div>
         </div>
-        <div class="stepper-controls">
-          <button class="stepper-btn" id="stepResetBtn" title="Reset">⏮</button>
-          <button class="stepper-btn" id="stepBackBtn" title="Step Back">◀</button>
-          <button class="stepper-btn play" id="stepPlayBtn" title="Play/Pause">▶</button>
-          <button class="stepper-btn" id="stepFwdBtn" title="Step Forward">▶|</button>
-          <span class="stepper-speed-label">Speed</span>
-          <input type="range" min="0" max="2" value="1" class="stepper-speed" id="stepSpeedSlider">
-        </div>
-        <button class="got-it-btn" id="stepDoneBtn" style="margin-top:16px;">GOT IT</button>
       `;
 
       const varsEl = document.getElementById('stepperVars').querySelector('tbody');
       const evalEl = document.getElementById('stepperEval');
       const outputEl = document.getElementById('stepperOutput');
-      const playBtn = document.getElementById('stepPlayBtn');
       const backBtn = document.getElementById('stepBackBtn');
       const fwdBtn = document.getElementById('stepFwdBtn');
       const resetBtn = document.getElementById('stepResetBtn');
-      const slider = document.getElementById('stepSpeedSlider');
+      const doneBtn = document.getElementById('stepDoneBtn');
 
       function updateDisplay() {
         // Highlight current line, dim executed lines
@@ -583,6 +658,7 @@
         backBtn.disabled = stepIndex <= -1;
         fwdBtn.disabled = stepIndex >= trace.length - 1;
         resetBtn.disabled = stepIndex <= -1;
+        doneBtn.disabled = stepIndex < trace.length - 1;
       }
 
       function stepForward() {
@@ -590,7 +666,6 @@
           stepIndex++;
           sounds.step();
           updateDisplay();
-          if (stepIndex >= trace.length - 1) stopAutoPlay();
         }
       }
 
@@ -602,41 +677,13 @@
       }
 
       function resetStepper() {
-        stopAutoPlay();
         stepIndex = -1;
         updateDisplay();
       }
 
-      function startAutoPlay() {
-        playing = true;
-        playBtn.textContent = '⏸';
-        playInterval = setInterval(() => {
-          stepForward();
-          if (stepIndex >= trace.length - 1) stopAutoPlay();
-        }, speeds[speedIndex]);
-      }
-
-      function stopAutoPlay() {
-        playing = false;
-        playBtn.textContent = '▶';
-        if (playInterval) { clearInterval(playInterval); playInterval = null; }
-      }
-
-      function togglePlay() {
-        if (playing) { stopAutoPlay(); } else {
-          if (stepIndex >= trace.length - 1) { stepIndex = -1; }
-          startAutoPlay();
-        }
-      }
-
-      playBtn.addEventListener('click', togglePlay);
-      fwdBtn.addEventListener('click', () => { stopAutoPlay(); stepForward(); });
-      backBtn.addEventListener('click', () => { stopAutoPlay(); stepBack(); });
+      fwdBtn.addEventListener('click', stepForward);
+      backBtn.addEventListener('click', stepBack);
       resetBtn.addEventListener('click', resetStepper);
-      slider.addEventListener('input', () => {
-        speedIndex = parseInt(slider.value);
-        if (playing) { stopAutoPlay(); startAutoPlay(); }
-      });
       document.getElementById('stepDoneBtn').addEventListener('click', advanceExercise);
 
       updateDisplay();
@@ -667,18 +714,20 @@
             answered = true;
             btn.classList.add('correct');
             sounds.correct();
+            hideWrongBubble();
             document.getElementById('quizFeedback').innerHTML =
               '<span style="color:var(--secondary)">Correct!</span>';
-            setTimeout(advanceExercise, 1000);
+            setTimeout(advanceExercise, 3000);
           } else {
             btn.classList.add('wrong');
             sounds.wrong();
             document.getElementById('quizFeedback').innerHTML =
               '<span style="color:var(--error)">Not quite — try again!</span>';
+            showWrongBubble();
             setTimeout(() => {
               btn.classList.remove('wrong');
               document.getElementById('quizFeedback').textContent = '';
-            }, 1200);
+            }, 2000);
           }
         });
       });
@@ -691,13 +740,30 @@
         <div class="quiz-code-layout">
           <p class="quiz-question">${escapeHTML(exercise.question)}</p>
           <div class="quiz-code-editor-wrap">
-            <textarea id="quizCodeArea">${savedCode || exercise.starterCode}</textarea>
+            <textarea class="quiz-code-area" id="quizCodeArea">${savedCode || exercise.starterCode}</textarea>
           </div>
           <button class="run-btn" id="quizRunBtn">RUN</button>
           <div class="code-result" id="quizResult" style="display:none"></div>
           <div class="quiz-feedback" id="quizFeedback"></div>
+          <button class="got-it-btn hidden" id="quizDoneBtn">GOT IT</button>
         </div>
       `;
+
+      function insertSpacesTab(cm) {
+        if (cm.somethingSelected()) { cm.indentSelection('add'); return; }
+        cm.replaceSelection(' '.repeat(cm.getOption('indentUnit') || 4), 'end', '+input');
+      }
+      function dedentWhitespaceBeforeCursor(cm) {
+        const cur = cm.getCursor(), line = cm.getLine(cur.line), ch = cur.ch;
+        if (ch === 0) return CodeMirror.Pass;
+        const prefix = line.slice(0, ch);
+        if (!/^\s+$/.test(prefix)) return CodeMirror.Pass;
+        const unit = cm.getOption('indentUnit') || 4;
+        const targetCh = Math.floor((ch - 1) / unit) * unit;
+        if (targetCh >= ch) return CodeMirror.Pass;
+        cm.replaceRange('', { line: cur.line, ch: targetCh }, { line: cur.line, ch });
+        cm.setCursor({ line: cur.line, ch: targetCh });
+      }
 
       quizEditor = CodeMirror.fromTextArea(document.getElementById('quizCodeArea'), {
         mode: 'python',
@@ -706,8 +772,13 @@
         indentUnit: 4,
         tabSize: 4,
         indentWithTabs: false,
+        viewportMargin: Infinity, // Enables autosizing editor
         extraKeys: {
-          Tab: (cm) => cm.replaceSelection('    '),
+          Tab: insertSpacesTab,
+          Backspace: dedentWhitespaceBeforeCursor,
+          'Shift-Tab': 'indentLess',
+          'Ctrl-Enter': () => document.getElementById('quizRunBtn').click(),
+          'Cmd-Enter': () => document.getElementById('quizRunBtn').click(),
         },
       });
 
@@ -715,7 +786,19 @@
         saveStudentCode(currentGrokset.id, currentExerciseIndex, quizEditor.getValue());
       });
 
+      document.getElementById('quizDoneBtn').addEventListener('click', advanceExercise);
+
       document.getElementById('quizRunBtn').addEventListener('click', async () => {
+        if (quizRunning) return;
+        quizRunning = true;
+
+        const runBtn = document.getElementById('quizRunBtn');
+        runBtn.disabled = true;
+
+        // Yield to the browser so it can paint the disabled state and drain
+        // any click events already queued before we set the flag.
+        await new Promise(r => setTimeout(r, 0));
+
         const code = quizEditor.getValue();
         saveStudentCode(currentGrokset.id, currentExerciseIndex, code);
 
@@ -726,14 +809,20 @@
         feedbackEl.className = 'quiz-feedback';
 
         const result = await runPython(code);
+        runBtn.disabled = false;
+        setTimeout(() => { quizRunning = false; }, 0);
 
         if (!result.success) {
+          lastQuizError = result.error;
           resultEl.textContent = result.error;
           feedbackEl.textContent = 'Error running your code';
           feedbackEl.classList.add('wrong');
           sounds.wrong();
+          showWrongBubble();
           return;
         }
+
+        lastQuizError = null;
 
         const validation = exercise.validation;
         let passed = false;
@@ -764,14 +853,31 @@
         }
 
         if (passed) {
-          feedbackEl.textContent = 'Correct!';
-          feedbackEl.classList.add('correct');
-          sounds.correct();
-          setTimeout(advanceExercise, 1200);
+          const codeTests = exercise.codeTests || [];
+          const failedTests = codeTests.filter(test => {
+            const regex = new RegExp(test.pattern, test.flags || '');
+            return !regex.test(code);
+          });
+          if (failedTests.length > 0) {
+            feedbackEl.textContent = 'Check your approach:';
+            feedbackEl.classList.add('wrong');
+            sounds.wrong();
+            resultEl.textContent += '\n\n' + failedTests.map(f => '⚠ ' + f.message).join('\n');
+            showWrongBubble();
+          } else {
+            feedbackEl.textContent = 'Correct!';
+            feedbackEl.classList.add('correct');
+            sounds.correct();
+            hideWrongBubble();
+            const doneBtn = document.getElementById('quizDoneBtn');
+            doneBtn.classList.remove('hidden');
+            doneBtn.focus();
+          }
         } else {
           feedbackEl.textContent = 'Not quite — try again!';
           feedbackEl.classList.add('wrong');
           sounds.wrong();
+          showWrongBubble();
         }
       });
     }
@@ -854,6 +960,9 @@
         const studentCode = quizEditor.getValue();
         if (studentCode && studentCode !== exercise.starterCode) {
           prompt += `\n\nThe student's current code:\n${studentCode}`;
+        }
+        if (lastQuizError) {
+          prompt += `\n\nWhen they ran that code it produced this error:\n${lastQuizError}`;
         }
       }
 

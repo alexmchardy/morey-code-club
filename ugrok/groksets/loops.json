@@ -3,5 +3,264 @@
   "title": "Loops",
   "description": "While loops, for loops, range(), and break",
   "language": "python",
-  "exercises": []
+  "exercises": [
+    {
+      "type": "explanation",
+      "title": "The While Loop",
+      "content": "A 'while' loop keeps running a block of code as long as its condition is True. Each time through the loop, Python checks the condition again. If it's still True, the code runs again. If it's False, the loop stops and Python moves on.",
+      "code": "count = 1\nwhile count <= 3:\n    print(count)\n    count = count + 1",
+      "highlights": [
+        { "lines": [2], "note": "The 'while' keyword checks this condition before each loop. If True, run the indented code. If False, stop." },
+        { "lines": [4], "note": "This line changes 'count' so that eventually the condition becomes False. Without it, the loop would run forever!" }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: While Loop",
+      "code": "count = 1\nwhile count <= 3:\n    print(count)\n    count = count + 1",
+      "trace": [
+        { "line": 1, "state": { "count": 1 }, "output": [], "eval": null },
+        { "line": 2, "state": { "count": 1 }, "output": [], "eval": "count <= 3 → 1 <= 3 → True" },
+        { "line": 3, "state": { "count": 1 }, "output": ["1"], "eval": null },
+        { "line": 4, "state": { "count": 2 }, "output": ["1"], "eval": null },
+        { "line": 2, "state": { "count": 2 }, "output": ["1"], "eval": "count <= 3 → 2 <= 3 → True" },
+        { "line": 3, "state": { "count": 2 }, "output": ["1", "2"], "eval": null },
+        { "line": 4, "state": { "count": 3 }, "output": ["1", "2"], "eval": null },
+        { "line": 2, "state": { "count": 3 }, "output": ["1", "2"], "eval": "count <= 3 → 3 <= 3 → True" },
+        { "line": 3, "state": { "count": 3 }, "output": ["1", "2", "3"], "eval": null },
+        { "line": 4, "state": { "count": 4 }, "output": ["1", "2", "3"], "eval": null },
+        { "line": 2, "state": { "count": 4 }, "output": ["1", "2", "3"], "eval": "count <= 3 → 4 <= 3 → False" }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: While Loop (Countdown)",
+      "code": "countdown = 3\nwhile countdown > 0:\n    print(countdown)\n    countdown = countdown - 1\nprint(\"Go!\")",
+      "trace": [
+        { "line": 1, "state": { "countdown": 3 }, "output": [], "eval": null },
+        { "line": 2, "state": { "countdown": 3 }, "output": [], "eval": "countdown > 0 → 3 > 0 → True" },
+        { "line": 3, "state": { "countdown": 3 }, "output": ["3"], "eval": null },
+        { "line": 4, "state": { "countdown": 2 }, "output": ["3"], "eval": null },
+        { "line": 2, "state": { "countdown": 2 }, "output": ["3"], "eval": "countdown > 0 → 2 > 0 → True" },
+        { "line": 3, "state": { "countdown": 2 }, "output": ["3", "2"], "eval": null },
+        { "line": 4, "state": { "countdown": 1 }, "output": ["3", "2"], "eval": null },
+        { "line": 2, "state": { "countdown": 1 }, "output": ["3", "2"], "eval": "countdown > 0 → 1 > 0 → True" },
+        { "line": 3, "state": { "countdown": 1 }, "output": ["3", "2", "1"], "eval": null },
+        { "line": 4, "state": { "countdown": 0 }, "output": ["3", "2", "1"], "eval": null },
+        { "line": 2, "state": { "countdown": 0 }, "output": ["3", "2", "1"], "eval": "countdown > 0 → 0 > 0 → False" },
+        { "line": 5, "state": { "countdown": 0 }, "output": ["3", "2", "1", "Go!"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "How many times does this loop print something?",
+      "code": "x = 5\nwhile x > 2:\n    print(x)\n    x = x - 1",
+      "choices": ["2 times", "3 times", "4 times", "5 times"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print last?",
+      "code": "n = 1\nwhile n < 4:\n    n = n + 1\nprint(n)",
+      "choices": ["3", "4", "5", "nothing"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-code",
+      "question": "Use a while loop to print the numbers 1, 2, 3, 4, 5 (one per line)",
+      "starterCode": "num = 1\n# write a while loop that prints num and adds 1 each time\n",
+      "validation": {
+        "type": "output",
+        "expected": ["1", "2", "3", "4", "5"]
+      },
+      "codeTests": [
+        { "pattern": "while", "message": "Use a while loop" },
+        { "pattern": "num\\s*=\\s*num\\s*\\+\\s*1|num\\s*\\+=\\s*1", "message": "Increment 'num' inside the loop (num = num + 1)" }
+      ]
+    },
+    {
+      "type": "explanation",
+      "title": "The For Loop",
+      "content": "A 'for' loop runs code once for each item in a sequence. The variable after 'for' takes on each value, one at a time. This is perfect when you know exactly what values you want to loop through.",
+      "code": "fruits = [\"apple\", \"banana\", \"cherry\"]\nfor fruit in fruits:\n    print(fruit)",
+      "highlights": [
+        { "lines": [1], "note": "A list of items to loop through." },
+        { "lines": [2], "note": "'for fruit in fruits' means: for each item in the list, call it 'fruit' and run the indented code." },
+        { "lines": [3], "note": "This runs 3 times — once for each fruit in the list." }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: For Loop (List)",
+      "code": "colors = [\"red\", \"green\", \"blue\"]\nfor color in colors:\n    print(color)",
+      "trace": [
+        { "line": 1, "state": { "colors": ["red", "green", "blue"] }, "output": [], "eval": null },
+        { "line": 2, "state": { "colors": ["red", "green", "blue"], "color": "red" }, "output": [], "eval": "color = \"red\" (item 1 of 3)" },
+        { "line": 3, "state": { "colors": ["red", "green", "blue"], "color": "red" }, "output": ["red"], "eval": null },
+        { "line": 2, "state": { "colors": ["red", "green", "blue"], "color": "green" }, "output": ["red"], "eval": "color = \"green\" (item 2 of 3)" },
+        { "line": 3, "state": { "colors": ["red", "green", "blue"], "color": "green" }, "output": ["red", "green"], "eval": null },
+        { "line": 2, "state": { "colors": ["red", "green", "blue"], "color": "blue" }, "output": ["red", "green"], "eval": "color = \"blue\" (item 3 of 3)" },
+        { "line": 3, "state": { "colors": ["red", "green", "blue"], "color": "blue" }, "output": ["red", "green", "blue"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "numbers = [10, 20, 30]\nfor n in numbers:\n    print(n + 1)",
+      "choices": ["10 20 30", "11 22 33", "11 21 31", "30"],
+      "answer": 2
+    },
+    {
+      "type": "quiz-code",
+      "question": "Use a for loop to print each name in the list",
+      "starterCode": "names = [\"Alice\", \"Bob\", \"Charlie\"]\n# write a for loop to print each name\n",
+      "validation": {
+        "type": "output",
+        "expected": ["Alice", "Bob", "Charlie"]
+      },
+      "codeTests": [
+        { "pattern": "for\\s+\\w+\\s+in\\s+names", "message": "Use a for loop to iterate over 'names'" }
+      ]
+    },
+    {
+      "type": "explanation",
+      "title": "Range()",
+      "content": "The range() function generates a sequence of numbers. range(5) gives you 0, 1, 2, 3, 4 — it starts at 0 and stops BEFORE the number you give it. You can also give it a start: range(1, 4) gives 1, 2, 3.",
+      "code": "for i in range(5):\n    print(i)\n\nfor i in range(2, 5):\n    print(i)",
+      "highlights": [
+        { "lines": [1], "note": "range(5) generates: 0, 1, 2, 3, 4. It always starts at 0 and stops BEFORE 5." },
+        { "lines": [4], "note": "range(2, 5) generates: 2, 3, 4. Starts at 2, stops BEFORE 5." }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: For Loop with range()",
+      "code": "for i in range(4):\n    print(i)",
+      "trace": [
+        { "line": 1, "state": { "i": 0 }, "output": [], "eval": "i = 0 (item 1 of 4)" },
+        { "line": 2, "state": { "i": 0 }, "output": ["0"], "eval": null },
+        { "line": 1, "state": { "i": 1 }, "output": ["0"], "eval": "i = 1 (item 2 of 4)" },
+        { "line": 2, "state": { "i": 1 }, "output": ["0", "1"], "eval": null },
+        { "line": 1, "state": { "i": 2 }, "output": ["0", "1"], "eval": "i = 2 (item 3 of 4)" },
+        { "line": 2, "state": { "i": 2 }, "output": ["0", "1", "2"], "eval": null },
+        { "line": 1, "state": { "i": 3 }, "output": ["0", "1", "2"], "eval": "i = 3 (item 4 of 4)" },
+        { "line": 2, "state": { "i": 3 }, "output": ["0", "1", "2", "3"], "eval": null }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Accumulator Pattern",
+      "code": "total = 0\nfor i in range(1, 4):\n    total = total + i\nprint(total)",
+      "trace": [
+        { "line": 1, "state": { "total": 0 }, "output": [], "eval": null },
+        { "line": 2, "state": { "total": 0, "i": 1 }, "output": [], "eval": "i = 1 (item 1 of 3)" },
+        { "line": 3, "state": { "total": 1, "i": 1 }, "output": [], "eval": "total + i → 0 + 1 → 1" },
+        { "line": 2, "state": { "total": 1, "i": 2 }, "output": [], "eval": "i = 2 (item 2 of 3)" },
+        { "line": 3, "state": { "total": 3, "i": 2 }, "output": [], "eval": "total + i → 1 + 2 → 3" },
+        { "line": 2, "state": { "total": 3, "i": 3 }, "output": [], "eval": "i = 3 (item 3 of 3)" },
+        { "line": 3, "state": { "total": 6, "i": 3 }, "output": [], "eval": "total + i → 3 + 3 → 6" },
+        { "line": 4, "state": { "total": 6, "i": 3 }, "output": ["6"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What numbers does range(2, 6) give you?",
+      "code": "for i in range(2, 6):\n    print(i)",
+      "choices": ["2, 3, 4, 5, 6", "2, 3, 4, 5", "1, 2, 3, 4, 5", "2, 4, 6"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-choice",
+      "question": "How many times does this loop run?",
+      "code": "for i in range(10):\n    print(\"hello\")",
+      "choices": ["9 times", "10 times", "11 times", "1 time"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-code",
+      "question": "Use a for loop with range() to print the numbers 1 through 5",
+      "starterCode": "# use range() to print 1, 2, 3, 4, 5\n",
+      "validation": {
+        "type": "output",
+        "expected": ["1", "2", "3", "4", "5"]
+      },
+      "codeTests": [
+        { "pattern": "for", "message": "Use a for loop" },
+        { "pattern": "range\\s*\\(\\s*1\\s*,\\s*6\\s*\\)|range\\s*\\(.*\\s*5\\s*\\)", "message": "Use range(5) to get numbers 0-5 (and add 1) or range(1, 6) to get numbers 1-5" }
+      ]
+    },
+    {
+      "type": "quiz-code",
+      "question": "Use a for loop to calculate the sum of numbers 1 to 5. Store the result in 'total'.",
+      "starterCode": "total = 0\n# use a for loop to add 1+2+3+4+5 into total\n",
+      "validation": {
+        "type": "state",
+        "check": { "total": 15 }
+      },
+      "codeTests": [
+        { "pattern": "for|while", "message": "Use a loop to add up the numbers" },
+        { "pattern": "total\\s*=\\s*total\\s*\\+|total\\s*\\+=", "message": "Accumulate into 'total' inside the loop (total = total + ...)" }
+      ]
+    },
+    {
+      "type": "explanation",
+      "title": "Break",
+      "content": "Sometimes you want to stop a loop early. The 'break' keyword immediately exits the loop — Python jumps to the first line after the loop. This is useful when you're searching for something and want to stop as soon as you find it.",
+      "code": "for num in [1, 2, 3, 4, 5]:\n    if num == 3:\n        break\n    print(num)\nprint(\"done\")",
+      "highlights": [
+        { "lines": [2, 3], "note": "When num equals 3, 'break' stops the loop immediately. We never get to print 3, 4, or 5." },
+        { "lines": [5], "note": "After break, Python continues here — the first line after the loop." }
+      ]
+    },
+    {
+      "type": "stepper",
+      "title": "Watch: Break",
+      "code": "for num in [1, 2, 3, 4, 5]:\n    if num == 3:\n        break\n    print(num)\nprint(\"done\")",
+      "trace": [
+        { "line": 1, "state": { "num": 1 }, "output": [], "eval": "num = 1 (item 1 of 5)" },
+        { "line": 2, "state": { "num": 1 }, "output": [], "eval": "num == 3 → 1 == 3 → False" },
+        { "line": 4, "state": { "num": 1 }, "output": ["1"], "eval": null },
+        { "line": 1, "state": { "num": 2 }, "output": ["1"], "eval": "num = 2 (item 2 of 5)" },
+        { "line": 2, "state": { "num": 2 }, "output": ["1"], "eval": "num == 3 → 2 == 3 → False" },
+        { "line": 4, "state": { "num": 2 }, "output": ["1", "2"], "eval": null },
+        { "line": 1, "state": { "num": 3 }, "output": ["1", "2"], "eval": "num = 3 (item 3 of 5)" },
+        { "line": 2, "state": { "num": 3 }, "output": ["1", "2"], "eval": "num == 3 → 3 == 3 → True" },
+        { "line": 3, "state": { "num": 3 }, "output": ["1", "2"], "eval": "break! Exit the loop" },
+        { "line": 5, "state": { "num": 3 }, "output": ["1", "2", "done"], "eval": null }
+      ]
+    },
+    {
+      "type": "quiz-choice",
+      "question": "What does this code print?",
+      "code": "i = 0\nwhile i < 10:\n    if i == 4:\n        break\n    print(i)\n    i = i + 1",
+      "choices": ["0 1 2 3 4", "0 1 2 3", "1 2 3 4", "0 1 2 3 4 5 6 7 8 9"],
+      "answer": 1
+    },
+    {
+      "type": "quiz-code",
+      "question": "Loop through numbers 1 to 10 using range(). Print each number, but break out of the loop when you reach 6 (don't print 6).",
+      "starterCode": "# loop from 1 to 10, print each, but break when you reach 6\n",
+      "validation": {
+        "type": "output",
+        "expected": ["1", "2", "3", "4", "5"]
+      },
+      "codeTests": [
+        { "pattern": "break", "message": "Use 'break' to stop the loop when you reach 6" },
+        { "pattern": "range\\s*\\(", "message": "Use range() to loop through numbers" }
+      ]
+    },
+    {
+      "type": "quiz-code",
+      "question": "Final challenge! Use a while loop to keep doubling a number starting from 1 until it's greater than 50. Print each value.",
+      "starterCode": "num = 1\n# keep doubling num and printing it while it's <= 50\n",
+      "validation": {
+        "type": "output",
+        "expected": ["1", "2", "4", "8", "16", "32"]
+      },
+      "codeTests": [
+        { "pattern": "while", "message": "Use a while loop" },
+        { "pattern": "num\\s*=\\s*num\\s*\\*\\s*2|num\\s*\\*=\\s*2|num\\s*=\\s*2\\s*\\*\\s*num", "message": "Double 'num' inside the loop (num = num * 2)" }
+      ]
+    }
+  ]
 }

@@ -290,38 +290,37 @@
     {
       "type": "quiz-choice",
       "question": "What does this code print?",
-      "code": "for i in range(1, 4):\n    if i % 2 == 1:\n        for j in range(2):\n            print(i)",
-      "choices": ["1 1 3 3", "1 2 3", "1 1 2 2 3 3", "1 3"],
+      "code": "for i in range(1, 3):\n    for j in range(1, 3):\n        print(i + j)",
+      "choices": ["2  3  3  4", "1  2  2  4", "2  4", "3  3"],
       "answer": 0
     },
     {
       "type": "quiz-code",
-      "question": "Use a nested loop to print all pairs where i goes 1-3 and j goes 1-2. Print each pair as i * j = result (e.g. \"1 * 1 = 1\").",
-      "starterCode": "# print multiplication pairs\n# example output line: \"1 * 1 = 1\"\n",
+      "question": "Use a nested loop to print every row/col pair. The outer loop goes from 1 to 3 (row), and the inner loop goes from 1 to 2 (col). Use print(row, col) to print each pair.",
+      "starterCode": "# print row/col pairs using nested loops\n",
       "validation": {
         "type": "output",
-        "expected": ["1 * 1 = 1", "1 * 2 = 2", "2 * 1 = 2", "2 * 2 = 4", "3 * 1 = 3", "3 * 2 = 6"]
+        "expected": ["1 1", "1 2", "2 1", "2 2", "3 1", "3 2"]
       },
       "codeTests": [
         { "pattern": "for[\\s\\S]*for", "message": "Use nested loops (a for loop inside another for loop)" },
-        { "pattern": "range\\s*\\(\\s*1\\s*,\\s*4\\s*\\)", "message": "Use range(1, 4) for the outer loop (i goes 1-3)" },
-        { "pattern": "range\\s*\\(\\s*1\\s*,\\s*3\\s*\\)", "message": "Use range(1, 3) for the inner loop (j goes 1-2)" },
-        { "pattern": "i\\s*\\*\\s*j|j\\s*\\*\\s*i", "message": "Calculate i * j to get the result" }
+        { "pattern": "range\\s*\\(\\s*1\\s*,\\s*4\\s*\\)", "message": "Use range(1, 4) for the outer loop so row goes 1, 2, 3" },
+        { "pattern": "range\\s*\\(\\s*1\\s*,\\s*3\\s*\\)", "message": "Use range(1, 3) for the inner loop so col goes 1, 2" }
       ]
     },
     {
       "type": "quiz-code",
-      "question": "Final challenge! Loop through numbers 1-20. For each number: if it's divisible by both 3 and 5, print \"FizzBuzz\". If only by 3, print \"Fizz\". If only by 5, print \"Buzz\". Otherwise print the number.",
-      "starterCode": "# FizzBuzz from 1 to 20\n",
+      "question": "Loop through numbers 1 to 10. If a number is divisible by 3, print \"Fizz\". Otherwise, print the number. (Hint: use % 3 == 0 to check divisibility.)",
+      "starterCode": "# Fizz from 1 to 10\n",
       "validation": {
         "type": "output",
-        "expected": ["1", "2", "Fizz", "4", "Buzz", "Fizz", "7", "8", "Fizz", "Buzz", "11", "Fizz", "13", "14", "FizzBuzz", "16", "17", "Fizz", "19", "Buzz"]
+        "expected": ["1", "2", "Fizz", "4", "5", "Fizz", "7", "8", "Fizz", "10"]
       },
       "codeTests": [
-        { "pattern": "for|while", "message": "Use a loop to go through numbers 1-20" },
-        { "pattern": "%\\s*15|%\\s*3[^0-9].*%\\s*5|%\\s*5[^0-9].*%\\s*3", "message": "Check divisibility using % (modulo)" },
-        { "pattern": "FizzBuzz", "message": "Print \"FizzBuzz\" for numbers divisible by both 3 and 5" },
-        { "pattern": "elif", "message": "Use elif to check each condition (FizzBuzz, Fizz, Buzz) separately" }
+        { "pattern": "for|while", "message": "Use a loop to go through numbers 1-10" },
+        { "pattern": "range", "message": "Use range() to generate numbers 1 to 10" },
+        { "pattern": "if", "message": "Use an if statement to check if the number is divisible by 3" },
+        { "pattern": "%\\s*3", "message": "Use % 3 == 0 to check if a number is divisible by 3" }
       ]
     }
   ]

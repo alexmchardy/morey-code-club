@@ -1042,6 +1042,58 @@
       return keys;
     }
 
+    // ── FSRS deck storage ──
+    const FSRS_STORAGE_KEY = 'tt-fsrs-cards';
+
+    function loadFsrsData() {
+      try { return JSON.parse(localStorage.getItem(FSRS_STORAGE_KEY)) || {}; }
+      catch { return {}; }
+    }
+
+    function saveFsrsData(data) {
+      localStorage.setItem(FSRS_STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function serializeCard(card) {
+      return {
+        ...card,
+        due: card.due.toISOString(),
+        last_review: card.last_review ? card.last_review.toISOString() : null,
+      };
+    }
+
+    function deserializeCard(raw) {
+      return {
+        ...raw,
+        due: new Date(raw.due),
+        last_review: raw.last_review ? new Date(raw.last_review) : undefined,
+      };
+    }
+
+    function syncEligibleCards(deck) {
+      allPossibleKeys().forEach(key => {
+        if (isEligible(key, deck.includedTables) && !deck.cards[key]) {
+          deck.cards[key] = serializeCard(createEmptyCard());
+        }
+      });
+    }
+
+    function getStudentDeck(name) {
+      const data = loadFsrsData();
+      if (!data[name]) {
+        data[name] = { includedTables: [...TABLES], cards: {} };
+      }
+      syncEligibleCards(data[name]);
+      saveFsrsData(data);
+      return data[name];
+    }
+
+    function saveStudentDeck(name, deck) {
+      const data = loadFsrsData();
+      data[name] = deck;
+      saveFsrsData(data);
+    }
+
     let selectedTables = new Set();
     let mode = 'count';
     let questionLimit = 20;

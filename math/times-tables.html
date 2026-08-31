@@ -753,6 +753,37 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    .checkpoint-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 10, 46, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 16px;
+    }
+    .checkpoint-card {
+      background: var(--surface);
+      border: 2px solid var(--accent);
+      border-radius: 14px;
+      padding: 28px;
+      text-align: center;
+      max-width: 360px;
+      box-shadow: 0 0 30px rgba(0, 229, 255, 0.3);
+    }
+    .checkpoint-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    body.light .checkpoint-card {
+      background: #fff;
+      border-color: var(--accent);
+    }
+
     /* ── THEME TOGGLE ── */
 
     .theme-toggle {
@@ -1047,6 +1078,17 @@
         <button class="submit-btn" id="submitBtn">GO</button>
       </div>
       <div class="help-row" id="helpRow"></div>
+      <button class="shortcut-btn" id="stopNowBtn" style="display:none; margin: 16px auto 0; display:block;">Stop now</button>
+    </div>
+
+    <div class="checkpoint-overlay" id="checkpointOverlay" style="display:none">
+      <div class="checkpoint-card">
+        <h2>Nice work! &#127881;</h2>
+        <div class="checkpoint-actions">
+          <button class="play-again-btn" id="keepGoingBtn">Keep going</button>
+          <button class="shortcut-btn" id="stopFromCheckpointBtn">Stop now</button>
+        </div>
+      </div>
     </div>
 
     <!-- ── RESULTS SCREEN ── -->
@@ -1229,7 +1271,7 @@
         sessionState.newIntroducedInBlock++;
         return key;
       }
-      return due[0];
+      return due[0] ?? null;
     }
 
     function questionFromKey(key) {
@@ -1261,6 +1303,10 @@
     let currentPlayer = '';
     let manualModeChosen = false;
     let currentDeck = null;
+    let practiceMode = 'manual';
+    let sessionState = null;
+    let questionsAnswered = 0;
+    const CHECKPOINT_SIZE = 20;
 
     function loadDeckForCurrentPlayer() {
       if (!currentPlayer) {
@@ -1304,6 +1350,10 @@
     const alltimeSection = document.getElementById('alltimeSection');
     const alltimeHeading = document.getElementById('alltimeHeading');
     const alltimeGrid = document.getElementById('alltimeGrid');
+    const stopNowBtn = document.getElementById('stopNowBtn');
+    const checkpointOverlay = document.getElementById('checkpointOverlay');
+    const keepGoingBtn = document.getElementById('keepGoingBtn');
+    const stopFromCheckpointBtn = document.getElementById('stopFromCheckpointBtn');
 
     // ── Collapsible sections ──
     document.getElementById('manualToggle').addEventListener('click', () => {
@@ -1489,10 +1539,7 @@
       currentPlayer = nameInput.value.trim();
       if (!currentPlayer) return;
       localStorage.setItem('tt-last-player', currentPlayer);
-
-      if (mode === 'count') {
-        questionLimit = Math.max(5, Math.min(100, parseInt(questionCountInput.value) || 20));
-      }
+      currentDeck = getStudentDeck(currentPlayer);
 
       questions = [];
       currentIndex = 0;
@@ -1504,21 +1551,38 @@
       perTable = {};
       lastQuestion = null;
       isTransitioning = false;
+      questionsAnswered = 0;
+      stopNowBtn.style.display = 'none';
 
-      if (mode === 'count') {
-        for (let i = 0; i < questionLimit; i++) {
+      practiceMode = manualModeChosen ? 'manual' : 'default';
+
+      if (practiceMode === 'manual') {
+        if (mode === 'count') {
+          questionLimit = Math.max(5, Math.min(100, parseInt(questionCountInput.value) || 20));
+        }
+        if (mode === 'count') {
+          for (let i = 0; i < questionLimit; i++) {
+            questions.push(generateQuestion());
+          }
+        } else {
           questions.push(generateQuestion());
         }
+        hudTimerWrap.style.display = mode === 'timed' ? '' : 'none';
+        if (mode === 'timed') {
+          timeRemaining = timeLimit;
+          hudTimer.textContent = timeRemaining;
+          startTimer();
+        }
       } else {
-        questions.push(generateQuestion());
-      }
-
-      hudTimerWrap.style.display = mode === 'timed' ? '' : 'none';
-
-      if (mode === 'timed') {
-        timeRemaining = timeLimit;
-        hudTimer.textContent = timeRemaining;
-        startTimer();
+        hudTimerWrap.style.display = 'none';
+        sessionState = createSessionState();
+        const firstKey = pickNextCard(currentDeck, sessionState);
+        if (firstKey === null) {
+          // Nothing due or new for the current table selection — nothing to practice.
+          alert("No cards to practice yet! Try selecting more tables under Included tables.");
+          return;
+        }
+        questions.push(questionFromKey(firstKey));
       }
 
       showScreen(practiceScreen);
@@ -1551,7 +1615,7 @@
       numA.textContent = q.a;
       numB.textContent = q.b;
 
-      if (mode === 'count') {
+      if (practiceMode === 'manual' && mode === 'count') {
         hudProgress.textContent = (currentIndex + 1) + ' / ' + questions.length;
       } else {
         hudProgress.textContent = '' + (currentIndex + 1);
@@ -1565,6 +1629,7 @@
       helpRow.innerHTML = '';
       answerInput.focus();
       questionStartTime = performance.now();
+      stopNowBtn.style.display = (practiceMode === 'default' && questionsAnswered >= CHECKPOINT_SIZE) ? 'block' : 'none';
     }
 
     // ── Submit answer ──
@@ -1610,6 +1675,13 @@
 
         setTimeout(() => {
           isTransitioning = false;
+          if (practiceMode === 'default') {
+            questionsAnswered++;
+            if (questionsAnswered % CHECKPOINT_SIZE === 0) {
+              showCheckpoint();
+              return;
+            }
+          }
           advance();
         }, 400);
       } else {
@@ -1644,6 +1716,20 @@
     function advance() {
       currentIndex++;
 
+      if (practiceMode === 'default') {
+        const nextKey = pickNextCard(currentDeck, sessionState);
+        if (nextKey === null) {
+          finishPractice();
+          return;
+        }
+        sessionState.newIntroducedInBlock = questionsAnswered % CHECKPOINT_SIZE === 0
+          ? 0
+          : sessionState.newIntroducedInBlock;
+        questions.push(questionFromKey(nextKey));
+        showQuestion();
+        return;
+      }
+
       if (mode === 'count' && currentIndex >= questions.length) {
         finishPractice();
         return;
@@ -1659,6 +1745,26 @@
 
       showQuestion();
     }
+
+    function showCheckpoint() {
+      checkpointOverlay.style.display = 'flex';
+    }
+
+    keepGoingBtn.addEventListener('click', () => {
+      checkpointOverlay.style.display = 'none';
+      sessionState.newIntroducedInBlock = 0;
+      stopNowBtn.style.display = 'block';
+      advance();
+    });
+
+    stopFromCheckpointBtn.addEventListener('click', () => {
+      checkpointOverlay.style.display = 'none';
+      finishPractice();
+    });
+
+    stopNowBtn.addEventListener('click', () => {
+      finishPractice();
+    });
 
     function finishPractice() {
       if (timerInterval) {

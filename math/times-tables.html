@@ -1097,6 +1097,10 @@
         <h2 id="resultsHeading">Nice Work!</h2>
       </div>
       <div class="stats-grid" id="statsGrid"></div>
+      <div class="breakdown-section" id="masterySection" style="display:none">
+        <h3>Mastery</h3>
+        <div class="breakdown-grid" id="masteryGrid"></div>
+      </div>
       <div class="breakdown-section" id="breakdownSection">
         <h3>Per-Table Breakdown</h3>
         <div class="breakdown-grid" id="breakdownGrid"></div>
@@ -1178,6 +1182,25 @@
           deck.cards[key] = serializeCard(createEmptyCard());
         }
       });
+    }
+
+    // ── Mastery buckets ──
+    const MASTERED_STABILITY_DAYS = 21;
+
+    function masteryBuckets(deck) {
+      const buckets = { new: 0, learning: 0, review: 0, mastered: 0 };
+      Object.keys(deck.cards)
+        .filter(key => isEligible(key, deck.includedTables))
+        .forEach(key => {
+          const card = deserializeCard(deck.cards[key]);
+          if (card.state === State.New) buckets.new++;
+          else if (card.state === State.Learning || card.state === State.Relearning) buckets.learning++;
+          else if (card.state === State.Review) {
+            if (card.stability >= MASTERED_STABILITY_DAYS) buckets.mastered++;
+            else buckets.review++;
+          }
+        });
+      return buckets;
     }
 
     function getStudentDeck(name) {
@@ -1341,6 +1364,8 @@
     const statsGrid = document.getElementById('statsGrid');
     const breakdownSection = document.getElementById('breakdownSection');
     const breakdownGrid = document.getElementById('breakdownGrid');
+    const masterySection = document.getElementById('masterySection');
+    const masteryGrid = document.getElementById('masteryGrid');
     const playAgainBtn = document.getElementById('playAgainBtn');
     const helpRow = document.getElementById('helpRow');
     const themeToggle = document.getElementById('themeToggle');
@@ -1843,6 +1868,31 @@
         }).join('');
       } else {
         breakdownSection.style.display = 'none';
+      }
+
+      if (practiceMode === 'default' && currentDeck) {
+        const buckets = masteryBuckets(currentDeck);
+        masterySection.style.display = '';
+        masteryGrid.innerHTML = `
+          <div class="breakdown-item">
+            <div class="breakdown-table">New</div>
+            <div class="breakdown-pct needs-work">${buckets.new}</div>
+          </div>
+          <div class="breakdown-item">
+            <div class="breakdown-table">Learning</div>
+            <div class="breakdown-pct good">${buckets.learning}</div>
+          </div>
+          <div class="breakdown-item">
+            <div class="breakdown-table">Review</div>
+            <div class="breakdown-pct good">${buckets.review}</div>
+          </div>
+          <div class="breakdown-item">
+            <div class="breakdown-table">Mastered</div>
+            <div class="breakdown-pct perfect">${buckets.mastered}</div>
+          </div>
+        `;
+      } else {
+        masterySection.style.display = 'none';
       }
 
       renderAlltimeStats();

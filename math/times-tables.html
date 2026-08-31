@@ -1007,10 +1007,40 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    import * as tsFsrs from 'https://cdn.jsdelivr.net/npm/ts-fsrs@latest/+esm';
+    const { createEmptyCard, fsrs, Rating, State } = tsFsrs;
+
     const TABLES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
     const TIME_OPTIONS = [30, 60, 90, 120];
     const HARD_TABLES = [6, 7, 8, 9, 12];
+
+    // ── FSRS card keys ──
+    function cardKey(a, b) {
+      const lo = Math.min(a, b);
+      const hi = Math.max(a, b);
+      return `${lo}x${hi}`;
+    }
+
+    function pairFromKey(key) {
+      const [lo, hi] = key.split('x').map(Number);
+      return { lo, hi };
+    }
+
+    function isEligible(key, includedTables) {
+      const { lo, hi } = pairFromKey(key);
+      return includedTables.includes(lo) || includedTables.includes(hi);
+    }
+
+    function allPossibleKeys() {
+      const keys = [];
+      for (let i = 1; i <= 12; i++) {
+        for (let j = i; j <= 12; j++) {
+          keys.push(cardKey(i, j));
+        }
+      }
+      return keys;
+    }
 
     let selectedTables = new Set();
     let mode = 'count';

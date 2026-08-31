@@ -334,6 +334,53 @@
       color: var(--accent);
     }
 
+    .collapsible {
+      margin-bottom: 16px;
+    }
+    .collapsible-toggle {
+      font-family: 'Cause', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      width: 100%;
+      text-align: left;
+      padding: 12px 14px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .collapsible-toggle:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+    .collapsible-toggle .arrow {
+      display: inline-block;
+      transition: transform 0.15s;
+      margin-right: 6px;
+    }
+    .collapsible.open .collapsible-toggle .arrow {
+      transform: rotate(90deg);
+    }
+    .collapsible-body {
+      display: none;
+      padding-top: 14px;
+    }
+    .collapsible.open .collapsible-body {
+      display: block;
+    }
+
+    body.light .collapsible-toggle {
+      background: #fff;
+      border-color: rgba(0,0,0,0.12);
+      color: #888;
+    }
+    body.light .collapsible-toggle:hover {
+      border-color: var(--accent);
+      color: #444;
+    }
+
     /* ── PRACTICE ── */
 
     .hud {
@@ -928,32 +975,45 @@
         <div class="saved-names" id="savedNames"></div>
       </div>
 
-      <div class="section-label">Pick your tables</div>
-      <div class="select-shortcuts">
-        <button class="shortcut-btn" data-action="all">All</button>
-        <button class="shortcut-btn" data-action="none">None</button>
-        <button class="shortcut-btn" data-action="hard">Hard ones</button>
-      </div>
-      <div class="table-grid" id="tableGrid"></div>
-
-      <div class="section-label">Mode</div>
-      <div class="mode-row">
-        <button class="mode-btn selected" data-mode="count"># of Questions</button>
-        <button class="mode-btn" data-mode="timed">Timed Race</button>
-      </div>
-
-      <div class="mode-config" id="modeConfig">
-        <div id="countConfig">
-          <label>How many questions?</label>
-          <input type="number" id="questionCount" value="20" min="5" max="100" step="5">
-        </div>
-        <div id="timedConfig" style="display:none">
-          <label>How long?</label>
-          <div class="time-options" id="timeOptions"></div>
-        </div>
-      </div>
-
       <button class="start-btn" id="startBtn" disabled>GO!</button>
+
+      <div class="collapsible" id="manualCollapsible">
+        <button class="collapsible-toggle" id="manualToggle" type="button">
+          <span class="arrow">&#9656;</span>Manual practice
+        </button>
+        <div class="collapsible-body" id="manualBody">
+          <div class="section-label">Mode</div>
+          <div class="mode-row">
+            <button class="mode-btn selected" data-mode="count"># of Questions</button>
+            <button class="mode-btn" data-mode="timed">Timed Race</button>
+          </div>
+
+          <div class="mode-config" id="modeConfig">
+            <div id="countConfig">
+              <label>How many questions?</label>
+              <input type="number" id="questionCount" value="20" min="5" max="100" step="5">
+            </div>
+            <div id="timedConfig" style="display:none">
+              <label>How long?</label>
+              <div class="time-options" id="timeOptions"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="collapsible" id="tablesCollapsible">
+        <button class="collapsible-toggle" id="tablesToggle" type="button">
+          <span class="arrow">&#9656;</span>Included tables
+        </button>
+        <div class="collapsible-body" id="tablesBody">
+          <div class="select-shortcuts">
+            <button class="shortcut-btn" data-action="all">All</button>
+            <button class="shortcut-btn" data-action="none">None</button>
+            <button class="shortcut-btn" data-action="hard">Hard ones</button>
+          </div>
+          <div class="table-grid" id="tableGrid"></div>
+        </div>
+      </div>
     </div>
 
     <!-- ── PRACTICE SCREEN ── -->
@@ -1147,6 +1207,7 @@
     let wrongTriesForQuestion = 0;
     let helpRevealed = false;
     let currentPlayer = '';
+    let manualModeChosen = false;
 
     // ── DOM refs ──
     const setupScreen = document.getElementById('setupScreen');
@@ -1180,6 +1241,15 @@
     const alltimeSection = document.getElementById('alltimeSection');
     const alltimeHeading = document.getElementById('alltimeHeading');
     const alltimeGrid = document.getElementById('alltimeGrid');
+
+    // ── Collapsible sections ──
+    document.getElementById('manualToggle').addEventListener('click', () => {
+      manualModeChosen = true;
+      document.getElementById('manualCollapsible').classList.toggle('open');
+    });
+    document.getElementById('tablesToggle').addEventListener('click', () => {
+      document.getElementById('tablesCollapsible').classList.toggle('open');
+    });
 
     // ── Player name & saved stats ──
     const STORAGE_KEY = 'tt-players';
@@ -1318,7 +1388,7 @@
     });
 
     function updateStartBtn() {
-      startBtn.disabled = selectedTables.size === 0 || !currentPlayer;
+      startBtn.disabled = !currentPlayer;
     }
 
     // ── Generate a question ──

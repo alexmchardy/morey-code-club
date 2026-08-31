@@ -1114,7 +1114,7 @@
   </div>
 
   <script type="module">
-    import * as tsFsrs from 'https://cdn.jsdelivr.net/npm/ts-fsrs@latest/+esm';
+    import * as tsFsrs from 'https://cdn.jsdelivr.net/npm/ts-fsrs@5.4.1/+esm';
     const { createEmptyCard, fsrs, Rating, State } = tsFsrs;
 
     const TABLES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
@@ -1203,14 +1203,15 @@
       return buckets;
     }
 
+    // Read-only: builds/returns a fully-populated in-memory deck for `name`,
+    // but never persists. Callers that mutate the deck must call
+    // saveStudentDeck() explicitly — this keeps every-keystroke preview reads
+    // (e.g. while typing a name) from writing a localStorage entry.
     function getStudentDeck(name) {
       const data = loadFsrsData();
-      if (!data[name]) {
-        data[name] = { includedTables: [...TABLES], cards: {} };
-      }
-      syncEligibleCards(data[name]);
-      saveFsrsData(data);
-      return data[name];
+      const deck = data[name] || { includedTables: [...TABLES], cards: {} };
+      syncEligibleCards(deck);
+      return deck;
     }
 
     function saveStudentDeck(name, deck) {
@@ -1242,6 +1243,7 @@
     }
 
     function recordAnswer(deck, key, wrongTries, elapsedMs, now = new Date()) {
+      if (!deck.cards[key]) deck.cards[key] = serializeCard(createEmptyCard());
       const before = deserializeCard(deck.cards[key]);
       const rating = deriveRating(before, wrongTries, elapsedMs);
       const avgCorrectMs = nextAvg(before, wrongTries, elapsedMs);
@@ -1286,7 +1288,10 @@
       if (due.length === 0 && fresh.length === 0) return null;
 
       const capReached = sessionState.newIntroducedInBlock >= NEW_CARD_CAP_PER_BLOCK;
-      const introduceNew = fresh.length > 0 && !capReached && (due.length === 0 || Math.random() < 0.3);
+      // The cap only throttles interleaving pace when there's a mix of due + new
+      // cards to choose from. When nothing is due, new cards are the only thing
+      // left to show, so the cap must not act as a hard session-ending wall.
+      const introduceNew = fresh.length > 0 && (due.length === 0 || (!capReached && Math.random() < 0.3));
 
       if (introduceNew) {
         const key = fresh[Math.floor(Math.random() * fresh.length)];
@@ -1329,6 +1334,7 @@
     let practiceMode = 'manual';
     let sessionState = null;
     let questionsAnswered = 0;
+    let sessionEnded = false;
     const CHECKPOINT_SIZE = 20;
 
     function loadDeckForCurrentPlayer() {
@@ -1382,7 +1388,6 @@
 
     // ── Collapsible sections ──
     document.getElementById('manualToggle').addEventListener('click', () => {
-      manualModeChosen = true;
       document.getElementById('manualCollapsible').classList.toggle('open');
     });
     document.getElementById('tablesToggle').addEventListener('click', () => {
@@ -1462,6 +1467,7 @@
     }
     renderSavedNames();
     updateStartBtn();
+    updateGoButtonLabel();
     loadDeckForCurrentPlayer();
 
     // ── Build table buttons ──
@@ -1531,11 +1537,17 @@
         btn.classList.add('selected');
         countConfig.style.display = mode === 'count' ? '' : 'none';
         timedConfig.style.display = mode === 'timed' ? '' : 'none';
+        manualModeChosen = true;
+        updateGoButtonLabel();
       });
     });
 
     function updateStartBtn() {
       startBtn.disabled = !currentPlayer;
+    }
+
+    function updateGoButtonLabel() {
+      startBtn.textContent = manualModeChosen ? 'GO! (Manual)' : 'GO!';
     }
 
     // ── Generate a manual-mode question ──
@@ -1565,6 +1577,7 @@
       if (!currentPlayer) return;
       localStorage.setItem('tt-last-player', currentPlayer);
       currentDeck = getStudentDeck(currentPlayer);
+      saveStudentDeck(currentPlayer, currentDeck);
 
       questions = [];
       currentIndex = 0;
@@ -1577,6 +1590,7 @@
       lastQuestion = null;
       isTransitioning = false;
       questionsAnswered = 0;
+      sessionEnded = false;
       stopNowBtn.style.display = 'none';
 
       practiceMode = manualModeChosen ? 'manual' : 'default';
@@ -1667,7 +1681,7 @@
     });
 
     function recordPerTable(q, correct) {
-      [q.a, q.b].forEach(t => {
+      [...new Set([q.a, q.b])].forEach(t => {
         if (!perTable[t]) perTable[t] = { correct: 0, total: 0 };
         perTable[t].total++;
         if (correct) perTable[t].correct++;
@@ -1700,6 +1714,7 @@
 
         setTimeout(() => {
           isTransitioning = false;
+          if (sessionEnded) return;
           if (practiceMode === 'default') {
             questionsAnswered++;
             if (questionsAnswered % CHECKPOINT_SIZE === 0) {
@@ -1747,9 +1762,6 @@
           finishPractice();
           return;
         }
-        sessionState.newIntroducedInBlock = questionsAnswered % CHECKPOINT_SIZE === 0
-          ? 0
-          : sessionState.newIntroducedInBlock;
         questions.push(questionFromKey(nextKey));
         showQuestion();
         return;
@@ -1796,6 +1808,8 @@
     });
 
     function finishPractice() {
+      if (sessionEnded) return;
+      sessionEnded = true;
       if (timerInterval) {
         cancelAnimationFrame(timerInterval);
         timerInterval = null;
@@ -1989,6 +2003,8 @@
 
     // ── Play Again ──
     playAgainBtn.addEventListener('click', () => {
+      manualModeChosen = false;
+      updateGoButtonLabel();
       showScreen(setupScreen);
     });
   </script>

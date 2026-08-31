@@ -1410,9 +1410,9 @@
       startBtn.disabled = !currentPlayer;
     }
 
-    // ── Generate a question ──
+    // ── Generate a manual-mode question ──
     function generateQuestion() {
-      const tables = [...selectedTables];
+      const tables = currentDeck.includedTables.length > 0 ? currentDeck.includedTables : [...TABLES];
       let a, b;
       const maxAttempts = 20;
       for (let i = 0; i < maxAttempts; i++) {
@@ -1420,7 +1420,7 @@
         b = Math.floor(Math.random() * 12) + 1;
         if (!lastQuestion || a !== lastQuestion.a || b !== lastQuestion.b) break;
       }
-      const q = { a, b, answer: a * b };
+      const q = { a, b, answer: a * b, key: cardKey(a, b) };
       lastQuestion = q;
       return q;
     }
@@ -1451,10 +1451,6 @@
       perTable = {};
       lastQuestion = null;
       isTransitioning = false;
-
-      selectedTables.forEach(t => {
-        perTable[t] = { correct: 0, total: 0 };
-      });
 
       if (mode === 'count') {
         for (let i = 0; i < questionLimit; i++) {
@@ -1527,6 +1523,14 @@
       if (e.key === 'Enter') checkAnswer();
     });
 
+    function recordPerTable(q, correct) {
+      [q.a, q.b].forEach(t => {
+        if (!perTable[t]) perTable[t] = { correct: 0, total: 0 };
+        perTable[t].total++;
+        if (correct) perTable[t].correct++;
+      });
+    }
+
     function checkAnswer() {
       if (isTransitioning) return;
 
@@ -1544,8 +1548,9 @@
         if (currentStreak > bestStreak) bestStreak = currentStreak;
         answerTimes.push(elapsed);
 
-        perTable[q.a].correct++;
-        perTable[q.a].total++;
+        recordPerTable(q, true);
+        recordAnswer(currentDeck, q.key, wrongTriesForQuestion, elapsed * 1000);
+        saveStudentDeck(currentPlayer, currentDeck);
 
         answerInput.classList.add('correct');
         spawnPlusOne();
@@ -1558,7 +1563,7 @@
         wrongCount++;
         currentStreak = 0;
         wrongTriesForQuestion++;
-        perTable[q.a].total++;
+        recordPerTable(q, false);
 
         answerInput.classList.add('wrong');
         answerInput.addEventListener('animationend', function onEnd() {

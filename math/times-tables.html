@@ -1094,6 +1094,38 @@
       saveFsrsData(data);
     }
 
+    // ── FSRS rating derivation ──
+    const scheduler = fsrs();
+
+    function deriveRating(card, wrongTries, elapsedMs) {
+      if (wrongTries > 0) return Rating.Again;
+      const avg = card.avgCorrectMs ?? null;
+      if (avg == null) {
+        if (elapsedMs < 3000) return Rating.Easy;
+        if (elapsedMs <= 8000) return Rating.Good;
+        return Rating.Hard;
+      }
+      if (elapsedMs < avg * 0.6) return Rating.Easy;
+      if (elapsedMs <= avg * 1.5) return Rating.Good;
+      return Rating.Hard;
+    }
+
+    function nextAvg(card, wrongTries, elapsedMs) {
+      if (wrongTries > 0) return card.avgCorrectMs ?? null;
+      const avg = card.avgCorrectMs ?? null;
+      return avg == null ? elapsedMs : avg * 0.7 + elapsedMs * 0.3;
+    }
+
+    function recordAnswer(deck, key, wrongTries, elapsedMs, now = new Date()) {
+      const before = deserializeCard(deck.cards[key]);
+      const rating = deriveRating(before, wrongTries, elapsedMs);
+      const avgCorrectMs = nextAvg(before, wrongTries, elapsedMs);
+      const { card: after } = scheduler.next(before, now, rating);
+      after.avgCorrectMs = avgCorrectMs;
+      deck.cards[key] = serializeCard(after);
+      return { rating, card: after };
+    }
+
     let selectedTables = new Set();
     let mode = 'count';
     let questionLimit = 20;

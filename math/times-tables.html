@@ -1316,7 +1316,10 @@
     }
 
     // ── Submit answer ──
-    submitBtn.addEventListener('click', checkAnswer);
+    submitBtn.addEventListener('click', () => {
+      answerInput.focus();
+      checkAnswer();
+    });
     answerInput.addEventListener('keydown', e => {
       if (e.key === 'Enter') checkAnswer();
     });
@@ -1359,7 +1362,6 @@
           answerInput.removeEventListener('animationend', onEnd);
           answerInput.classList.remove('wrong');
           answerInput.select();
-          answerInput.focus();
         });
 
         if (wrongTriesForQuestion >= 3 && !helpRevealed) {

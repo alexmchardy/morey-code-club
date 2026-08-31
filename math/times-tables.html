@@ -1212,6 +1212,7 @@
     function loadDeckForCurrentPlayer() {
       if (!currentPlayer) {
         currentDeck = null;
+        renderTableGrid();
         return;
       }
       currentDeck = getStudentDeck(currentPlayer);

@@ -1186,7 +1186,6 @@
       return { rating, card: after };
     }
 
-    let selectedTables = new Set();
     let mode = 'count';
     let questionLimit = 20;
     let timeLimit = 60;
@@ -1208,6 +1207,16 @@
     let helpRevealed = false;
     let currentPlayer = '';
     let manualModeChosen = false;
+    let currentDeck = null;
+
+    function loadDeckForCurrentPlayer() {
+      if (!currentPlayer) {
+        currentDeck = null;
+        return;
+      }
+      currentDeck = getStudentDeck(currentPlayer);
+      renderTableGrid();
+    }
 
     // ── DOM refs ──
     const setupScreen = document.getElementById('setupScreen');
@@ -1304,6 +1313,7 @@
           nameInput.value = name;
           renderSavedNames();
           updateStartBtn();
+          loadDeckForCurrentPlayer();
         });
         savedNamesEl.appendChild(chip);
       });
@@ -1313,6 +1323,7 @@
       currentPlayer = nameInput.value.trim();
       renderSavedNames();
       updateStartBtn();
+      loadDeckForCurrentPlayer();
     });
 
     const lastPlayer = localStorage.getItem('tt-last-player') || '';
@@ -1322,44 +1333,51 @@
     }
     renderSavedNames();
     updateStartBtn();
+    loadDeckForCurrentPlayer();
 
     // ── Build table buttons ──
-    TABLES.forEach(n => {
-      const btn = document.createElement('button');
-      btn.className = 'table-btn';
-      btn.textContent = n + 's';
-      btn.addEventListener('click', () => {
-        if (selectedTables.has(n)) {
-          selectedTables.delete(n);
-          btn.classList.remove('selected');
-        } else {
-          selectedTables.add(n);
-          btn.classList.add('selected');
-        }
-        updateStartBtn();
+    function renderTableGrid() {
+      tableGrid.innerHTML = '';
+      const included = currentDeck ? currentDeck.includedTables : [...TABLES];
+      TABLES.forEach(n => {
+        const btn = document.createElement('button');
+        btn.className = 'table-btn' + (included.includes(n) ? ' selected' : '');
+        btn.textContent = n + 's';
+        btn.addEventListener('click', () => toggleTable(n, btn));
+        tableGrid.appendChild(btn);
       });
-      tableGrid.appendChild(btn);
-    });
+    }
+
+    function toggleTable(n, btn) {
+      if (!currentDeck) return;
+      const included = currentDeck.includedTables;
+      const idx = included.indexOf(n);
+      if (idx >= 0) {
+        included.splice(idx, 1);
+        btn.classList.remove('selected');
+      } else {
+        included.push(n);
+        btn.classList.add('selected');
+      }
+      syncEligibleCards(currentDeck);
+      saveStudentDeck(currentPlayer, currentDeck);
+    }
 
     // ── Shortcut buttons ──
     document.querySelectorAll('.shortcut-btn').forEach(btn => {
       btn.addEventListener('click', () => {
+        if (!currentDeck) return;
         const action = btn.dataset.action;
-        const allBtns = tableGrid.querySelectorAll('.table-btn');
         if (action === 'all') {
-          selectedTables = new Set(TABLES);
-          allBtns.forEach(b => b.classList.add('selected'));
+          currentDeck.includedTables = [...TABLES];
         } else if (action === 'none') {
-          selectedTables.clear();
-          allBtns.forEach(b => b.classList.remove('selected'));
+          currentDeck.includedTables = [];
         } else if (action === 'hard') {
-          selectedTables = new Set(HARD_TABLES);
-          allBtns.forEach((b, i) => {
-            const n = TABLES[i];
-            b.classList.toggle('selected', HARD_TABLES.includes(n));
-          });
+          currentDeck.includedTables = [...HARD_TABLES];
         }
-        updateStartBtn();
+        syncEligibleCards(currentDeck);
+        saveStudentDeck(currentPlayer, currentDeck);
+        renderTableGrid();
       });
     });
 

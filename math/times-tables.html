@@ -1747,13 +1747,17 @@
     }
 
     function showCheckpoint() {
+      isTransitioning = true;
       checkpointOverlay.style.display = 'flex';
+      answerInput.blur();
+      keepGoingBtn.focus();
     }
 
     keepGoingBtn.addEventListener('click', () => {
       checkpointOverlay.style.display = 'none';
       sessionState.newIntroducedInBlock = 0;
       stopNowBtn.style.display = 'block';
+      isTransitioning = false;
       advance();
     });
 

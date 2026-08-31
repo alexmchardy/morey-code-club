@@ -1186,6 +1186,59 @@
       return { rating, card: after };
     }
 
+    // ── Default-mode question selection ──
+    const NEW_CARD_CAP_PER_BLOCK = 10;
+
+    function createSessionState() {
+      return {
+        introducedKeys: new Set(),   // new cards already shown this session
+        newIntroducedInBlock: 0,     // resets every 20 questions (Task 8)
+      };
+    }
+
+    function eligibleKeys(deck) {
+      return Object.keys(deck.cards).filter(key => isEligible(key, deck.includedTables));
+    }
+
+    function dueReviewKeys(deck, now) {
+      return eligibleKeys(deck)
+        .map(key => ({ key, card: deserializeCard(deck.cards[key]) }))
+        .filter(({ card }) => card.state !== State.New && card.due <= now)
+        .sort((a, b) => a.card.due - b.card.due)
+        .map(({ key }) => key);
+    }
+
+    function freshNewKeys(deck, sessionState) {
+      return eligibleKeys(deck)
+        .filter(key => deserializeCard(deck.cards[key]).state === State.New)
+        .filter(key => !sessionState.introducedKeys.has(key));
+    }
+
+    function pickNextCard(deck, sessionState, now = new Date()) {
+      const due = dueReviewKeys(deck, now);
+      const fresh = freshNewKeys(deck, sessionState);
+
+      if (due.length === 0 && fresh.length === 0) return null;
+
+      const capReached = sessionState.newIntroducedInBlock >= NEW_CARD_CAP_PER_BLOCK;
+      const introduceNew = fresh.length > 0 && !capReached && (due.length === 0 || Math.random() < 0.3);
+
+      if (introduceNew) {
+        const key = fresh[Math.floor(Math.random() * fresh.length)];
+        sessionState.introducedKeys.add(key);
+        sessionState.newIntroducedInBlock++;
+        return key;
+      }
+      return due[0];
+    }
+
+    function questionFromKey(key) {
+      const { lo, hi } = pairFromKey(key);
+      const a = Math.random() < 0.5 ? lo : hi;
+      const b = a === lo ? hi : lo;
+      return { a, b, answer: a * b, key };
+    }
+
     let mode = 'count';
     let questionLimit = 20;
     let timeLimit = 60;

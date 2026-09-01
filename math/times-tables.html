@@ -290,6 +290,7 @@
       font-size: 14px;
       width: 100%;
       padding: 18px;
+      margin-bottom: 32px;
       border: none;
       border-radius: 10px;
       background: linear-gradient(135deg, var(--accent-pink), #c0399e);
@@ -464,26 +465,25 @@
     }
 
     .answer-area {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
+      display: inline-flex;
       align-items: center;
       position: relative;
     }
 
     .answer-input {
       font-family: 'Cause', sans-serif;
-      font-size: 32px;
+      font-size: 56px;
       font-weight: 700;
-      width: 140px;
-      padding: 12px 16px;
-      border: 3px solid var(--border);
-      border-radius: 10px;
-      background: var(--surface);
+      width: 2.75ch;
+      padding: 0;
+      margin: 0;
+      border: none;
+      border-radius: 0;
+      background: transparent;
       color: var(--text);
-      text-align: center;
+      text-align: left;
       outline: none;
-      transition: border-color 0.15s, background 0.15s;
+      transition: color 0.15s;
       -moz-appearance: textfield;
     }
     .answer-input::-webkit-outer-spin-button,
@@ -491,26 +491,17 @@
       -webkit-appearance: none;
       margin: 0;
     }
-    .answer-input:focus {
-      border-color: var(--accent);
-    }
     .answer-input.correct {
-      border-color: var(--accent-yellow);
-      background: rgba(255, 225, 77, 0.15);
-      box-shadow:
-        0 0 12px rgba(255, 225, 77, 0.5),
-        0 0 30px rgba(255, 225, 77, 0.3),
-        0 0 60px rgba(255, 225, 77, 0.15),
-        inset 0 0 15px rgba(255, 225, 77, 0.1);
+      color: var(--accent-yellow);
+      text-shadow:
+        0 0 12px rgba(255, 225, 77, 0.7),
+        0 0 30px rgba(255, 225, 77, 0.4);
     }
     .answer-input.wrong {
-      border-color: var(--accent-red);
-      background: rgba(255, 68, 68, 0.15);
-      box-shadow:
-        0 0 12px rgba(255, 68, 68, 0.5),
-        0 0 30px rgba(255, 68, 68, 0.3),
-        0 0 60px rgba(255, 68, 68, 0.15),
-        inset 0 0 15px rgba(255, 68, 68, 0.1);
+      color: var(--accent-red);
+      text-shadow:
+        0 0 12px rgba(255, 68, 68, 0.7),
+        0 0 30px rgba(255, 68, 68, 0.4);
       animation: shake 0.3s ease-out;
     }
 
@@ -524,24 +515,22 @@
       90% { transform: translateX(2px); }
     }
 
-    .submit-btn {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 11px;
-      padding: 14px 20px;
-      border: none;
-      border-radius: 10px;
-      background: var(--accent-green);
-      color: #0a2a14;
-      cursor: pointer;
-      transition: transform 0.1s, box-shadow 0.2s;
-      box-shadow: 0 3px 12px rgba(61, 220, 132, 0.3);
+    .answer-input.reveal {
+      color: var(--accent-pink);
+      text-shadow:
+        0 0 12px rgba(255, 79, 163, 0.7),
+        0 0 30px rgba(255, 79, 163, 0.4);
+      animation: revealPulse 2.5s ease-in-out infinite;
     }
-    .submit-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 5px 18px rgba(61, 220, 132, 0.4);
-    }
-    .submit-btn:active {
-      transform: translateY(0);
+
+    @keyframes revealPulse {
+      0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+      15% { transform: translate(-3px, 2px) scale(1.1) rotate(-4deg); }
+      30% { transform: translate(2px, -3px) scale(1.2) rotate(3deg); }
+      45% { transform: translate(-2px, 3px) scale(1.3) rotate(-3deg); }
+      60% { transform: translate(3px, 1px) scale(1.25) rotate(3deg); }
+      75% { transform: translate(-2px, -2px) scale(1.12) rotate(-2deg); }
+      90% { transform: translate(1px, 2px) scale(1) rotate(1deg); }
     }
 
     .plus-one {
@@ -856,29 +845,25 @@
     }
 
     body.light .answer-input {
-      background: #fff;
-      border-color: rgba(0,0,0,0.15);
       color: #2d2d2d;
     }
-    body.light .answer-input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 8px rgba(33, 150, 243, 0.2);
-    }
     body.light .answer-input.correct {
-      border-color: #f9a825;
-      background: rgba(249, 168, 37, 0.1);
-      box-shadow:
-        0 0 10px rgba(249, 168, 37, 0.4),
-        0 0 25px rgba(249, 168, 37, 0.2),
-        0 0 50px rgba(249, 168, 37, 0.1);
+      color: #f9a825;
+      text-shadow:
+        0 0 10px rgba(249, 168, 37, 0.5),
+        0 0 25px rgba(249, 168, 37, 0.25);
     }
     body.light .answer-input.wrong {
-      border-color: #d32f2f;
-      background: rgba(211, 47, 47, 0.08);
-      box-shadow:
-        0 0 10px rgba(211, 47, 47, 0.4),
-        0 0 25px rgba(211, 47, 47, 0.2),
-        0 0 50px rgba(211, 47, 47, 0.1);
+      color: #d32f2f;
+      text-shadow:
+        0 0 10px rgba(211, 47, 47, 0.5),
+        0 0 25px rgba(211, 47, 47, 0.25);
+    }
+    body.light .answer-input.reveal {
+      color: #c2185b;
+      text-shadow:
+        0 0 10px rgba(194, 24, 91, 0.5),
+        0 0 25px rgba(194, 24, 91, 0.25);
     }
 
     body.light .table-btn {
@@ -931,12 +916,6 @@
     }
     body.light .start-btn:hover {
       box-shadow: 0 6px 24px rgba(245, 127, 23, 0.45);
-    }
-
-    body.light .submit-btn {
-      background: #2e7d32;
-      color: #fff;
-      box-shadow: 0 3px 10px rgba(46, 125, 50, 0.25);
     }
 
     body.light .stat-card {
@@ -1008,6 +987,20 @@
 
       <button class="start-btn" id="startBtn" disabled>GO!</button>
 
+      <div class="collapsible" id="tablesCollapsible">
+        <button class="collapsible-toggle" id="tablesToggle" type="button">
+          <span class="arrow">&#9656;</span>Included tables
+        </button>
+        <div class="collapsible-body" id="tablesBody">
+          <div class="select-shortcuts">
+            <button class="shortcut-btn" data-action="all">All</button>
+            <button class="shortcut-btn" data-action="none">None</button>
+            <button class="shortcut-btn" data-action="hard">Hard ones</button>
+          </div>
+          <div class="table-grid" id="tableGrid"></div>
+        </div>
+      </div>
+
       <div class="collapsible" id="manualCollapsible">
         <button class="collapsible-toggle" id="manualToggle" type="button">
           <span class="arrow">&#9656;</span>Manual practice
@@ -1029,20 +1022,6 @@
               <div class="time-options" id="timeOptions"></div>
             </div>
           </div>
-        </div>
-      </div>
-
-      <div class="collapsible" id="tablesCollapsible">
-        <button class="collapsible-toggle" id="tablesToggle" type="button">
-          <span class="arrow">&#9656;</span>Included tables
-        </button>
-        <div class="collapsible-body" id="tablesBody">
-          <div class="select-shortcuts">
-            <button class="shortcut-btn" data-action="all">All</button>
-            <button class="shortcut-btn" data-action="none">None</button>
-            <button class="shortcut-btn" data-action="hard">Hard ones</button>
-          </div>
-          <div class="table-grid" id="tableGrid"></div>
         </div>
       </div>
     </div>
@@ -1070,13 +1049,12 @@
           <span class="problem-op">&times;</span>
           <span class="problem-num" id="numB">8</span>
           <span class="problem-eq">=</span>
+          <span class="answer-area" id="answerArea">
+            <input type="number" class="answer-input" id="answerInput" inputmode="numeric" autocomplete="off">
+          </span>
         </div>
       </div>
 
-      <div class="answer-area" id="answerArea">
-        <input type="number" class="answer-input" id="answerInput" inputmode="numeric" autocomplete="off">
-        <button class="submit-btn" id="submitBtn">GO</button>
-      </div>
       <div class="help-row" id="helpRow"></div>
       <button class="shortcut-btn" id="stopNowBtn" style="display:none; margin: 16px auto 0; display:block;">Stop now</button>
     </div>
@@ -1365,7 +1343,6 @@
     const numA = document.getElementById('numA');
     const numB = document.getElementById('numB');
     const answerInput = document.getElementById('answerInput');
-    const submitBtn = document.getElementById('submitBtn');
     const answerArea = document.getElementById('answerArea');
     const statsGrid = document.getElementById('statsGrid');
     const breakdownSection = document.getElementById('breakdownSection');
@@ -1662,7 +1639,8 @@
       hudScore.textContent = correctCount;
 
       answerInput.value = '';
-      answerInput.classList.remove('correct', 'wrong');
+      answerInput.classList.remove('correct', 'wrong', 'reveal');
+      answerInput.readOnly = false;
       wrongTriesForQuestion = 0;
       helpRevealed = false;
       helpRow.innerHTML = '';
@@ -1672,9 +1650,10 @@
     }
 
     // ── Submit answer ──
-    submitBtn.addEventListener('click', () => {
-      answerInput.focus();
-      checkAnswer();
+    answerInput.addEventListener('input', () => {
+      if (isTransitioning) return;
+      const q = questions[currentIndex];
+      if (q && answerInput.value.length >= String(q.answer).length) checkAnswer();
     });
     answerInput.addEventListener('keydown', e => {
       if (e.key === 'Enter') checkAnswer();
@@ -1706,13 +1685,13 @@
         answerTimes.push(elapsed);
 
         recordPerTable(q, true);
-        recordAnswer(currentDeck, q.key, wrongTriesForQuestion, elapsed * 1000);
+        const { rating } = recordAnswer(currentDeck, q.key, wrongTriesForQuestion, elapsed * 1000);
         saveStudentDeck(currentPlayer, currentDeck);
 
         answerInput.classList.add('correct');
         spawnPlusOne();
 
-        setTimeout(() => {
+        const proceed = () => {
           isTransitioning = false;
           if (sessionEnded) return;
           if (practiceMode === 'default') {
@@ -1723,6 +1702,25 @@
             }
           }
           advance();
+        };
+
+        setTimeout(() => {
+          if (rating === Rating.Easy) {
+            proceed();
+            return;
+          }
+
+          answerInput.readOnly = true;
+          answerInput.value = q.answer;
+          answerInput.classList.remove('correct');
+          answerInput.classList.add('reveal');
+
+          const revealMs = (rating === Rating.Again || rating === Rating.Hard) ? 2000 : 1000;
+          setTimeout(() => {
+            answerInput.classList.remove('reveal');
+            answerInput.readOnly = false;
+            proceed();
+          }, revealMs);
         }, 400);
       } else {
         wrongCount++;

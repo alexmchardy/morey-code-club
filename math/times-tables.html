@@ -1020,7 +1020,7 @@
 
       <div class="collapsible" id="tablesCollapsible">
         <button class="collapsible-toggle" id="tablesToggle" type="button">
-          <span class="arrow">&#9656;</span>Included tables
+          <span class="arrow">&#9656;</span>Included Tables
         </button>
         <div class="collapsible-body" id="tablesBody">
           <div class="select-shortcuts">
@@ -1034,7 +1034,7 @@
 
       <div class="collapsible" id="manualCollapsible">
         <button class="collapsible-toggle" id="manualToggle" type="button">
-          <span class="arrow">&#9656;</span>Manual practice
+          <span class="arrow">&#9656;</span>Manual Practice
         </button>
         <div class="collapsible-body" id="manualBody">
           <div class="section-label">Mode</div>
@@ -1618,7 +1618,10 @@
       const firstKey = pickNextCard(currentDeck, sessionState);
       if (firstKey === null) {
         // Nothing due or new for the current table selection — nothing to practice.
-        alert("No cards to practice yet! Try selecting more tables under Included tables.");
+        const allTablesIncluded = currentDeck.includedTables.length === TABLES.length;
+        alert(allTablesIncluded
+          ? "You finished all the multiplication facts that are due now. If you want to keep going, try Manual Practice."
+          : "You finished all the multiplication facts that are due now. Select more Included Tables to keep going.");
         return;
       }
       questions.push(questionFromKey(firstKey));

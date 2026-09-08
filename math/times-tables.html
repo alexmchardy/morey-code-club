@@ -352,6 +352,27 @@
       color: var(--accent);
     }
 
+    .chart-toggle-btn {
+      font-family: 'Cause', sans-serif;
+      font-size: 11px;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .chart-toggle-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .chart-toggle-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
     .collapsible {
       margin-bottom: 16px;
     }
@@ -580,7 +601,7 @@
 
     .stats-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 10px;
       margin-bottom: 24px;
     }
@@ -589,7 +610,7 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 14px;
+      padding: 10px;
       text-align: center;
     }
     .stat-label {
@@ -601,7 +622,7 @@
     }
     .stat-value {
       font-family: 'Press Start 2P', monospace;
-      font-size: 18px;
+      font-size: 14px;
       color: var(--accent);
     }
     .stat-value.green { color: var(--accent-green); }
@@ -609,42 +630,68 @@
     .stat-value.yellow { color: var(--accent-yellow); }
     .stat-value.pink { color: var(--accent-pink); }
 
-    .breakdown-section {
+    /* ── HISTORY CHART ── */
+
+    .history-chart-section {
       margin-bottom: 24px;
+      padding: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
     }
-    .breakdown-section h3 {
+    .history-chart-section h3 {
       font-family: 'Press Start 2P', monospace;
       font-size: 10px;
       color: var(--text-dim);
       margin-bottom: 12px;
     }
-
-    .breakdown-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-      gap: 8px;
+    .chart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
     }
-
-    .breakdown-item {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px;
-      text-align: center;
+    .chart-header h3 {
+      margin-bottom: 0;
     }
-    .breakdown-table {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--text-dim);
-      margin-bottom: 4px;
+    #historyChart svg,
+    #masteryChart svg {
+      width: 100%;
+      height: auto;
+      overflow: visible;
     }
-    .breakdown-pct {
-      font-family: 'Press Start 2P', monospace;
+    #historyChart .history-line {
+      fill: none;
+      stroke-width: 2;
+    }
+    #historyChart .history-dot {
+      stroke: var(--surface);
+      stroke-width: 1;
+    }
+    #historyChart .history-wrong-mark {
+      fill: var(--accent-red);
       font-size: 12px;
+      font-weight: 700;
     }
-    .breakdown-pct.perfect { color: var(--accent-green); }
-    .breakdown-pct.good { color: var(--accent-yellow); }
-    .breakdown-pct.needs-work { color: var(--accent-red); }
+    #historyChart .history-label {
+      font-size: 10px;
+      font-weight: 700;
+    }
+    #masteryChart .mastery-label {
+      font-size: 11px;
+      font-weight: 700;
+    }
+    #historyChart .history-axis text,
+    #masteryChart .history-axis text {
+      fill: var(--text-dim);
+      font-size: 9px;
+    }
+    #historyChart .history-axis path,
+    #historyChart .history-axis line,
+    #masteryChart .history-axis path,
+    #masteryChart .history-axis line {
+      stroke: var(--border);
+    }
 
     .done-btn {
       font-family: 'Press Start 2P', monospace;
@@ -668,49 +715,10 @@
       transform: translateY(0);
     }
 
-    /* ── ALL-TIME STATS ── */
-
-    .alltime-section {
-      margin-bottom: 24px;
-      padding: 16px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-    }
-    .alltime-section h3 {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 10px;
-      color: var(--accent);
-      margin-bottom: 14px;
-    }
-    .alltime-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
-    }
-    .alltime-item {
-      text-align: center;
-    }
-    .alltime-label {
-      font-size: 10px;
-      color: var(--text-dim);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 4px;
-    }
-    .alltime-value {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 14px;
-      color: var(--accent);
-    }
-
-    body.light .alltime-section {
+    body.light .history-chart-section {
       background: #fff;
       border-color: rgba(0,0,0,0.08);
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-    }
-    body.light .alltime-section h3 {
-      color: #2196f3;
     }
 
     /* ── HELP ── */
@@ -953,12 +961,6 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
     }
 
-    body.light .breakdown-item {
-      background: #fff;
-      border-color: rgba(0,0,0,0.08);
-      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-    }
-
     body.light .done-btn {
       background: linear-gradient(135deg, #2196f3, #1565c0);
       box-shadow: 0 4px 16px rgba(33, 150, 243, 0.3);
@@ -971,6 +973,18 @@
     body.light .shortcut-btn:hover {
       border-color: var(--accent);
       color: var(--accent);
+    }
+
+    body.light .chart-toggle-btn {
+      border-color: rgba(0,0,0,0.15);
+      color: #888;
+    }
+    body.light .chart-toggle-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    body.light .chart-toggle-btn.active {
+      color: #fff;
     }
 
     body.light .theme-toggle,
@@ -1109,17 +1123,16 @@
         <h2 id="resultsHeading">Nice Work!</h2>
       </div>
       <div class="stats-grid" id="statsGrid"></div>
-      <div class="breakdown-section" id="masterySection" style="display:none">
-        <h3>Mastery</h3>
-        <div class="breakdown-grid" id="masteryGrid"></div>
+      <div class="history-chart-section" id="masterySection" style="display:none">
+        <h3>Mastery Over Time</h3>
+        <div id="masteryChart"></div>
       </div>
-      <div class="breakdown-section" id="breakdownSection">
-        <h3>Per-Table Breakdown</h3>
-        <div class="breakdown-grid" id="breakdownGrid"></div>
-      </div>
-      <div class="alltime-section" id="alltimeSection" style="display:none">
-        <h3 id="alltimeHeading">All-Time Stats</h3>
-        <div class="alltime-grid" id="alltimeGrid"></div>
+      <div class="history-chart-section" id="historyChartSection" style="display:none">
+        <div class="chart-header">
+          <h3>Answer Times</h3>
+          <button class="chart-toggle-btn" id="historyAllToggle">All</button>
+        </div>
+        <div id="historyChart"></div>
       </div>
       <button class="done-btn" id="doneBtn">Done</button>
     </div>
@@ -1127,6 +1140,7 @@
 
   <script type="module">
     import * as tsFsrs from 'https://cdn.jsdelivr.net/npm/ts-fsrs@5.4.1/+esm';
+    import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7/+esm';
     const { createEmptyCard, fsrs, Rating, State } = tsFsrs;
 
     const TABLES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
@@ -1337,6 +1351,8 @@
     let timerInterval = null;
     let timeRemaining = 0;
     let perTable = {};
+    let sessionCardKeys = new Set();
+    let historyShowAll = false;
     let isTransitioning = false;
     let lastQuestion = null;
     let wrongTriesForQuestion = 0;
@@ -1380,10 +1396,11 @@
     const answerInput = document.getElementById('answerInput');
     const answerArea = document.getElementById('answerArea');
     const statsGrid = document.getElementById('statsGrid');
-    const breakdownSection = document.getElementById('breakdownSection');
-    const breakdownGrid = document.getElementById('breakdownGrid');
+    const historyChartSection = document.getElementById('historyChartSection');
+    const historyChart = document.getElementById('historyChart');
+    const historyAllToggle = document.getElementById('historyAllToggle');
     const masterySection = document.getElementById('masterySection');
-    const masteryGrid = document.getElementById('masteryGrid');
+    const masteryChart = document.getElementById('masteryChart');
     const doneBtn = document.getElementById('doneBtn');
     const helpRow = document.getElementById('helpRow');
     const themeToggle = document.getElementById('themeToggle');
@@ -1391,9 +1408,6 @@
     const nameInput = document.getElementById('nameInput');
     const savedNamesEl = document.getElementById('savedNames');
     const resultsHeading = document.getElementById('resultsHeading');
-    const alltimeSection = document.getElementById('alltimeSection');
-    const alltimeHeading = document.getElementById('alltimeHeading');
-    const alltimeGrid = document.getElementById('alltimeGrid');
     const stopNowBtn = document.getElementById('stopNowBtn');
     const checkpointOverlay = document.getElementById('checkpointOverlay');
     const keepGoingBtn = document.getElementById('keepGoingBtn');
@@ -1407,6 +1421,96 @@
       document.getElementById('tablesCollapsible').classList.toggle('open');
     });
 
+    // Saves a JSON-able history store, and if localStorage is over quota,
+    // shrinks it via `shrink` and retries once before giving up silently —
+    // these history stores aren't essential to practice working.
+    function saveHistoryStore(storageKey, data, shrink) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(data));
+      } catch (e) {
+        shrink(data);
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(data));
+        } catch (e2) {
+          // Still over quota after shrinking — give up silently.
+        }
+      }
+    }
+
+    // ── Per-card answer-time history ──
+    const CARD_HISTORY_KEY = 'tt-card-history';
+    const CARD_HISTORY_LIMIT = 500;
+
+    function loadCardHistory() {
+      try { return JSON.parse(localStorage.getItem(CARD_HISTORY_KEY)) || {}; }
+      catch { return {}; }
+    }
+
+    // Drops the oldest half of every card's history across all players, freeing
+    // roughly half the store's space so a retry after a quota error can succeed.
+    function halveCardHistory(history) {
+      for (const player of Object.keys(history)) {
+        for (const key of Object.keys(history[player])) {
+          const entries = history[player][key];
+          history[player][key] = entries.slice(-Math.ceil(entries.length / 2));
+        }
+      }
+    }
+
+    function getCardHistory(player, key) {
+      const history = loadCardHistory();
+      return (history[player] && history[player][key]) || [];
+    }
+
+    function getAllCardKeysWithHistory(player) {
+      const history = loadCardHistory();
+      return history[player] ? Object.keys(history[player]) : [];
+    }
+
+    function recordCardHistory(player, key, entry) {
+      if (!player) return;
+      const history = loadCardHistory();
+      if (!history[player]) history[player] = {};
+      if (!history[player][key]) history[player][key] = [];
+      history[player][key].push(entry);
+      if (history[player][key].length > CARD_HISTORY_LIMIT) {
+        history[player][key] = history[player][key].slice(-CARD_HISTORY_LIMIT);
+      }
+      saveHistoryStore(CARD_HISTORY_KEY, history, halveCardHistory);
+    }
+
+    // ── Mastery-bucket history (one snapshot per session) ──
+    const MASTERY_HISTORY_KEY = 'tt-mastery-history';
+    const MASTERY_HISTORY_LIMIT = 200;
+
+    function loadMasteryHistory() {
+      try { return JSON.parse(localStorage.getItem(MASTERY_HISTORY_KEY)) || {}; }
+      catch { return {}; }
+    }
+
+    function halveMasteryHistory(history) {
+      for (const player of Object.keys(history)) {
+        const entries = history[player];
+        history[player] = entries.slice(-Math.ceil(entries.length / 2));
+      }
+    }
+
+    function getMasteryHistory(player) {
+      const history = loadMasteryHistory();
+      return history[player] || [];
+    }
+
+    function recordMasterySnapshot(player, buckets) {
+      if (!player) return;
+      const history = loadMasteryHistory();
+      if (!history[player]) history[player] = [];
+      history[player].push({ t: Date.now(), ...buckets });
+      if (history[player].length > MASTERY_HISTORY_LIMIT) {
+        history[player] = history[player].slice(-MASTERY_HISTORY_LIMIT);
+      }
+      saveHistoryStore(MASTERY_HISTORY_KEY, history, halveMasteryHistory);
+    }
+
     // ── Player name & saved stats ──
     const STORAGE_KEY = 'tt-players';
 
@@ -1417,14 +1521,6 @@
 
     function savePlayers(players) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
-    }
-
-    function getPlayerStats(name) {
-      const players = loadPlayers();
-      return players[name] || {
-        sessions: 0, totalCorrect: 0, totalWrong: 0,
-        bestStreak: 0, fastestTime: null
-      };
     }
 
     function saveSessionStats() {
@@ -1601,6 +1697,7 @@
       bestStreak = 0;
       answerTimes = [];
       perTable = {};
+      sessionCardKeys = new Set();
       lastQuestion = null;
       isTransitioning = false;
       questionsAnswered = 0;
@@ -1677,6 +1774,7 @@
 
     function showQuestion() {
       const q = questions[currentIndex];
+      sessionCardKeys.add(q.key);
       numA.textContent = q.a;
       numB.textContent = q.b;
 
@@ -1742,6 +1840,7 @@
         answerTimes.push(elapsed);
 
         recordPerTable(q, true);
+        recordCardHistory(currentPlayer, q.key, { t: Date.now(), elapsed, wrong: wrongTriesForQuestion > 0 });
         const { rating } = recordAnswer(currentDeck, q.key, wrongTriesForQuestion, elapsed * 1000);
         saveStudentDeck(currentPlayer, currentDeck);
 
@@ -1795,8 +1894,6 @@
         if (wrongTriesForQuestion >= 3 && !helpRevealed) {
           showHelpButton(q);
         }
-
-        questionStartTime = performance.now();
       }
     }
 
@@ -1870,6 +1967,9 @@
         timerInterval = null;
       }
       saveSessionStats();
+      if (practiceMode === 'default' && currentDeck) {
+        recordMasterySnapshot(currentPlayer, masteryBuckets(currentDeck));
+      }
       showScreen(resultsScreen);
       renderResults();
       fireConfetti();
@@ -1905,111 +2005,189 @@
           <div class="stat-label">Avg Time</div>
           <div class="stat-value yellow">${avgTime}s</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Fastest</div>
-          <div class="stat-value yellow">${fastest}s</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Best Streak</div>
-          <div class="stat-value pink">${bestStreak}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Wrong</div>
-          <div class="stat-value red">${wrongCount}</div>
-        </div>
       `;
 
-      const tableKeys = Object.keys(perTable).map(Number).sort((a, b) => a - b);
-      if (tableKeys.length > 1) {
-        breakdownSection.style.display = '';
-        breakdownGrid.innerHTML = tableKeys.map(t => {
-          const data = perTable[t];
-          const pct = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0;
-          let cls = 'needs-work';
-          if (pct === 100) cls = 'perfect';
-          else if (pct >= 70) cls = 'good';
-          return `
-            <div class="breakdown-item">
-              <div class="breakdown-table">${t}s</div>
-              <div class="breakdown-pct ${cls}">${pct}%</div>
-            </div>
-          `;
-        }).join('');
-      } else {
-        breakdownSection.style.display = 'none';
-      }
-
-      if (practiceMode === 'default' && currentDeck) {
-        const buckets = masteryBuckets(currentDeck);
-        masterySection.style.display = '';
-        masteryGrid.innerHTML = `
-          <div class="breakdown-item">
-            <div class="breakdown-table">New</div>
-            <div class="breakdown-pct needs-work">${buckets.new}</div>
-          </div>
-          <div class="breakdown-item">
-            <div class="breakdown-table">Needs Work</div>
-            <div class="breakdown-pct good">${buckets.learning}</div>
-          </div>
-          <div class="breakdown-item">
-            <div class="breakdown-table">Pretty Good</div>
-            <div class="breakdown-pct good">${buckets.review}</div>
-          </div>
-          <div class="breakdown-item">
-            <div class="breakdown-table">Mastered</div>
-            <div class="breakdown-pct perfect">${buckets.mastered}</div>
-          </div>
-        `;
-      } else {
-        masterySection.style.display = 'none';
-      }
-
-      renderAlltimeStats();
+      renderMasteryChart();
+      renderHistoryChart();
     }
 
-    function renderAlltimeStats() {
+    const MASTERY_BUCKETS = [
+      { key: 'mastered', label: 'Memorized', color: 'var(--accent-green)', textColor: '#fff' },
+      { key: 'review', label: 'Pretty Good', color: 'var(--accent-yellow)', textColor: '#1a1a2e' },
+      { key: 'learning', label: 'Needs Work', color: 'var(--accent-red)', textColor: '#fff' },
+      { key: 'new', label: 'Not Seen', color: 'transparent', textColor: 'var(--text-dim)' },
+    ];
+
+    function renderMasteryChart() {
+      masteryChart.innerHTML = '';
+
+      if (practiceMode !== 'default' || !currentDeck || !currentPlayer) {
+        masterySection.style.display = 'none';
+        return;
+      }
+      const history = getMasteryHistory(currentPlayer);
+      if (history.length === 0) {
+        masterySection.style.display = 'none';
+        return;
+      }
+      masterySection.style.display = '';
+
+      // An area needs 2+ x positions — duplicate a single snapshot across the
+      // full width so a student's very first session still renders a chart.
+      const points = history.length > 1 ? history : [history[0], { ...history[0], t: history[0].t + 1 }];
+
+      const width = masteryChart.clientWidth || 320;
+      const height = 200;
+      const margin = { top: 16, right: 16, bottom: 24, left: 32 };
+
+      const stack = d3.stack().keys(MASTERY_BUCKETS.map(b => b.key));
+      const layers = stack(points);
+
+      const x = d3.scaleTime()
+        .domain(d3.extent(points, d => d.t))
+        .range([margin.left, width - margin.right]);
+      const y = d3.scaleLinear()
+        .domain([0, d3.max(layers[layers.length - 1], d => d[1])])
+        .nice()
+        .range([height - margin.bottom, margin.top]);
+
+      const svg = d3.select(masteryChart).append('svg')
+        .attr('viewBox', `0 0 ${width} ${height}`);
+
+      svg.append('g')
+        .attr('class', 'history-axis')
+        .attr('transform', `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(x).ticks(Math.min(6, points.length)));
+
+      svg.append('g')
+        .attr('class', 'history-axis')
+        .attr('transform', `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y).ticks(5));
+
+      const area = d3.area()
+        .x(d => x(d.data.t))
+        .y0(d => y(d[0]))
+        .y1(d => y(d[1]));
+
+      layers.forEach((layer, i) => {
+        const bucket = MASTERY_BUCKETS[i];
+        svg.append('path')
+          .datum(layer)
+          .attr('fill', bucket.color)
+          .attr('d', area);
+
+        const last = layer[layer.length - 1];
+        const bandHeight = y(last[0]) - y(last[1]);
+        if (bandHeight < 4) return;
+
+        svg.append('text')
+          .attr('class', 'mastery-label')
+          .attr('x', bucket.key === 'new' ? margin.left + 30 : x(last.data.t) - 8)
+          .attr('y', y((last[0] + last[1]) / 2))
+          .attr('text-anchor', 'end')
+          .attr('dominant-baseline', 'middle')
+          .attr('fill', bucket.textColor)
+          .text(bucket.label)
+      });
+      svg.selectAll('.mastery-label').raise();
+    }
+
+    // Distinct, high-contrast line colors, cycled if there are more cards than colors.
+    const HISTORY_COLORS = ['#00e5ff', '#ffe14d', '#3ddc84', '#ff4fa3', '#a78bfa', '#ff9f4d'];
+
+    function renderHistoryChart() {
+      historyChart.innerHTML = '';
+
       if (!currentPlayer) {
-        alltimeSection.style.display = 'none';
-        return;
-      }
-      const s = getPlayerStats(currentPlayer);
-      if (s.sessions < 1) {
-        alltimeSection.style.display = 'none';
+        historyChartSection.style.display = 'none';
         return;
       }
 
-      alltimeSection.style.display = '';
-      alltimeHeading.textContent = currentPlayer + "'s All-Time Stats";
-      const allTotal = s.totalCorrect + s.totalWrong;
-      const allPct = allTotal > 0 ? Math.round((s.totalCorrect / allTotal) * 100) : 0;
-      const allFastest = s.fastestTime !== null ? s.fastestTime.toFixed(1) : '\u2014';
+      historyAllToggle.classList.toggle('active', historyShowAll);
 
-      alltimeGrid.innerHTML = `
-        <div class="alltime-item">
-          <div class="alltime-label">Sessions</div>
-          <div class="alltime-value">${s.sessions}</div>
-        </div>
-        <div class="alltime-item">
-          <div class="alltime-label">Correct</div>
-          <div class="alltime-value" style="color:var(--accent-green)">${allPct}%</div>
-        </div>
-        <div class="alltime-item">
-          <div class="alltime-label">Answered</div>
-          <div class="alltime-value">${allTotal}</div>
-        </div>
-        <div class="alltime-item">
-          <div class="alltime-label">Best Streak</div>
-          <div class="alltime-value" style="color:var(--accent-pink)">${s.bestStreak}</div>
-        </div>
-        <div class="alltime-item">
-          <div class="alltime-label">Fastest</div>
-          <div class="alltime-value" style="color:var(--accent-yellow)">${allFastest}s</div>
-        </div>
-        <div class="alltime-item">
-          <div class="alltime-label">Total Wrong</div>
-          <div class="alltime-value" style="color:var(--accent-red)">${s.totalWrong}</div>
-        </div>
-      `;
+      const cardKeys = historyShowAll ? getAllCardKeysWithHistory(currentPlayer) : [...sessionCardKeys];
+      const series = cardKeys
+        .map(key => ({ key, points: getCardHistory(currentPlayer, key) }))
+        .filter(s => s.points.length > 0);
+
+      if (series.length === 0) {
+        historyChartSection.style.display = 'none';
+        return;
+      }
+      historyChartSection.style.display = '';
+
+      const width = historyChart.clientWidth || 320;
+      const labelSpace = 60;
+      const height = 220;
+      const margin = { top: 16, right: labelSpace, bottom: 24, left: 32 };
+
+      const allPoints = series.flatMap(s => s.points);
+      const x = d3.scaleTime()
+        .domain(d3.extent(allPoints, d => d.t))
+        .range([margin.left, width - margin.right]);
+      const y = d3.scaleLinear()
+        .domain([0, d3.max(allPoints, d => d.elapsed) * 1.1])
+        .nice()
+        .range([height - margin.bottom, margin.top]);
+
+      const svg = d3.select(historyChart).append('svg')
+        .attr('viewBox', `0 0 ${width} ${height}`);
+
+      svg.append('g')
+        .attr('class', 'history-axis')
+        .attr('transform', `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(x).ticks(Math.min(6, allPoints.length)));
+
+      svg.append('g')
+        .attr('class', 'history-axis')
+        .attr('transform', `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y).ticks(5).tickFormat(v => v + 's'));
+
+      const line = d3.line()
+        .x(d => x(d.t))
+        .y(d => y(d.elapsed));
+
+      series.forEach((s, i) => {
+        const color = HISTORY_COLORS[i % HISTORY_COLORS.length];
+        const sorted = [...s.points].sort((a, b) => a.t - b.t);
+
+        svg.append('path')
+          .datum(sorted)
+          .attr('class', 'history-line')
+          .attr('stroke', color)
+          .attr('d', line);
+
+        svg.selectAll(null)
+          .data(sorted.filter(d => !d.wrong))
+          .enter()
+          .append('circle')
+          .attr('class', 'history-dot')
+          .attr('cx', d => x(d.t))
+          .attr('cy', d => y(d.elapsed))
+          .attr('r', 3.5)
+          .attr('fill', color);
+
+        svg.selectAll(null)
+          .data(sorted.filter(d => d.wrong))
+          .enter()
+          .append('text')
+          .attr('class', 'history-wrong-mark')
+          .attr('x', d => x(d.t))
+          .attr('y', d => y(d.elapsed))
+          .attr('text-anchor', 'middle')
+          .attr('dominant-baseline', 'central')
+          .text('✕');
+
+        const last = sorted[sorted.length - 1];
+        const { lo, hi } = pairFromKey(s.key);
+        svg.append('text')
+          .attr('class', 'history-label')
+          .attr('x', x(last.t) + 6)
+          .attr('y', y(last.elapsed))
+          .attr('dominant-baseline', 'middle')
+          .attr('fill', color)
+          .text(`${lo}\u00d7${hi}`);
+      });
     }
 
     function fireConfetti() {
@@ -2055,6 +2233,11 @@
 
     const savedTheme = localStorage.getItem('tt-theme');
     if (savedTheme === 'light') setTheme(true);
+
+    historyAllToggle.addEventListener('click', () => {
+      historyShowAll = !historyShowAll;
+      renderHistoryChart();
+    });
 
     // ── Play Again ──
     doneBtn.addEventListener('click', async () => {

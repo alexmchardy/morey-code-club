@@ -2082,9 +2082,9 @@
 
         svg.append('text')
           .attr('class', 'mastery-label')
-          .attr('x', bucket.key === 'new' ? margin.left + 30 : x(last.data.t) - 8)
+          .attr('x', bucket.key === 'new' ? margin.left + 10 : x(last.data.t) - 8)
           .attr('y', y((last[0] + last[1]) / 2))
-          .attr('text-anchor', 'end')
+          .attr('text-anchor', bucket.key === 'new' ? 'start' : 'end')
           .attr('dominant-baseline', 'middle')
           .attr('fill', bucket.textColor)
           .text(bucket.label)

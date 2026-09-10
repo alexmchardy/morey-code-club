@@ -792,6 +792,32 @@
       gap: 10px;
       margin-top: 20px;
     }
+    .info-text {
+      text-align: left;
+      line-height: 1.5;
+      color: var(--text);
+      font-size: 15px;
+    }
+
+    .info-btn {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      margin-left: 16px;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--accent);
+      background: transparent;
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .info-btn:hover {
+      background: var(--accent);
+      color: var(--bg);
+    }
 
     body.light .checkpoint-card {
       background: #fff;
@@ -1018,7 +1044,7 @@
   <button class="theme-toggle" id="themeToggle" title="Toggle light/dark mode">&#x1F31E;</button>
   <button class="stop-practice-btn" id="stopPracticeBtn" title="Stop practice" style="display:none;">&times;</button>
   <div class="app">
-    <h1>Times Tables</h1>
+    <h1>Times Tables <button class="info-btn" id="infoBtn" title="About this app" aria-label="About this app">?</button></h1>
 
     <!-- ── SETUP SCREEN ── -->
     <div id="setupScreen" class="screen active">
@@ -1105,6 +1131,16 @@
 
       <div class="help-row" id="helpRow"></div>
       <button class="shortcut-btn" id="stopNowBtn" style="display:none; margin: 16px auto 0; display:block;">Stop now</button>
+    </div>
+
+    <div class="checkpoint-overlay" id="infoOverlay" style="display:none">
+      <div class="checkpoint-card">
+        <h2>About this app</h2>
+        <p class="info-text">This little app uses "spaced repetition" to help you remember your multiplication facts. If you use the app on the same device each day, it will remember which facts you struggled with and it will show them to you again. Have fun!</p>
+        <div class="checkpoint-actions">
+          <button class="done-btn" id="closeInfoBtn">Got it!</button>
+        </div>
+      </div>
     </div>
 
     <div class="checkpoint-overlay" id="checkpointOverlay" style="display:none">
@@ -1675,6 +1711,7 @@
       const inPractice = screen === practiceScreen;
       themeToggle.style.display = inPractice ? 'none' : 'flex';
       stopPracticeBtn.style.display = inPractice ? 'flex' : 'none';
+      infoBtn.style.display = inPractice ? 'none' : 'inline-flex';
     }
 
     stopPracticeBtn.addEventListener('click', () => {
@@ -2229,6 +2266,20 @@
 
     themeToggle.addEventListener('click', () => {
       setTheme(!document.body.classList.contains('light'));
+    });
+
+    const infoBtn = document.getElementById('infoBtn');
+    const infoOverlay = document.getElementById('infoOverlay');
+    const closeInfoBtn = document.getElementById('closeInfoBtn');
+
+    infoBtn.addEventListener('click', () => {
+      infoOverlay.style.display = 'flex';
+    });
+    closeInfoBtn.addEventListener('click', () => {
+      infoOverlay.style.display = 'none';
+    });
+    infoOverlay.addEventListener('click', e => {
+      if (e.target === infoOverlay) infoOverlay.style.display = 'none';
     });
 
     const savedTheme = localStorage.getItem('tt-theme');
